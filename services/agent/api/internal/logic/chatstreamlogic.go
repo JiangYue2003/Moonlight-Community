@@ -17,6 +17,7 @@ import (
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/observability"
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/types"
+	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
 )
 
 type ChatStreamLogic struct {
@@ -84,7 +85,8 @@ func (l *ChatStreamLogic) Run(w http.ResponseWriter, req *types.ChatStreamReq) e
 	l.sendEvent(w, flusher, "tool_result", map[string]any{"tool": "hybrid_retrieve", "citations": len(plan.Citations), "traceId": plan.TraceID})
 
 	summary, _ := l.svcCtx.Redis.Get(l.ctx, svc.SessionSummaryKey(userID, req.SessionID)).Result()
-	msgs := composeMessages(summary, plan.Prompt)
+	preferences := l.activePreferences(userID)
+	msgs := composeMessages(summary, plan.Prompt, preferences)
 	sessionMsgCount := l.sessionMessageCount(userID, req.SessionID)
 	decision := l.svcCtx.Router.Decide(l.ctx, svc.RouteScenarioChat, svc.RouteInput{
 		Question:        question,
@@ -184,6 +186,18 @@ func (l *ChatStreamLogic) Run(w http.ResponseWriter, req *types.ChatStreamReq) e
 	_ = l.compactSession(userID, req.SessionID)
 	_, _ = l.svcCtx.Db.ExecCtx(l.ctx, "UPDATE agent_sessions SET updated_at=? WHERE session_id=? AND user_id=?", now, req.SessionID, userID)
 	return nil
+}
+
+func (l *ChatStreamLogic) activePreferences(userID int64) []memory.Preference {
+	if l.svcCtx == nil || l.svcCtx.Preferences == nil || userID <= 0 {
+		return nil
+	}
+	items, err := l.svcCtx.Preferences.ListActivePreferences(l.ctx, userID, 3)
+	if err != nil {
+		l.Logger.Errorf("agent preference load failed user=%d err=%v", userID, err)
+		return nil
+	}
+	return items
 }
 
 func (l *ChatStreamLogic) mustOwnSession(userID int64, sessionID string) error {

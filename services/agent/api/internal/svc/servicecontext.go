@@ -45,6 +45,7 @@ type ServiceContext struct {
 
 	MemoryFacts   memory.FactStore
 	MemoryVectors memory.VectorStore
+	Preferences   memory.PreferenceStore
 	Obs           *observability.AgentObservability
 
 	RateLimit *ratelimit.TokenBucket
@@ -162,6 +163,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	sc.MemoryFacts = memoryproviders.NewMySQLFactStore(sc.Db)
 	sc.MemoryVectors = memoryproviders.NewMilvusFactVectorStore(c.Agent.EnableMilvus, sc.Milvus, c.Milvus.MemoryCollection, c.Milvus.VectorField, c.Milvus.VectorDim)
+	sc.Preferences = memoryproviders.NewMySQLPreferenceStore(sc.Db)
 	sc.Obs = observability.NewAgentObservability(c.Agent.Observability, c.Agent.ModelCost)
 	sc.Router = NewModelRouter(c.Agent.ModelRoute, sc.Redis, sc.ChatLite, sc.ChatPro, sc.Obs)
 	return sc
@@ -292,6 +294,22 @@ func (s *ServiceContext) ensureTables(ctx context.Context) error {
 			updated_at BIGINT NOT NULL,
 			UNIQUE KEY uk_fact (user_id, subject, predicate, version, fact_id),
 			INDEX idx_user_created (user_id, created_at)
+		)`,
+		`CREATE TABLE IF NOT EXISTS agent_memory_preferences (
+			id BIGINT AUTO_INCREMENT PRIMARY KEY,
+			user_id BIGINT NOT NULL,
+			preference_id VARCHAR(64) NOT NULL,
+			kind VARCHAR(64) NOT NULL,
+			content VARCHAR(512) NOT NULL,
+			confidence DOUBLE NOT NULL,
+			source VARCHAR(64) NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'active',
+			last_seen_at BIGINT NOT NULL,
+			created_at BIGINT NOT NULL,
+			updated_at BIGINT NOT NULL,
+			UNIQUE KEY uk_preference (user_id, preference_id),
+			INDEX idx_user_kind (user_id, kind, updated_at),
+			INDEX idx_user_status (user_id, status, updated_at)
 		)`,
 	}
 	for _, q := range stmts {

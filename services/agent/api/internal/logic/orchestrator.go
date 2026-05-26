@@ -549,13 +549,49 @@ func userIDFromCtx(ctx context.Context) int64 {
 
 func nowMs() int64 { return time.Now().UnixMilli() }
 
-func composeMessages(summary, prompt string) []*schema.Message {
+func composeMessages(summary, prompt string, prefs []memory.Preference) []*schema.Message {
 	msgs := []*schema.Message{schema.SystemMessage("你是中文个人知识助手，回答必须简洁并引用上下文。")}
+	for _, pref := range buildPreferenceSystemMessages(prefs) {
+		msgs = append(msgs, schema.SystemMessage(pref))
+	}
 	if strings.TrimSpace(summary) != "" {
 		msgs = append(msgs, schema.SystemMessage("会话摘要："+summary))
 	}
 	msgs = append(msgs, schema.UserMessage(prompt))
 	return msgs
+}
+
+func buildPreferenceSystemMessages(prefs []memory.Preference) []string {
+	if len(prefs) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(prefs))
+	seenKinds := map[string]struct{}{}
+	for _, pref := range prefs {
+		if pref.Confidence < 0.7 {
+			continue
+		}
+		kind := strings.TrimSpace(pref.Kind)
+		if _, ok := seenKinds[kind]; ok {
+			continue
+		}
+		text := strings.TrimSpace(pref.Content)
+		if text == "" {
+			continue
+		}
+		switch kind {
+		case "response_style":
+			out = append(out, "用户偏好回答风格："+text)
+		case "focus_area":
+			out = append(out, "用户当前重点关注："+text)
+		case "working_preference":
+			out = append(out, "用户工作偏好："+text)
+		default:
+			continue
+		}
+		seenKinds[kind] = struct{}{}
+	}
+	return out
 }
 
 func asInt(v any) (int, bool) {

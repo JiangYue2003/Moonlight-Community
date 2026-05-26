@@ -35,6 +35,13 @@ type factCard struct {
 	SourceRef  string  `json:"sourceRef"`
 }
 
+type preferenceCard struct {
+	Kind       string  `json:"kind"`
+	Content    string  `json:"content"`
+	Confidence float64 `json:"confidence"`
+	Source     string  `json:"source"`
+}
+
 func NewMemoryPinLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MemoryPinLogic {
 	return &MemoryPinLogic{Logger: logx.WithContext(ctx), ctx: ctx, svcCtx: svcCtx}
 }
@@ -63,9 +70,9 @@ func (l *MemoryPinLogic) Pin(req *types.MemoryPinReq) (*types.MemoryPinResp, err
 func (l *MemoryPinLogic) extractFactsAsync(ctx context.Context, userID int64, sessionID, content string, ts int64) {
 	tctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
-	prompt := fmt.Sprintf("请将以下文本抽取为事实三元组JSON数组。每项字段: subject,predicate,object,confidence(0-1),sourceRef。只输出JSON，不要解释。文本：%s", content)
+	prompt := fmt.Sprintf("请将以下文本抽取为JSON对象，包含 facts 和 preferences 两个数组。facts 每项字段: subject,predicate,object,confidence(0-1),sourceRef。preferences 每项字段: kind,content,confidence(0-1),source，kind 仅允许 response_style、focus_area、working_preference；只提取稳定长期偏好，不要提取一次性要求；只输出JSON。文本：%s", content)
 	msgs := []*schema.Message{
-		schema.SystemMessage("你是知识抽取器。只输出合法JSON数组。"),
+		schema.SystemMessage("你是知识与偏好抽取器。只输出合法JSON对象。"),
 		schema.UserMessage(prompt),
 	}
 	decision := l.svcCtx.Router.Decide(tctx, svc.RouteScenarioFactExtract, svc.RouteInput{PinContent: content})
@@ -99,7 +106,7 @@ func (l *MemoryPinLogic) extractFactsAsync(ctx context.Context, userID int64, se
 		return
 	}
 	l.recordGenerateTelemetry(sessionID, content, resp.Content, usedModel, callStatus, callStart, observability.ExtractUsageFromMessage(resp))
-	cards, err := parseFactCards(resp.Content)
+	cards, prefs, err := parseMemoryExtraction(resp.Content)
 	if err != nil {
 		l.Logger.Errorf("extractFacts parse err=%v", err)
 		return
@@ -127,15 +134,15 @@ func (l *MemoryPinLogic) extractFactsAsync(ctx context.Context, userID int64, se
 		embedTexts = append(embedTexts, formatFactForEmbedding(f))
 	}
 	if len(facts) == 0 {
-		return
+		// continue to preference persistence if any
 	}
-	if l.svcCtx.MemoryFacts != nil {
+	if len(facts) > 0 && l.svcCtx.MemoryFacts != nil {
 		if err := l.svcCtx.MemoryFacts.UpsertFacts(tctx, userID, facts); err != nil {
 			l.Logger.Errorf("extractFacts upsert mysql err=%v", err)
 			return
 		}
 	}
-	if l.svcCtx.MemoryVectors != nil && l.svcCtx.Milvus != nil && l.svcCtx.Config.Agent.EnableMilvus {
+	if len(facts) > 0 && l.svcCtx.MemoryVectors != nil && l.svcCtx.Milvus != nil && l.svcCtx.Config.Agent.EnableMilvus {
 		vecs, err := llmx.EmbedFloat32(tctx, l.svcCtx.Embed, embedTexts)
 		if err != nil || len(vecs) != len(facts) {
 			if err == nil {
@@ -150,6 +157,29 @@ func (l *MemoryPinLogic) extractFactsAsync(ctx context.Context, userID int64, se
 		}
 		if err := l.svcCtx.MemoryVectors.UpsertFactVectors(tctx, userID, fvs); err != nil {
 			l.Logger.Errorf("extractFacts upsert milvus err=%v", err)
+		}
+	}
+	preferences := make([]memory.Preference, 0, len(prefs))
+	for _, p := range prefs {
+		pref := memory.Preference{
+			PreferenceID: preferenceID(userID, p.Kind, p.Content),
+			Kind:         svc.TrimContent(p.Kind, 64),
+			Content:      svc.TrimContent(p.Content, 512),
+			Confidence:   p.Confidence,
+			Source:       svc.TrimContent(p.Source, 64),
+			Status:       "active",
+			LastSeenAt:   ts,
+			CreatedAt:    ts,
+			UpdatedAt:    time.Now().UnixMilli(),
+		}
+		if !validPreference(pref) {
+			continue
+		}
+		preferences = append(preferences, pref)
+	}
+	if len(preferences) > 0 && l.svcCtx.Preferences != nil {
+		if err := l.svcCtx.Preferences.UpsertPreferences(tctx, userID, preferences); err != nil {
+			l.Logger.Errorf("extractPreferences upsert mysql err=%v", err)
 		}
 	}
 }
@@ -173,6 +203,45 @@ func parseFactCards(raw string) ([]factCard, error) {
 	return nil, fmt.Errorf("invalid fact json")
 }
 
+func parsePreferenceCards(raw string) ([]preferenceCard, error) {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimPrefix(raw, "```json")
+	raw = strings.TrimPrefix(raw, "```")
+	raw = strings.TrimSuffix(raw, "```")
+	raw = strings.TrimSpace(raw)
+	var cards []preferenceCard
+	if err := json.Unmarshal([]byte(raw), &cards); err == nil {
+		return cards, nil
+	}
+	var wrapped struct {
+		Items []preferenceCard `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(raw), &wrapped); err == nil {
+		return wrapped.Items, nil
+	}
+	return nil, fmt.Errorf("invalid preference json")
+}
+
+func parseMemoryExtraction(raw string) ([]factCard, []preferenceCard, error) {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimPrefix(raw, "```json")
+	raw = strings.TrimPrefix(raw, "```")
+	raw = strings.TrimSuffix(raw, "```")
+	raw = strings.TrimSpace(raw)
+	var payload struct {
+		Facts       []factCard       `json:"facts"`
+		Preferences []preferenceCard `json:"preferences"`
+	}
+	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+		return payload.Facts, payload.Preferences, nil
+	}
+	facts, ferr := parseFactCards(raw)
+	if ferr == nil {
+		return facts, nil, nil
+	}
+	return nil, nil, fmt.Errorf("invalid memory extraction json")
+}
+
 func validFact(c factCard) bool {
 	if strings.TrimSpace(c.Subject) == "" || strings.TrimSpace(c.Predicate) == "" || strings.TrimSpace(c.Object) == "" {
 		return false
@@ -183,8 +252,34 @@ func validFact(c factCard) bool {
 	return true
 }
 
+func validPreference(p memory.Preference) bool {
+	if strings.TrimSpace(p.Kind) == "" || strings.TrimSpace(p.Content) == "" {
+		return false
+	}
+	if p.Confidence < 0.7 {
+		return false
+	}
+	switch strings.TrimSpace(p.Kind) {
+	case "response_style", "focus_area", "working_preference":
+	default:
+		return false
+	}
+	lower := strings.ToLower(strings.TrimSpace(p.Content))
+	for _, bad := range []string{"这次", "本次", "先", "暂时", "临时"} {
+		if strings.Contains(lower, bad) {
+			return false
+		}
+	}
+	return true
+}
+
 func factID(userID int64, s, p, o string) string {
 	h := sha1.Sum([]byte(fmt.Sprintf("%d|%s|%s|%s", userID, s, p, o)))
+	return hex.EncodeToString(h[:])
+}
+
+func preferenceID(userID int64, kind, content string) string {
+	h := sha1.Sum([]byte(fmt.Sprintf("%d|%s|%s", userID, strings.TrimSpace(kind), strings.TrimSpace(content))))
 	return hex.EncodeToString(h[:])
 }
 

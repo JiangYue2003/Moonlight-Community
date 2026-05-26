@@ -15,6 +15,18 @@ type Fact struct {
 	UpdatedAt   int64
 }
 
+type Preference struct {
+	PreferenceID string
+	Kind         string
+	Content      string
+	Confidence   float64
+	Source       string
+	Status       string
+	LastSeenAt   int64
+	CreatedAt    int64
+	UpdatedAt    int64
+}
+
 type FactVector struct {
 	Fact   Fact
 	Vector []float32
@@ -42,4 +54,9 @@ type FactStore interface {
 type VectorStore interface {
 	UpsertFactVectors(ctx context.Context, userID int64, vectors []FactVector) error
 	SearchFactVectors(ctx context.Context, q Query) ([]ScoredFact, error)
+}
+
+type PreferenceStore interface {
+	UpsertPreferences(ctx context.Context, userID int64, prefs []Preference) error
+	ListActivePreferences(ctx context.Context, userID int64, limit int) ([]Preference, error)
 }

@@ -23,7 +23,7 @@
     - role: `异步知识索引服务`
     - protocol: `Kafka consumer + RPC + ES/Milvus writer`
 - storage_dependencies:
-  - `MySQL`: `会话/反馈/工具审计/长期记忆事实/索引状态`
+  - `MySQL`: `会话/反馈/工具审计/长期记忆事实/长期偏好记忆/索引状态`
   - `Redis`: `会话短期记忆+摘要+限流+模型熔断状态+去重`
   - `Elasticsearch`: `知识切块索引(文本+向量字段 embedding)`
   - `Milvus`: `知识向量库 + 记忆事实向量库`
@@ -189,7 +189,7 @@
 
 ### 4.3 Memory 技术构成
 - `短期记忆`: Redis list + summary key (TTL)
-- `长期记忆`: MySQL fact table + Milvus fact vectors
+- `长期记忆`: MySQL fact/preference tables + Milvus fact vectors
 - `写入模式`: API 异步触发，不阻塞主响应
 
 ### 4.4 Indexing 技术构成
@@ -211,6 +211,7 @@
 - `MemoryPinLogic.extractFactsAsync`:
   - model generate duration/tokens/cost/status
   - fallback record
+  - preference extraction + preference persistence
 
 ### 5.2 Prometheus 指标暴露
 - expose:
