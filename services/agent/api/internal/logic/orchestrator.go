@@ -51,6 +51,7 @@ type RetrievalBundle struct {
 	Question string
 	TopK     int
 	Intent   string
+	Meta     map[string]string
 	Milvus   []retrieval.ScoredItem
 	VectorES []retrieval.ScoredItem
 	Keyword  []retrieval.ScoredItem
@@ -89,6 +90,8 @@ type PlanSubQuery struct {
 type ReActState struct {
 	Question           string
 	CurrentQuery       string
+	SessionSummary     string
+	SessionMsgCount    int
 	StepIndex          int
 	MaxSteps           int
 	StartedAt          time.Time
@@ -254,11 +257,19 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	var bundle *RetrievalBundle
 	var err error
 	if o.shouldUseReAct(question) {
-		bundle, err = o.runReActLoop(o.ctx, userID, sessionID, traceID, strings.TrimSpace(question), topK)
+		summary := o.loadSessionSummary(userID, sessionID)
+		msgCount := o.loadSessionMessageCount(userID, sessionID)
+		bundle, err = o.runReActLoop(o.ctx, userID, sessionID, traceID, strings.TrimSpace(question), summary, msgCount, topK)
 		if err == nil && bundle != nil {
 			plan.ReactUsed = true
-			plan.ReactSteps = o.svcCtx.Config.Agent.React.MaxSteps
-			plan.ReactFinishReason = "react_completed"
+			plan.ReactSteps = parseBundleMetaInt(bundle, "react_steps")
+			plan.ReactFinishReason = bundle.Meta["react_finish_reason"]
+			if plan.ReactSteps <= 0 {
+				plan.ReactSteps = 1
+			}
+			if strings.TrimSpace(plan.ReactFinishReason) == "" {
+				plan.ReactFinishReason = "react_completed"
+			}
 		} else if err != nil {
 			plan.ReactFallbackReason = err.Error()
 		}
@@ -447,11 +458,13 @@ func (o *Orchestrator) evaluateEvidenceCoverage(state *ReActState, question stri
 	return cov
 }
 
-func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID, traceID, question string, topK int) (*RetrievalBundle, error) {
+func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID, traceID, question, summary string, sessionMsgCount, topK int) (*RetrievalBundle, error) {
 	cfg := o.svcCtx.Config.Agent.React
 	state := &ReActState{
 		Question:       question,
 		CurrentQuery:   question,
+		SessionSummary: summary,
+		SessionMsgCount: sessionMsgCount,
 		MaxSteps:       cfg.MaxSteps,
 		StartedAt:      time.Now(),
 		VisitedQueries: map[string]int{},
@@ -529,6 +542,12 @@ func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID
 		Question: question,
 		TopK:     topK,
 		Intent:   security.GuessIntent(question),
+		Meta: map[string]string{
+			"react_steps":          fmt.Sprintf("%d", len(state.ActionHistory)),
+			"react_finish_reason":  strings.TrimSpace(state.FinishReason),
+			"react_action_source":  strings.TrimSpace(state.LastActionSource),
+			"react_controller_err": fmt.Sprintf("%d", state.ControllerFailures),
+		},
 		Merged:   o.compressPlannedEvidence(state.EvidencePool, topK),
 	}, nil
 }
@@ -538,9 +557,11 @@ func (o *Orchestrator) decideReActAction(ctx context.Context, userID int64, sess
 		return nil, "", fmt.Errorf("react_router_missing")
 	}
 	decision := o.svcCtx.Router.Decide(ctx, svc.RouteScenarioChat, svc.RouteInput{
-		Question:    question,
-		Prompt:      state.CurrentQuery,
-		RecallCount: len(state.EvidencePool),
+		Question:        question,
+		Prompt:          state.CurrentQuery,
+		Summary:         state.SessionSummary,
+		RecallCount:     len(state.EvidencePool),
+		SessionMsgCount: state.SessionMsgCount,
 	})
 	msgs := o.buildControllerMessages(question, state, topK)
 	resp, err := decision.Model.Generate(ctx, msgs)
@@ -968,6 +989,28 @@ func (o *Orchestrator) hybridRetrieve(ctx context.Context, userID int64, session
 	}, nil
 }
 
+func (o *Orchestrator) loadSessionSummary(userID int64, sessionID string) string {
+	if o == nil || o.svcCtx == nil || o.svcCtx.Redis == nil || userID <= 0 || strings.TrimSpace(sessionID) == "" {
+		return ""
+	}
+	summary, err := o.svcCtx.Redis.Get(o.ctx, svc.SessionSummaryKey(userID, sessionID)).Result()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(summary)
+}
+
+func (o *Orchestrator) loadSessionMessageCount(userID int64, sessionID string) int {
+	if o == nil || o.svcCtx == nil || o.svcCtx.Redis == nil || userID <= 0 || strings.TrimSpace(sessionID) == "" {
+		return 0
+	}
+	vals, err := o.svcCtx.Redis.LRange(o.ctx, svc.SessionMessagesKey(userID, sessionID), 0, -1).Result()
+	if err != nil {
+		return 0
+	}
+	return len(vals)
+}
+
 func userIDFromCtx(ctx context.Context) int64 {
 	uid, _ := ctxdata.GetUserId(ctx)
 	return uid
@@ -1033,6 +1076,19 @@ func asInt(v any) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func parseBundleMetaInt(bundle *RetrievalBundle, key string) int {
+	if bundle == nil || bundle.Meta == nil {
+		return 0
+	}
+	v := strings.TrimSpace(bundle.Meta[key])
+	if v == "" {
+		return 0
+	}
+	var out int
+	_, _ = fmt.Sscanf(v, "%d", &out)
+	return out
 }
 
 func mapMemoryFacts(items []memory.ScoredFact) []retrieval.ScoredItem {

@@ -52,6 +52,13 @@ ReAct（Thought -> Action -> Observation）最大的优势是：
 
 当前项目采用的是 **ReAct-lite**：限制步数、限制工具预算、限制超时，并在复杂问题上支持后端隐藏式“计划-检索-校验”多轮回路，以稳定性优先。
 
+当前实现里，ReAct controller 已经从“启发式直接出 action”升级为“结构化 JSON action 输出 + 本地校验 + 单次重试 + 启发式兜底”：
+
+1. controller 只输出结构化 action，不暴露中间思维过程
+2. controller 选模复用 chat 路由依据，而不是单独一套粗糙规则
+3. 当 controller 输出为空、JSON 非法、或动作不合法时，会先重试一次，再回退到受限启发式动作
+4. 回路内部保留 query loop、rewrite 无收益、超时、最大步数等退出保护
+
 ### 3.2 为什么暂不优先 Reflection
 
 Reflection 的核心价值在“自我反思和多轮修正”，通常能提升复杂任务质量。  

@@ -185,6 +185,8 @@
 - `流程`: retrieve -> model route -> stream token -> citations -> final
 - `流程(升级)`: shouldPlan -> (可选 planner 拆解) -> hybrid_retrieve(子问题) -> 去重压缩 -> model route -> stream token -> citations -> final
 - `流程(再升级)`: shouldUseReAct -> 检索/观察/校验有限回路 -> (失败回退 planner 或单轮 hybrid) -> model route -> stream token -> citations -> final
+- `ReAct controller route`: 控制器选模复用 `chat` 路由信号，包含 `question/current_query/summary/session_msg_count/recall_count`
+- `ReAct controller retry`: controller `Generate` 失败或空输出时同路由重试 1 次，仍失败则回退启发式 action
 - `记忆`: Redis 消息窗 + 摘要压缩
 - `限流`: token-bucket (per-user)
 
@@ -209,6 +211,8 @@
 - `ChatStreamLogic.Run`:
   - model stream call duration/tokens/cost/status
   - fallback record
+- `Orchestrator.runReActLoop`:
+  - internal react finish reason / controller failure count / actual step count through retrieval bundle meta
 - `MemoryPinLogic.extractFactsAsync`:
   - model generate duration/tokens/cost/status
   - fallback record

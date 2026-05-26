@@ -2,8 +2,11 @@ package logic
 
 import (
 	"context"
+	"errors"
 	"testing"
 
+	"github.com/cloudwego/eino/components/model"
+	"github.com/cloudwego/eino/schema"
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
@@ -171,6 +174,32 @@ type stubPreferenceStore struct {
 	items []memory.Preference
 }
 
+type stubControllerModel struct {
+	responses []*schema.Message
+	errors    []error
+	calls     int
+}
+
+func (s *stubControllerModel) Generate(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.Message, error) {
+	idx := s.calls
+	s.calls++
+	if idx < len(s.errors) && s.errors[idx] != nil {
+		return nil, s.errors[idx]
+	}
+	if idx < len(s.responses) {
+		return s.responses[idx], nil
+	}
+	return nil, errors.New("unexpected generate call")
+}
+
+func (s *stubControllerModel) Stream(ctx context.Context, msgs []*schema.Message, opts ...model.Option) (*schema.StreamReader[*schema.Message], error) {
+	return nil, nil
+}
+
+func (s *stubControllerModel) BindTools(tools []*schema.ToolInfo) error {
+	return nil
+}
+
 func (s *stubPreferenceStore) UpsertPreferences(ctx context.Context, userID int64, prefs []memory.Preference) error {
 	return nil
 }
@@ -180,4 +209,105 @@ func (s *stubPreferenceStore) ListActivePreferences(ctx context.Context, userID 
 		return s.items[:limit], nil
 	}
 	return s.items, nil
+}
+
+func TestDecideReActActionRetriesGenerateOnce(t *testing.T) {
+	lite := &stubControllerModel{
+		errors: []error{errors.New("boom"), nil},
+		responses: []*schema.Message{
+			nil,
+			{Content: `{"action":"search_knowledge","query":"redis cache","goal":"find evidence","channels":["vector"],"top_k":3}`},
+		},
+	}
+	o := newReactTestOrchestrator()
+	o.svcCtx.ChatLite = lite
+	o.svcCtx.ChatPro = lite
+	o.svcCtx.Router = svc.NewModelRouter(config.ModelRouteConf{
+		Enable:           true,
+		QuestionRunesPro: 999,
+		PromptRunesPro:   999,
+		RecallCountPro:   999,
+		SummaryRunesPro:  999,
+		SessionMsgsPro:   999,
+	}, nil, lite, lite, nil)
+
+	action, modelName, err := o.decideReActAction(context.Background(), 1, "s1", "t1", &ReActState{
+		CurrentQuery: "redis cache",
+		MaxSteps:     3,
+	}, "redis cache", 5)
+	if err != nil {
+		t.Fatalf("decideReActAction failed: %v", err)
+	}
+	if modelName != "lite" {
+		t.Fatalf("want lite model got %s", modelName)
+	}
+	if lite.calls != 2 {
+		t.Fatalf("want 2 generate calls got %d", lite.calls)
+	}
+	if action == nil || action.Action != "search_knowledge" || action.Query != "redis cache" {
+		t.Fatal("unexpected action after retry")
+	}
+}
+
+func TestDecideReActActionUsesChatRouteSignalsFromState(t *testing.T) {
+	lite := &stubControllerModel{
+		responses: []*schema.Message{
+			{Content: `{"action":"search_knowledge","query":"short q","goal":"find evidence","channels":["vector"],"top_k":3}`},
+		},
+	}
+	pro := &stubControllerModel{
+		responses: []*schema.Message{
+			{Content: `{"action":"search_knowledge","query":"short q","goal":"find evidence","channels":["vector"],"top_k":3}`},
+		},
+	}
+	o := newReactTestOrchestrator()
+	o.svcCtx.ChatLite = lite
+	o.svcCtx.ChatPro = pro
+	o.svcCtx.Router = svc.NewModelRouter(config.ModelRouteConf{
+		Enable:           true,
+		SummaryRunesPro:  1,
+		SessionMsgsPro:   2,
+		QuestionRunesPro: 999,
+		PromptRunesPro:   999,
+		RecallCountPro:   999,
+	}, nil, lite, pro, nil)
+
+	_, modelName, err := o.decideReActAction(context.Background(), 1, "s1", "t1", &ReActState{
+		CurrentQuery:     "short q",
+		MaxSteps:         3,
+		SessionSummary:   "summary exists",
+		SessionMsgCount:  3,
+	}, "short q", 5)
+	if err != nil {
+		t.Fatalf("decideReActAction failed: %v", err)
+	}
+	if modelName != "pro" {
+		t.Fatalf("want pro model from chat route signals got %s", modelName)
+	}
+	if pro.calls != 1 {
+		t.Fatalf("want pro model used once got %d", pro.calls)
+	}
+	if lite.calls != 0 {
+		t.Fatalf("lite model should not be used, got %d calls", lite.calls)
+	}
+}
+
+func TestEvaluateEvidenceCoverageReturnsMaxStepsFinishReason(t *testing.T) {
+	o := newReactTestOrchestrator()
+	state := &ReActState{
+		MaxSteps:  2,
+		StepIndex: 1,
+	}
+	obs := ReActObservation{
+		NewEvidence: []retrieval.ScoredItem{
+			{ChunkID: "c1", Text: "new", Score: 0.9},
+		},
+	}
+	result := o.evaluateEvidenceCoverage(state, "请对比 A 和 B", obs)
+	if !result.NeedStop {
+		t.Fatal("expected stop at max steps")
+	}
+	if result.FinishReason != "max_steps" {
+		t.Fatalf("want max_steps got %s", result.FinishReason)
+	}
 }
