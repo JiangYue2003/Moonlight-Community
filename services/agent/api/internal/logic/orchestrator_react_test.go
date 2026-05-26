@@ -6,6 +6,7 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
 	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/retrieval"
 )
 
@@ -52,6 +53,17 @@ func TestParseReActActionInvalid(t *testing.T) {
 	}
 }
 
+func TestParseReActActionRewriteSameQueryInvalid(t *testing.T) {
+	o := newReactTestOrchestrator()
+	_, err := o.validateReActAction(&ReActAction{
+		Action: "rewrite_query",
+		Query:  "redis cache",
+	}, "redis cache")
+	if err == nil {
+		t.Fatal("rewrite to same query should fail")
+	}
+}
+
 func TestDetectQueryLoop(t *testing.T) {
 	o := newReactTestOrchestrator()
 	state := &ReActState{
@@ -81,4 +93,47 @@ func TestEvaluateEvidenceCoverageNoGain(t *testing.T) {
 	if !result.NeedStop {
 		t.Fatal("expected stagnation stop")
 	}
+}
+
+func TestFallbackHeuristicAction(t *testing.T) {
+	o := newReactTestOrchestrator()
+	action := o.fallbackHeuristicAction(&ReActState{}, "请对比 Redis 和 Caffeine", 5)
+	if action == nil || action.Action != "search_knowledge" {
+		t.Fatal("expected heuristic search action")
+	}
+}
+
+func TestExecuteReactActionMemoryPreferences(t *testing.T) {
+	o := newReactTestOrchestrator()
+	o.svcCtx.Preferences = &stubPreferenceStore{
+		items: []memory.Preference{
+			{PreferenceID: "p1", Kind: "response_style", Content: "偏扁平叙述", Confidence: 0.9, Status: "active"},
+		},
+	}
+	bundle, err := o.executeReactAction(context.Background(), 1, "s1", "t1", &ReActAction{
+		Action: "search_memory_preferences",
+		Query:  "回答偏好",
+		TopK:   3,
+	})
+	if err != nil {
+		t.Fatalf("execute failed: %v", err)
+	}
+	if len(bundle.Merged) != 1 || bundle.Merged[0].Source != "memory_preference" {
+		t.Fatal("expected preference retrieval bundle")
+	}
+}
+
+type stubPreferenceStore struct {
+	items []memory.Preference
+}
+
+func (s *stubPreferenceStore) UpsertPreferences(ctx context.Context, userID int64, prefs []memory.Preference) error {
+	return nil
+}
+
+func (s *stubPreferenceStore) ListActivePreferences(ctx context.Context, userID int64, limit int) ([]memory.Preference, error) {
+	if limit > 0 && len(s.items) > limit {
+		return s.items[:limit], nil
+	}
+	return s.items, nil
 }

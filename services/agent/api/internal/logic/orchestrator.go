@@ -87,16 +87,19 @@ type PlanSubQuery struct {
 }
 
 type ReActState struct {
-	Question        string
-	StepIndex       int
-	MaxSteps        int
-	StartedAt       time.Time
-	EvidencePool    []retrieval.ScoredItem
-	VisitedQueries  map[string]int
-	ActionHistory   []string
-	StagnationCount int
-	RewriteNoGain   int
-	FinishReason    string
+	Question           string
+	CurrentQuery       string
+	StepIndex          int
+	MaxSteps           int
+	StartedAt          time.Time
+	EvidencePool       []retrieval.ScoredItem
+	VisitedQueries     map[string]int
+	ActionHistory      []string
+	StagnationCount    int
+	RewriteNoGain      int
+	FinishReason       string
+	ControllerFailures int
+	LastActionSource   string
 }
 
 type ReActAction struct {
@@ -111,6 +114,7 @@ type ReActObservation struct {
 	Query       string
 	NewEvidence []retrieval.ScoredItem
 	TotalHits   int
+	Summary     string
 }
 
 type ReActCoverage struct {
@@ -365,6 +369,38 @@ func (o *Orchestrator) parseReActAction(raw string) (*ReActAction, error) {
 	return &action, nil
 }
 
+func (o *Orchestrator) validateReActAction(action *ReActAction, currentQuery string) (*ReActAction, error) {
+	if action == nil {
+		return nil, fmt.Errorf("react_nil_action")
+	}
+	action.Action = strings.TrimSpace(action.Action)
+	action.Query = strings.TrimSpace(action.Query)
+	action.Goal = strings.TrimSpace(action.Goal)
+	if action.TopK <= 0 {
+		action.TopK = o.svcCtx.Config.Agent.React.DefaultStepTopK
+	}
+	action.TopK = security.ClampTopK(action.TopK, o.svcCtx.Config.Agent.React.DefaultStepTopK, 1, o.svcCtx.Config.Agent.MaxTopK)
+	switch action.Action {
+	case "rewrite_query":
+		if action.Query == "" || normalizeQuery(action.Query) == normalizeQuery(currentQuery) {
+			return nil, fmt.Errorf("react_invalid_rewrite")
+		}
+	case "search_knowledge", "search_memory_facts", "search_memory_preferences":
+		if action.Query == "" {
+			return nil, fmt.Errorf("react_empty_search_query")
+		}
+	case "finish":
+	default:
+		return nil, fmt.Errorf("react_invalid_action")
+	}
+	for _, ch := range action.Channels {
+		if !isAllowedPlannerChannel(ch) {
+			return nil, fmt.Errorf("react_invalid_channel")
+		}
+	}
+	return action, nil
+}
+
 func (o *Orchestrator) detectQueryLoop(state *ReActState, query string) bool {
 	if state == nil {
 		return false
@@ -410,43 +446,71 @@ func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID
 	cfg := o.svcCtx.Config.Agent.React
 	state := &ReActState{
 		Question:       question,
+		CurrentQuery:   question,
 		MaxSteps:       cfg.MaxSteps,
 		StartedAt:      time.Now(),
 		VisitedQueries: map[string]int{},
 	}
-	currentQuery := question
 	for step := 0; step < state.MaxSteps; step++ {
 		state.StepIndex = step
-		if o.detectQueryLoop(state, currentQuery) {
+		if o.detectQueryLoop(state, state.CurrentQuery) {
 			state.FinishReason = "query_loop"
 			break
 		}
-		state.VisitedQueries[normalizeQuery(currentQuery)]++
-		bundle, err := o.executeReactAction(ctx, userID, sessionID, traceID, &ReActAction{
-			Action:   "search_knowledge",
-			Query:    currentQuery,
-			Channels: []string{"vector", "keyword", "memory"},
-			TopK:     min(topK, cfg.DefaultStepTopK),
-		})
+		state.VisitedQueries[normalizeQuery(state.CurrentQuery)]++
+
+		action, _, err := o.decideReActAction(ctx, userID, sessionID, traceID, state, question, topK)
+		if err != nil {
+			state.ControllerFailures++
+			action = o.fallbackHeuristicAction(state, question, topK)
+		}
+		if action == nil {
+			return nil, fmt.Errorf("react_no_action")
+		}
+		validated, verr := o.validateReActAction(action, state.CurrentQuery)
+		if verr != nil {
+			state.ControllerFailures++
+			action = o.fallbackHeuristicAction(state, question, topK)
+			validated, verr = o.validateReActAction(action, state.CurrentQuery)
+			if verr != nil {
+				return nil, fmt.Errorf("react_action_failed")
+			}
+		}
+		if validated.Action == "rewrite_query" {
+			state.CurrentQuery = validated.Query
+			state.ActionHistory = append(state.ActionHistory, validated.Action)
+			state.LastActionSource = "controller"
+			state.RewriteNoGain++
+			if state.RewriteNoGain > cfg.MaxRewriteWithoutGain {
+				state.FinishReason = "rewrite_without_gain"
+				break
+			}
+			continue
+		}
+		if validated.Action == "finish" {
+			state.FinishReason = "controller_finish"
+			break
+		}
+		bundle, err := o.executeReactAction(ctx, userID, sessionID, traceID, validated)
 		if err != nil {
 			return nil, fmt.Errorf("react_action_failed")
 		}
+		if len(bundle.Merged) > 0 {
+			state.RewriteNoGain = 0
+		}
 		obs := ReActObservation{
-			Query:       currentQuery,
+			Query:       state.CurrentQuery,
 			NewEvidence: diffEvidence(state.EvidencePool, bundle.Merged),
 			TotalHits:   len(bundle.Merged),
+			Summary:     summarizeEvidence(bundle.Merged),
 		}
 		state.EvidencePool = o.compressPlannedEvidence(append(state.EvidencePool, bundle.Merged...), cfg.MaxEvidencePool)
 		coverage := o.evaluateEvidenceCoverage(state, question, obs)
-		state.ActionHistory = append(state.ActionHistory, "search_knowledge")
+		state.ActionHistory = append(state.ActionHistory, validated.Action)
+		state.LastActionSource = "controller"
 		if coverage.NeedStop {
 			state.FinishReason = coverage.FinishReason
 			break
-		}
-		if keywordHits(question, []string{"对比", "比较", "分别"}) > 0 && step == 0 {
-			currentQuery = question + " 差异 适用场景 限制"
-			state.RewriteNoGain++
-			continue
 		}
 		state.FinishReason = "enough_evidence"
 		break
@@ -462,6 +526,73 @@ func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID
 	}, nil
 }
 
+func (o *Orchestrator) decideReActAction(ctx context.Context, userID int64, sessionID, traceID string, state *ReActState, question string, topK int) (*ReActAction, string, error) {
+	if o.svcCtx == nil || o.svcCtx.Router == nil {
+		return nil, "", fmt.Errorf("react_router_missing")
+	}
+	decision := o.svcCtx.Router.Decide(ctx, svc.RouteScenarioChat, svc.RouteInput{
+		Question:    question,
+		Prompt:      state.CurrentQuery,
+		RecallCount: len(state.EvidencePool),
+	})
+	msgs := o.buildControllerMessages(question, state, topK)
+	resp, err := decision.Model.Generate(ctx, msgs)
+	if err != nil || resp == nil || strings.TrimSpace(resp.Content) == "" {
+		if err == nil {
+			err = fmt.Errorf("empty_controller_output")
+		}
+		// retry once on same route
+		resp, err = decision.Model.Generate(ctx, msgs)
+		if err != nil || resp == nil || strings.TrimSpace(resp.Content) == "" {
+			if err == nil {
+				err = fmt.Errorf("empty_controller_output")
+			}
+			return nil, decision.ModelName, err
+		}
+	}
+	action, err := o.parseReActAction(resp.Content)
+	if err != nil {
+		return nil, decision.ModelName, err
+	}
+	return action, decision.ModelName, nil
+}
+
+func (o *Orchestrator) buildControllerMessages(question string, state *ReActState, topK int) []*schema.Message {
+	var b strings.Builder
+	b.WriteString("原始问题：")
+	b.WriteString(question)
+	b.WriteString("\n当前query：")
+	b.WriteString(state.CurrentQuery)
+	fmt.Fprintf(&b, "\n当前step：%d/%d", state.StepIndex+1, state.MaxSteps)
+	if len(state.ActionHistory) > 0 {
+		b.WriteString("\n历史动作：")
+		b.WriteString(strings.Join(state.ActionHistory, ","))
+	}
+	if len(state.EvidencePool) > 0 {
+		b.WriteString("\n已有证据摘要：")
+		b.WriteString(summarizeEvidence(state.EvidencePool))
+	}
+	fmt.Fprintf(&b, "\n建议top_k：%d", min(topK, o.svcCtx.Config.Agent.React.DefaultStepTopK))
+	return []*schema.Message{
+		schema.SystemMessage("你是检索控制器，不回答问题本身。只输出一个 JSON 对象，字段为 action, query, goal, channels, top_k。允许 action: search_knowledge, search_memory_facts, search_memory_preferences, rewrite_query, finish。禁止输出解释、markdown、推理过程。"),
+		schema.UserMessage(b.String()),
+	}
+}
+
+func (o *Orchestrator) fallbackHeuristicAction(state *ReActState, question string, topK int) *ReActAction {
+	q := question
+	if state != nil && strings.TrimSpace(state.CurrentQuery) != "" {
+		q = state.CurrentQuery
+	}
+	return &ReActAction{
+		Action:   "search_knowledge",
+		Query:    q,
+		Goal:     "retrieve_more_evidence",
+		Channels: []string{"vector", "keyword", "memory"},
+		TopK:     min(topK, o.svcCtx.Config.Agent.React.DefaultStepTopK),
+	}
+}
+
 func (o *Orchestrator) executeReactAction(ctx context.Context, userID int64, sessionID, traceID string, action *ReActAction) (*RetrievalBundle, error) {
 	if action == nil {
 		return nil, fmt.Errorf("react_nil_action")
@@ -471,15 +602,92 @@ func (o *Orchestrator) executeReactAction(ctx context.Context, userID int64, ses
 		q = ""
 	}
 	switch action.Action {
-	case "search_knowledge", "search_memory_facts", "search_memory_preferences":
+	case "search_knowledge":
 		topK := action.TopK
 		if topK <= 0 {
 			topK = o.svcCtx.Config.Agent.React.DefaultStepTopK
 		}
 		return o.hybridRetrieve(ctx, userID, sessionID, traceID, q, topK)
+	case "search_memory_facts":
+		items, err := o.searchMemoryFacts(ctx, userID, q, action.TopK)
+		if err != nil {
+			return nil, err
+		}
+		return &RetrievalBundle{
+			Question: q,
+			TopK:     action.TopK,
+			Intent:   "memory_fact",
+			Merged:   items,
+		}, nil
+	case "search_memory_preferences":
+		items, err := o.searchMemoryPreferences(ctx, userID, action.TopK)
+		if err != nil {
+			return nil, err
+		}
+		return &RetrievalBundle{
+			Question: q,
+			TopK:     action.TopK,
+			Intent:   "memory_preference",
+			Merged:   items,
+		}, nil
 	default:
 		return nil, fmt.Errorf("react_unsupported_action")
 	}
+}
+
+func (o *Orchestrator) searchMemoryFacts(ctx context.Context, userID int64, q string, topK int) ([]retrieval.ScoredItem, error) {
+	if o.svcCtx == nil || o.svcCtx.MemoryFacts == nil {
+		return nil, nil
+	}
+	items, err := o.svcCtx.MemoryFacts.SearchFacts(ctx, memory.Query{
+		UserID: userID,
+		TopK:   topK,
+		Text:   q,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mapMemoryFacts(items), nil
+}
+
+func (o *Orchestrator) searchMemoryPreferences(ctx context.Context, userID int64, topK int) ([]retrieval.ScoredItem, error) {
+	if o.svcCtx == nil || o.svcCtx.Preferences == nil {
+		return nil, nil
+	}
+	items, err := o.svcCtx.Preferences.ListActivePreferences(ctx, userID, topK)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]retrieval.ScoredItem, 0, len(items))
+	for i, it := range items {
+		text := strings.TrimSpace(it.Kind + " " + it.Content)
+		if text == "" {
+			continue
+		}
+		out = append(out, retrieval.ScoredItem{
+			DocID:   "pref:" + it.PreferenceID,
+			ChunkID: it.PreferenceID,
+			Text:    text,
+			Source:  "memory_preference",
+			Score:   it.Confidence,
+			Rank:    i + 1,
+		})
+	}
+	return out, nil
+}
+
+func summarizeEvidence(items []retrieval.ScoredItem) string {
+	if len(items) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, min(3, len(items)))
+	for i, it := range items {
+		if i >= 3 {
+			break
+		}
+		parts = append(parts, strings.TrimSpace(it.Text))
+	}
+	return strings.Join(parts, " | ")
 }
 
 func normalizeQuery(q string) string {
