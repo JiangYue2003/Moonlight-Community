@@ -317,7 +317,9 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	b.WriteString("\n\n上下文：\n")
 	for i, it := range bundle.Merged {
 		fmt.Fprintf(&b, "[%d] (post=%d chunk=%s source=%s) %s\n", i+1, it.PostID, it.ChunkID, it.Source, strings.TrimSpace(it.Text))
-		plan.Citations = append(plan.Citations, Citation{PostID: it.PostID, ChunkID: it.ChunkID, Source: it.Source})
+		if it.Source != "memory_preference" {
+			plan.Citations = append(plan.Citations, Citation{PostID: it.PostID, ChunkID: it.ChunkID, Source: it.Source})
+		}
 	}
 	plan.Prompt = b.String()
 	return plan, nil
@@ -429,6 +431,9 @@ func (o *Orchestrator) evaluateEvidenceCoverage(state *ReActState, question stri
 		cov.FinishReason = "no_new_evidence"
 		return cov
 	}
+	if len(obs.NewEvidence) > 0 && state.StepIndex == 0 && state.MaxSteps > 1 {
+		return cov
+	}
 	if state.StepIndex+1 >= state.MaxSteps {
 		cov.NeedStop = true
 		cov.FinishReason = "max_steps"
@@ -512,8 +517,10 @@ func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID
 			state.FinishReason = coverage.FinishReason
 			break
 		}
-		state.FinishReason = "enough_evidence"
-		break
+		if state.StepIndex+1 >= state.MaxSteps {
+			state.FinishReason = "enough_evidence"
+			break
+		}
 	}
 	if len(state.EvidencePool) == 0 {
 		return nil, fmt.Errorf("react_no_evidence")

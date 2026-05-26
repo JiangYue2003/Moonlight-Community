@@ -33,6 +33,10 @@ func TestMySQLPreferenceStoreUpsertPreferences(t *testing.T) {
 		},
 	}
 
+	mock.ExpectExec("UPDATE agent_memory_preferences SET status='superseded'").
+		WithArgs(int64(2), int64(1), "response_style", "p1").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
 	mock.ExpectExec("INSERT INTO agent_memory_preferences").
 		WithArgs(int64(1), "p1", "response_style", "回答偏扁平叙述", 0.9, "explicit_pin", "active", int64(2), int64(1), int64(2)).
 		WillReturnResult(sqlmock.NewResult(1, 1))

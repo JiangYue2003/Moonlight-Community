@@ -29,6 +29,14 @@ func (s *MySQLPreferenceStore) UpsertPreferences(ctx context.Context, userID int
 		if status == "" {
 			status = "active"
 		}
+		if isSingletonPreferenceKind(p.Kind) {
+			if _, err := s.db.ExecCtx(ctx,
+				"UPDATE agent_memory_preferences SET status='superseded', updated_at=? WHERE user_id=? AND kind=? AND preference_id<>? AND status='active'",
+				p.UpdatedAt, userID, p.Kind, p.PreferenceID,
+			); err != nil {
+				return err
+			}
+		}
 		_, err := s.db.ExecCtx(ctx,
 			"INSERT INTO agent_memory_preferences (user_id,preference_id,kind,content,confidence,source,status,last_seen_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE content=VALUES(content),confidence=VALUES(confidence),source=VALUES(source),status=VALUES(status),last_seen_at=VALUES(last_seen_at),updated_at=VALUES(updated_at)",
 			userID, p.PreferenceID, p.Kind, p.Content, p.Confidence, p.Source, status, p.LastSeenAt, p.CreatedAt, p.UpdatedAt,
@@ -38,6 +46,15 @@ func (s *MySQLPreferenceStore) UpsertPreferences(ctx context.Context, userID int
 		}
 	}
 	return nil
+}
+
+func isSingletonPreferenceKind(kind string) bool {
+	switch strings.TrimSpace(kind) {
+	case "response_style", "working_preference":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *MySQLPreferenceStore) ListActivePreferences(ctx context.Context, userID int64, limit int) ([]memory.Preference, error) {

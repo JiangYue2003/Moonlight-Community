@@ -123,6 +123,50 @@ func TestExecuteReactActionMemoryPreferences(t *testing.T) {
 	}
 }
 
+func TestMapMemoryPreferencesShouldNotBecomeCitations(t *testing.T) {
+	o := newReactTestOrchestrator()
+	o.svcCtx.Preferences = &stubPreferenceStore{
+		items: []memory.Preference{
+			{PreferenceID: "p1", Kind: "response_style", Content: "偏扁平叙述", Confidence: 0.9, Status: "active"},
+		},
+	}
+	items, err := o.searchMemoryPreferences(context.Background(), 1, 3)
+	if err != nil {
+		t.Fatalf("search failed: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("want 1 item got %d", len(items))
+	}
+	if items[0].PostID != 0 {
+		t.Fatal("preference memory should not map to article citation post ids")
+	}
+}
+
+func TestEvaluateEvidenceCoverageShouldNotStopOnFirstUsefulStep(t *testing.T) {
+	o := newReactTestOrchestrator()
+	state := &ReActState{
+		MaxSteps: 3,
+	}
+	obs := ReActObservation{
+		NewEvidence: []retrieval.ScoredItem{
+			{ChunkID: "c1", Text: "new", Score: 0.9},
+		},
+	}
+	result := o.evaluateEvidenceCoverage(state, "请对比 A 和 B", obs)
+	if result.NeedStop {
+		t.Fatal("should not stop after first useful step")
+	}
+}
+
+func TestFallbackHeuristicActionOnControllerFailure(t *testing.T) {
+	o := newReactTestOrchestrator()
+	state := &ReActState{CurrentQuery: "redis cache"}
+	action := o.fallbackHeuristicAction(state, "redis cache", 5)
+	if action.Query != "redis cache" || action.Action != "search_knowledge" {
+		t.Fatal("unexpected fallback heuristic action")
+	}
+}
+
 type stubPreferenceStore struct {
 	items []memory.Preference
 }
