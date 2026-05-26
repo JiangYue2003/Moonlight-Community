@@ -1,0 +1,107 @@
+Name: agent-api
+Host: 0.0.0.0
+Port: 8011
+
+Mode: dev
+
+AuthRpc:
+  Endpoints:
+  - 127.0.0.1:9002
+  NonBlock: true
+
+DeepSeek:
+  BaseUrl: https://api.deepseek.com
+  ApiKey: "${DEEPSEEK_API_KEY}"
+  Model: deepseek-chat
+  TimeoutMs: 60000
+  LiteModel: deepseek-chat
+  ProModel: deepseek-reasoner
+  LiteTimeoutMs: 45000
+  ProTimeoutMs: 90000
+
+Tongyi:
+  BaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+  ApiKey: "${DASHSCOPE_API_KEY}"
+  Model: text-embedding-v3
+  TimeoutMs: 30000
+
+Es:
+  Addrs:
+  - http://127.0.0.1:9200
+  TimeoutMs: 10000
+
+KnowledgeIndex: zhiguang_agent_knowledge
+
+Milvus:
+  Address: 127.0.0.1:19530
+  ApiKey: "${MILVUS_API_KEY}"
+  Collection: agent_knowledge
+  MemoryCollection: agent_memory_vectors
+  VectorDim: 1024
+  VectorField: embedding
+  TimeoutMs: 5000
+
+Mysql:
+  DataSource: "root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local"
+
+Redis:
+  Host: 127.0.0.1:6379
+
+Agent:
+  MaxSteps: 3
+  DefaultTopK: 20
+  MaxTopK: 50
+  RRFK: 60
+  MaxQuestionRunes: 2000
+  SessionTTLHours: 24
+  SummaryTTLHours: 72
+  ChatRateLimit:
+    Capacity: 4
+    RefillPerSec: 1
+  ToolWhitelist:
+  - hybrid_retrieve
+  - search_vector_milvus
+  - search_vector_es
+  - search_bm25
+  - search_memory
+  - search_graph
+  - fuse_rrf
+  PrimaryVector: es
+  EnableMilvus: true
+  EnableGraph: false
+  ModelRoute:
+    Enable: true
+    EmitRouteEvent: false
+    RetryOnProFail: true
+    ProFailWindowSec: 120
+    ProFailThreshold: 5
+    QuestionRunesPro: 120
+    PromptRunesPro: 4000
+    RecallCountPro: 10
+    SummaryRunesPro: 400
+    SessionMsgsPro: 16
+    PinContentRunesPro: 1200
+  Observability:
+    Enable: true
+    SampleRate: 100
+  ModelCost:
+    Currency: USD
+    EstimateCharsPerToken: 4
+    DefaultInputPer1K: 0
+    DefaultOutputPer1K: 0
+    InputPer1K:
+      deepseek-chat: 0
+      deepseek-reasoner: 0
+    OutputPer1K:
+      deepseek-chat: 0
+      deepseek-reasoner: 0
+
+Log:
+  ServiceName: agent-api
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9119
+  Path: /metrics

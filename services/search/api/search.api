@@ -1,0 +1,44 @@
+type SearchReq {
+    Q     string `form:"q"`
+    Size  int    `form:"size,default=20"`
+    Tags  string `form:"tags,optional"`
+    After string `form:"after,optional"`
+}
+
+type Hit {
+    ContentId      string   `json:"contentId"`
+    ContentType    string   `json:"contentType"`
+    Title          string   `json:"title"`
+    Description    string   `json:"description"`
+    Snippet        string   `json:"snippet"`
+    Tags           []string `json:"tags"`
+    AuthorId       int64    `json:"authorId"`
+    AuthorNickname string   `json:"authorNickname"`
+    AuthorAvatar   string   `json:"authorAvatar"`
+    PublishTime    int64    `json:"publishTime"`
+    LikeCount      int32    `json:"likeCount"`
+    FavoriteCount  int32    `json:"favoriteCount"`
+    ViewCount      int32    `json:"viewCount"`
+    ImgUrls        []string `json:"imgUrls"`
+    IsTop          bool     `json:"isTop"`
+}
+
+type SearchResp {
+    Items     []Hit  `json:"items"`
+    NextAfter string `json:"nextAfter"`
+    HasMore   bool   `json:"hasMore"`
+}
+
+type SuggestReq  { Prefix string `form:"prefix"`; Size int `form:"size,default=10"` }
+type SuggestResp { Items []string `json:"items"` }
+
+@server (
+    prefix: /api/v1/search
+)
+service search-api {
+    @handler Search
+    get / (SearchReq) returns (SearchResp)
+
+    @handler Suggest
+    get /suggest (SuggestReq) returns (SuggestResp)
+}

@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package auth;
+option go_package = "./auth";
+
+// TokenPair 与 Java AuthResponse / TokenResponse 字段对齐。
+message TokenPair {
+  string access_token       = 1;
+  int64  access_expires_at  = 2;  // unix milliseconds
+  string refresh_token      = 3;
+  int64  refresh_expires_at = 4;
+  string refresh_token_id   = 5;
+}
+
+message AuthUser {
+  int64  id        = 1;
+  string nickname  = 2;
+  string avatar    = 3;
+  string phone     = 4;
+  string zg_id     = 5;
+  string birthday  = 6;
+  string school    = 7;
+  string bio       = 8;
+  string gender    = 9;
+  string tags_json = 10;
+}
+
+message AuthResp {
+  AuthUser  user  = 1;
+  TokenPair token = 2;
+}
+
+message SendCodeReq  {
+  string scene      = 1;  // REGISTER / LOGIN / RESET_PASSWORD
+  string identifier = 2;  // phone / email
+}
+message SendCodeResp {
+  int32 cooldown_seconds = 1;
+  int32 expire_seconds   = 2;
+}
+
+message RegisterReq {
+  string identifier   = 1;
+  string password     = 2;
+  string code         = 3;
+  string nickname     = 4;
+  bool   agree_terms  = 5;
+  string ip           = 6;
+  string user_agent   = 7;
+}
+
+message LoginReq {
+  string identifier  = 1;
+  string password    = 2;
+  string code        = 3;
+  string channel     = 4;  // PASSWORD / CODE
+  string ip          = 5;
+  string user_agent  = 6;
+}
+
+message RefreshReq { string refresh_token = 1; }
+
+message LogoutReq {
+  int64  user_id          = 1;
+  string refresh_token_id = 2;
+}
+message Empty {}
+
+message VerifyTokenReq  { string access_token = 1; }
+message VerifyTokenResp { int64  user_id = 1; bool valid = 2; string nickname = 3; }
+
+message PasswordResetReq {
+  string identifier   = 1;
+  string code         = 2;
+  string new_password = 3;
+}
+
+// RevokeRefreshReq HTTP 网关 logout 时用：网关只持有 refreshToken，
+// 由 RPC 内部解析出 uid+jti 并撤销白名单条目。
+message RevokeRefreshReq  { string refresh_token = 1; }
+message RevokeRefreshResp { bool revoked = 1; }
+
+service Auth {
+  rpc SendCode      (SendCodeReq)       returns (SendCodeResp);
+  rpc Register      (RegisterReq)       returns (AuthResp);
+  rpc Login         (LoginReq)          returns (AuthResp);
+  rpc Refresh       (RefreshReq)        returns (AuthResp);
+  rpc Logout        (LogoutReq)         returns (Empty);
+  rpc VerifyToken   (VerifyTokenReq)    returns (VerifyTokenResp);
+  rpc PasswordReset (PasswordResetReq)  returns (Empty);
+  rpc RevokeRefresh (RevokeRefreshReq)  returns (RevokeRefreshResp);
+}

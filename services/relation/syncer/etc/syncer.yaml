@@ -1,0 +1,36 @@
+Mysql:
+  DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+  - Host: 127.0.0.1:6379
+    Type: node
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Pass: ""
+
+Kafka:
+  Brokers:
+    - 127.0.0.1:9092
+  Topic: canal-outbox
+  GroupId: relation-syncer
+
+UserCounterRpc:
+  Endpoints:
+    - 127.0.0.1:9003
+
+Dedup:
+  TtlSeconds: 86400
+
+ZSet:
+  MaxMembers: 2000
+  TtlSeconds: 7200
+
+Snowflake:
+  WorkerId: 2
+  DatacenterId: 3
+
+Log:
+  ServiceName: relation-syncer
+  Mode: console

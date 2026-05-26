@@ -1,0 +1,43 @@
+Es:
+  Addrs:
+  - http://127.0.0.1:9200
+  TimeoutMs: 10000
+
+RagIndex: zhiguang_rag_vector
+
+Kafka:
+  Brokers:
+  - 127.0.0.1:9092
+  Topic: canal-outbox
+  GroupId: rag-indexer
+
+KnowPostRpc:
+  Endpoints:
+  - 127.0.0.1:9004
+  NonBlock: true
+
+Tongyi:
+  BaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+  ApiKey: "${DASHSCOPE_API_KEY}"
+  Model: text-embedding-v3
+  Dims: 1024
+  BatchSize: 25
+  TimeoutMs: 30000
+
+Chunk:
+  Size: 800
+  Overlap: 100
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+
+Dedup:
+  TtlSeconds: 600
+
+HttpFetchTimeoutMs: 8000
+
+Log:
+  ServiceName: llm.ragindexer
+  Mode: console
+  Level: info

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package counter;
+option go_package = "./counter";
+
+// ToggleReq 点赞 / 收藏 切换请求。
+//   add=true → 设置位为 1（idempotent）
+//   add=false → 清除位为 0（idempotent）
+message ToggleReq {
+  string entity_type = 1;  // "knowpost"
+  string entity_id   = 2;
+  string metric      = 3;  // "like" / "fav"
+  int64  user_id     = 4;
+  bool   add         = 5;
+}
+message ToggleResp { bool changed = 1; }
+
+message GetCountsReq  { string entity_type = 1; string entity_id = 2; }
+message GetCountsResp { map<string, int64> counts = 1; }
+
+message IsMarkedReq {
+  string entity_type = 1;
+  string entity_id   = 2;
+  string metric      = 3;  // "like" / "fav"
+  int64  user_id     = 4;
+}
+message IsMarkedResp { bool marked = 1; }
+
+message BatchGetCountsReq  { string entity_type = 1; repeated string entity_ids = 2; }
+message BatchGetCountsResp { map<string, GetCountsResp> result = 1; }
+
+service Counter {
+  rpc Toggle         (ToggleReq)         returns (ToggleResp);
+  rpc GetCounts      (GetCountsReq)      returns (GetCountsResp);
+  rpc IsMarked       (IsMarkedReq)       returns (IsMarkedResp);
+  rpc BatchGetCounts (BatchGetCountsReq) returns (BatchGetCountsResp);
+}
+
+// ── UserCounter（原 usercounter-rpc，合并入 counter-rpc）────────────────
+
+// UserSnapshot 用户维度计数全字段（与 Java UserCounterServiceImpl 严格对齐）。
+message UserSnapshot {
+  int64 user_id        = 1;
+  int64 read           = 2;  // idx 0 预留
+  int64 followings     = 3;  // idx 1
+  int64 followers      = 4;  // idx 2
+  int64 posts          = 5;  // idx 3
+  int64 likes_received = 6;  // idx 4
+}
+
+message UserIncrementReq  { int64 user_id = 1; string field = 2; int32 delta = 3; }
+message UserIncrementResp { int64 value = 1; }
+
+message GetUserSnapshotReq  { int64 user_id = 1; }
+message GetUserSnapshotResp { UserSnapshot snapshot = 1; }
+
+message BatchGetUserSnapshotReq  { repeated int64 user_ids = 1; }
+message BatchGetUserSnapshotResp { map<int64, UserSnapshot> result = 1; }
+
+service UserCounter {
+  rpc UserIncrement        (UserIncrementReq)        returns (UserIncrementResp);
+  rpc GetUserSnapshot      (GetUserSnapshotReq)      returns (GetUserSnapshotResp);
+  rpc BatchGetUserSnapshot (BatchGetUserSnapshotReq) returns (BatchGetUserSnapshotResp);
+}

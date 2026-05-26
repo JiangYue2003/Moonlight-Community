@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package user;
+option go_package = "./user";
+
+// UserInfo 用户基础信息（与 users 表字段对齐；avatar/bio/zg_id/... 可空时返回空串）。
+message UserInfo {
+  int64  id = 1;
+  string phone = 2;
+  string email = 3;
+  string nickname = 4;
+  string avatar = 5;
+  string zg_id = 6;
+  string gender = 7;
+  string birthday = 8;     // YYYY-MM-DD
+  string school = 9;
+  string bio = 10;
+  string tags_json = 11;
+  string password_hash = 12; // 仅 auth 服务内部使用
+  int64  created_at = 13;
+  int64  updated_at = 14;
+}
+
+message GetByIdReq        { int64  id = 1; }
+message GetByIdResp       { UserInfo user = 1; }
+
+message GetByIdentifierReq  { string identifier = 1; }
+message GetByIdentifierResp { UserInfo user = 1; }
+
+message FindByIdsReq      { repeated int64 ids = 1; }
+message FindByIdsResp     { repeated UserInfo users = 1; }
+
+message CreateReq {
+  string phone = 1;
+  string email = 2;
+  string password_hash = 3;
+  string nickname = 4;
+}
+message CreateResp        { int64 id = 1; }
+
+message ExistsByIdentifierReq  { string identifier = 1; }
+message ExistsByIdentifierResp { bool exists = 1; int64 user_id = 2; }
+
+message UpdatePasswordReq  { int64 id = 1; string password_hash = 2; }
+message UpdatePasswordResp { bool ok = 1; }
+
+// ExistsByZgIdExceptId 用于 zg_id 唯一性校验：排除当前用户自己的记录。
+message ExistsByZgIdExceptIdReq  { string zg_id = 1; int64 except_id = 2; }
+message ExistsByZgIdExceptIdResp { bool exists = 1; }
+
+// UpdateProfileReq 资料增量更新；用 *_set bool 区分"未传"与"显式置空串"。
+message UpdateProfileReq {
+  int64  id            = 1;
+  string nickname      = 2;  bool nickname_set = 3;
+  string bio           = 4;  bool bio_set      = 5;
+  string gender        = 6;  bool gender_set   = 7;
+  string birthday      = 8;  bool birthday_set = 9;  // YYYY-MM-DD
+  string zg_id         = 10; bool zg_id_set    = 11;
+  string school        = 12; bool school_set   = 13;
+  string avatar        = 14; bool avatar_set   = 15;
+  string tags_json     = 16; bool tags_json_set = 17;
+}
+message UpdateProfileResp { UserInfo user = 1; }
+
+service User {
+  rpc GetById              (GetByIdReq)              returns (GetByIdResp);
+  rpc GetByIdentifier      (GetByIdentifierReq)      returns (GetByIdentifierResp);
+  rpc FindByIds            (FindByIdsReq)            returns (FindByIdsResp);
+  rpc Create               (CreateReq)               returns (CreateResp);
+  rpc ExistsByIdentifier   (ExistsByIdentifierReq)   returns (ExistsByIdentifierResp);
+  rpc UpdatePassword       (UpdatePasswordReq)       returns (UpdatePasswordResp);
+  rpc ExistsByZgIdExceptId (ExistsByZgIdExceptIdReq) returns (ExistsByZgIdExceptIdResp);
+  rpc UpdateProfile        (UpdateProfileReq)        returns (UpdateProfileResp);
+}
+
+// ── Auth（原 auth-rpc，合并入 user-rpc）────────────────────────────────────
+
+// TokenPair 与 Java AuthResponse / TokenResponse 字段对齐。
+message TokenPair {
+  string access_token       = 1;
+  int64  access_expires_at  = 2;  // unix milliseconds
+  string refresh_token      = 3;
+  int64  refresh_expires_at = 4;
+  string refresh_token_id   = 5;
+}
+
+message AuthUser {
+  int64  id        = 1;
+  string nickname  = 2;
+  string avatar    = 3;
+  string phone     = 4;
+  string zg_id     = 5;
+  string birthday  = 6;
+  string school    = 7;
+  string bio       = 8;
+  string gender    = 9;
+  string tags_json = 10;
+}
+
+message AuthResp {
+  AuthUser  user  = 1;
+  TokenPair token = 2;
+}
+
+message SendCodeReq  {
+  string scene      = 1;  // REGISTER / LOGIN / RESET_PASSWORD
+  string identifier = 2;  // phone / email
+}
+message SendCodeResp {
+  int32 cooldown_seconds = 1;
+  int32 expire_seconds   = 2;
+}
+
+message RegisterReq {
+  string identifier   = 1;
+  string password     = 2;
+  string code         = 3;
+  string nickname     = 4;
+  bool   agree_terms  = 5;
+  string ip           = 6;
+  string user_agent   = 7;
+}
+
+message LoginReq {
+  string identifier  = 1;
+  string password    = 2;
+  string code        = 3;
+  string channel     = 4;  // PASSWORD / CODE
+  string ip          = 5;
+  string user_agent  = 6;
+}
+
+message RefreshReq { string refresh_token = 1; }
+
+message LogoutReq {
+  int64  user_id          = 1;
+  string refresh_token_id = 2;
+}
+message Empty {}
+
+message VerifyTokenReq  { string access_token = 1; }
+message VerifyTokenResp { int64  user_id = 1; bool valid = 2; string nickname = 3; }
+
+message PasswordResetReq {
+  string identifier   = 1;
+  string code         = 2;
+  string new_password = 3;
+}
+
+message RevokeRefreshReq  { string refresh_token = 1; }
+message RevokeRefreshResp { bool revoked = 1; }
+
+service Auth {
+  rpc SendCode      (SendCodeReq)       returns (SendCodeResp);
+  rpc Register      (RegisterReq)       returns (AuthResp);
+  rpc Login         (LoginReq)          returns (AuthResp);
+  rpc Refresh       (RefreshReq)        returns (AuthResp);
+  rpc Logout        (LogoutReq)         returns (Empty);
+  rpc VerifyToken   (VerifyTokenReq)    returns (VerifyTokenResp);
+  rpc PasswordReset (PasswordResetReq)  returns (Empty);
+  rpc RevokeRefresh (RevokeRefreshReq)  returns (RevokeRefreshResp);
+}

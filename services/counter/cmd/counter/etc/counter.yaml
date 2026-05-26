@@ -1,0 +1,96 @@
+DisableAPI: true
+
+Api:
+  Name: counter-api
+  Host: 0.0.0.0
+  Port: 8002
+
+  Mode: dev
+
+  CounterRpc:
+    Endpoints:
+    - 127.0.0.1:9003
+    NonBlock: true
+
+  AuthRpc:
+    Endpoints:
+    - 127.0.0.1:9002
+    NonBlock: true
+
+  Auth:
+    AccessSecret: zhiguang-placeholder-secret-do-not-use
+    AccessExpire: 900
+
+  Log:
+    ServiceName: counter-api
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9112
+    Path: /metrics
+
+Rpc:
+  Name: counter.rpc
+  ListenOn: 0.0.0.0:9003
+
+  Mode: dev
+
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+    Key: counter-rpc
+
+  Kafka:
+    Brokers:
+    - 127.0.0.1:9092
+    Topic: counter-events
+    Producer:
+      LingerMs: 10
+
+  Rebuild:
+    Enabled: false
+    Lock:
+      TtlMs: 5000
+    Rate:
+      Permits: 3
+      WindowSeconds: 10
+    Backoff:
+      BaseMs: 500
+      MaxMs: 30000
+
+  Log:
+    ServiceName: counter.rpc
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9103
+    Path: /metrics
+
+Aggregator:
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+    Key: counter-aggregator
+
+  Kafka:
+    Brokers:
+    - 127.0.0.1:9092
+    Topic: counter-events
+    GroupId: counter-agg
+
+  Flush:
+    IntervalMs: 1000
+    BatchSize: 200
+
+  Lock:
+    Key: aggr:flush:lock
+    TtlMs: 11000
+
+  Log:
+    ServiceName: counter.aggregator
+    Mode: console
+    Level: info

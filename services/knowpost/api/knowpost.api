@@ -1,0 +1,135 @@
+syntax = "v1"
+
+info (
+	title:  "KnowPost API"
+	desc:   "HTTP gateway for knowpost-rpc"
+	author: "zhiguang"
+)
+
+// ---------- 共用结构 ----------
+type (
+	KnowPostDetail {
+		Id               string   `json:"id"`
+		CreatorId        int64    `json:"creatorId"`
+		Title            string   `json:"title"`
+		Description      string   `json:"description"`
+		TagId            int64    `json:"tagId"`
+		Tags             []string `json:"tags"`
+		ContentUrl       string   `json:"contentUrl"`
+		ContentObjectKey string   `json:"contentObjectKey"`
+		ImgUrls          []string `json:"imgUrls"`
+		Visible          string   `json:"visible"`
+		Status           string   `json:"status"`
+		Type             string   `json:"type"`
+		IsTop            bool     `json:"isTop"`
+		CreateTime       int64    `json:"createTime"`
+		UpdateTime       int64    `json:"updateTime"`
+		PublishTime      int64    `json:"publishTime"`
+	}
+	FeedItem {
+		Id          string   `json:"id"`
+		CreatorId   int64    `json:"creatorId"`
+		Title       string   `json:"title"`
+		Description string   `json:"description"`
+		ContentUrl  string   `json:"contentUrl"`
+		Tags        []string `json:"tags"`
+		ImgUrls     []string `json:"imgUrls"`
+		Visible     string   `json:"visible"`
+		IsTop       bool     `json:"isTop"`
+		PublishTime int64    `json:"publishTime"`
+	}
+	FeedPage {
+		Items   []FeedItem `json:"items"`
+		HasMore bool       `json:"hasMore"`
+		Size    int32      `json:"size"`
+		Page    int32      `json:"page"`
+	}
+	Empty  {}
+)
+
+// ---------- 鉴权接口 ----------
+type (
+	CreateDraftResp {
+		Id string `json:"id"`
+	}
+	ConfirmContentReq {
+		ObjectKey string `json:"objectKey"`
+		Etag      string `json:"etag,optional"`
+		Size      int64  `json:"size,optional"`
+		Sha256    string `json:"sha256,optional"`
+	}
+	PatchMetadataReq {
+		Title       *string  `json:"title,optional"`
+		Description *string  `json:"description,optional"`
+		TagId       *int64   `json:"tagId,optional"`
+		Tags        []string `json:"tags,optional"`
+		TagsSet     bool     `json:"tagsSet,optional"`
+		ImgUrls     []string `json:"imgUrls,optional"`
+		ImgUrlsSet  bool     `json:"imgUrlsSet,optional"`
+		Visible     *string  `json:"visible,optional"`
+		IsTop       *bool    `json:"isTop,optional"`
+	}
+	UpdateTopReq {
+		IsTop bool `json:"isTop"`
+	}
+	UpdateVisibilityReq {
+		Visible string `json:"visible"`
+	}
+	GetMyFeedReq {
+		Page int32 `form:"page,optional"`
+		Size int32 `form:"size,optional"`
+	}
+	IdPath {
+		Id int64 `path:"id"`
+	}
+	GetPublicFeedReq {
+		Page int32 `form:"page,optional"`
+		Size int32 `form:"size,optional"`
+	}
+)
+
+@server (
+	prefix: /api/v1/knowposts
+)
+service knowpost-api {
+	@handler GetPublicFeed
+	get /feed (GetPublicFeedReq) returns (FeedPage)
+
+	@handler GetDetailPublic
+	get /detail/:id (IdPath) returns (KnowPostDetail)
+}
+
+@server (
+	prefix: /api/v1/knowposts
+)
+service knowpost-api {
+	@handler CreateDraft
+	post /drafts returns (CreateDraftResp)
+
+	@handler ConfirmContent
+	post /:id/content/confirm (ConfirmContentReq) returns (Empty)
+
+	@handler PatchMetadata
+	patch /:id (PatchMetadataReq) returns (KnowPostDetail)
+
+	@handler Publish
+	post /:id/publish returns (KnowPostDetail)
+
+	@handler UpdateTop
+	patch /:id/top (UpdateTopReq) returns (Empty)
+
+	@handler UpdateVisibility
+	patch /:id/visibility (UpdateVisibilityReq) returns (Empty)
+
+	@handler Delete
+	delete /:id returns (Empty)
+
+	@handler GetMyFeed
+	get /mine (GetMyFeedReq) returns (FeedPage)
+
+	@handler Reindex
+	post /:id/reindex returns (Empty)
+
+	@handler Reindex
+	post /:id/rag/reindex returns (Empty)
+}

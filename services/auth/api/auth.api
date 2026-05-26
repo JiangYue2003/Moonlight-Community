@@ -1,0 +1,108 @@
+syntax = "v1"
+
+info (
+	title:  "Auth API"
+	desc:   "HTTP gateway for auth-rpc"
+	author: "zhiguang"
+)
+
+// ---------- 共用结构 ----------
+type (
+	TokenPair {
+		AccessToken      string `json:"accessToken"`
+		AccessExpiresAt  int64  `json:"accessExpiresAt"`
+		RefreshToken     string `json:"refreshToken"`
+		RefreshExpiresAt int64  `json:"refreshExpiresAt"`
+		RefreshTokenId   string `json:"refreshTokenId"`
+	}
+	AuthUser {
+		Id       int64  `json:"id"`
+		Nickname string `json:"nickname"`
+		Avatar   string `json:"avatar"`
+		Phone    string `json:"phone"`
+		ZgId     string `json:"zgId"`
+		Birthday string `json:"birthday"`
+		School   string `json:"school"`
+		Bio      string `json:"bio"`
+		Gender   string `json:"gender"`
+		TagsJson string `json:"tagsJson"`
+	}
+	AuthResp {
+		User  AuthUser  `json:"user"`
+		Token TokenPair `json:"token"`
+	}
+)
+
+// ---------- 公开接口 ----------
+type (
+	SendCodeReq {
+		Scene      string `json:"scene"` // REGISTER / LOGIN / RESET_PASSWORD
+		Identifier string `json:"identifier"`
+	}
+	SendCodeResp {
+		CooldownSeconds int32 `json:"cooldownSeconds"`
+		ExpireSeconds   int32 `json:"expireSeconds"`
+	}
+	RegisterReq {
+		Identifier string `json:"identifier"`
+		Password   string `json:"password"`
+		Code       string `json:"code"`
+		Nickname   string `json:"nickname"`
+		AgreeTerms bool   `json:"agreeTerms"`
+	}
+	LoginReq {
+		Identifier string `json:"identifier"`
+		Password   string `json:"password,optional"`
+		Code       string `json:"code,optional"`
+		Channel    string `json:"channel"` // PASSWORD / CODE
+	}
+	RefreshReq {
+		RefreshToken string `json:"refreshToken"`
+	}
+	PasswordResetReq {
+		Identifier  string `json:"identifier"`
+		Code        string `json:"code"`
+		NewPassword string `json:"newPassword"`
+	}
+)
+
+@server (
+	prefix: /api/v1/auth
+)
+service auth-api {
+	@handler SendCode
+	post /send-code (SendCodeReq) returns (SendCodeResp)
+
+	@handler Register
+	post /register (RegisterReq) returns (AuthResp)
+
+	@handler Login
+	post /login (LoginReq) returns (AuthResp)
+
+	@handler Refresh
+	post /token/refresh (RefreshReq) returns (AuthResp)
+
+	@handler PasswordReset
+	post /password/reset (PasswordResetReq) returns (Empty)
+}
+
+// ---------- 鉴权接口 ----------
+type (
+	LogoutReq {
+		RefreshToken string `json:"refreshToken"`
+	}
+	Empty  {}
+)
+
+@server (
+	prefix: /api/v1/auth
+	jwt:    Auth
+)
+service auth-api {
+	@handler Logout
+	post /logout (LogoutReq) returns (Empty)
+
+	@handler Me
+	get /me returns (AuthUser)
+}
+

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package relation;
+option go_package = "./relation";
+
+// Follow / Unfollow 写路径：仅写 following 表 + outbox（同事务）；
+// follower 反查表、ZSet、usercounter 由 relation-syncer 异步消费 canal-outbox 后落地。
+message FollowReq    { int64 from_user_id = 1; int64 to_user_id = 2; }
+message FollowResp   { bool changed = 1; }
+message UnfollowReq  { int64 from_user_id = 1; int64 to_user_id = 2; }
+message UnfollowResp { bool changed = 1; }
+
+// Status 互查：following/followed_by/mutual 三态。
+message StatusReq  { int64 from_user_id = 1; int64 to_user_id = 2; }
+message StatusResp { bool following = 1; bool followed_by = 2; bool mutual = 3; }
+
+// 列表分页：offset 优先；offset=0 时启用 cursor（毫秒时间戳，配合 ZSet score 做稳定深分页）。
+message ListReq {
+  int64 user_id = 1;
+  int32 limit   = 2;  // 1..100
+  int32 offset  = 3;
+  int64 cursor  = 4;  // 0 表示首页
+}
+message UserSummary {
+  int64  id = 1;
+  string nickname = 2;
+  string avatar = 3;
+  string zg_id = 4;
+  string bio = 5;
+}
+message ListResp {
+  repeated UserSummary items = 1;
+  int64 next_cursor = 2;     // 0 表示无更多
+  bool  has_more = 3;
+}
+
+service Relation {
+  rpc Follow         (FollowReq)    returns (FollowResp);
+  rpc Unfollow       (UnfollowReq)  returns (UnfollowResp);
+  rpc Status         (StatusReq)    returns (StatusResp);
+  rpc ListFollowing  (ListReq)      returns (ListResp);
+  rpc ListFollowers  (ListReq)      returns (ListResp);
+}

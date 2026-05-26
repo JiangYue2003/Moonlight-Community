@@ -1,0 +1,39 @@
+Name: relation.rpc
+ListenOn: 0.0.0.0:9006
+
+Mode: dev
+
+Mysql:
+  DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+- Host: 127.0.0.1:6379
+  Type: node
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Key: relation-rpc
+
+UserRpc:
+  Endpoints:
+  - 127.0.0.1:9002
+  NonBlock: true
+
+RateLimit:
+  FollowCapacity: 100
+  FollowRefillPerSec: 1
+
+Snowflake:
+  WorkerId: 1
+  DatacenterId: 3
+
+Log:
+  ServiceName: relation.rpc
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9105
+  Path: /metrics

@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package search;
+option go_package = "./search";
+
+message SearchReq {
+  string q = 1;
+  int32  size = 2;
+  string tags = 3;
+  string after = 4;
+  int64  viewer_id = 5;
+}
+
+message Hit {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string cover_image = 4;
+  repeated string tags = 5;
+  string tag_json = 6;
+  int64 author_id = 7;
+  string author_nickname = 8;
+  string author_avatar = 9;
+  int32 like_count = 10;
+  int32 favorite_count = 11;
+  bool liked = 12;
+  bool faved = 13;
+  bool is_top = 14;
+}
+
+message SearchResp {
+  repeated Hit items = 1;
+  string next_after = 2;
+  bool has_more = 3;
+}
+
+message SuggestReq {
+  string prefix = 1;
+  int32 size = 2;
+}
+
+message SuggestResp {
+  repeated string items = 1;
+}
+
+service Search {
+  rpc Search(SearchReq) returns (SearchResp);
+  rpc Suggest(SuggestReq) returns (SuggestResp);
+}

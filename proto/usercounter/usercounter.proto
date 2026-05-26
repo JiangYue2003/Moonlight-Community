@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package usercounter;
+option go_package = "./usercounter";
+
+// Snapshot 用户维度计数全字段（与 Java UserCounterServiceImpl 严格对齐）。
+message Snapshot {
+  int64 user_id        = 1;
+  int64 read           = 2;  // idx 0 预留
+  int64 followings     = 3;  // idx 1
+  int64 followers      = 4;  // idx 2
+  int64 posts          = 5;  // idx 3
+  int64 likes_received = 6;  // idx 4
+}
+
+message IncrementReq  { int64 user_id = 1; string field = 2; int32 delta = 3; }
+message IncrementResp { int64 value = 1; }
+
+message GetSnapshotReq  { int64 user_id = 1; }
+message GetSnapshotResp { Snapshot snapshot = 1; }
+
+message BatchGetSnapshotReq  { repeated int64 user_ids = 1; }
+message BatchGetSnapshotResp { map<int64, Snapshot> result = 1; }
+
+service UserCounter {
+  rpc Increment        (IncrementReq)        returns (IncrementResp);
+  rpc GetSnapshot      (GetSnapshotReq)      returns (GetSnapshotResp);
+  rpc BatchGetSnapshot (BatchGetSnapshotReq) returns (BatchGetSnapshotResp);
+}

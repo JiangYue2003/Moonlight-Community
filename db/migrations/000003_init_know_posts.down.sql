@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS know_posts;

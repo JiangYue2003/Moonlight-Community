@@ -1,0 +1,36 @@
+Name: storage-api
+Host: 0.0.0.0
+Port: 8003
+
+Mode: dev
+
+AuthRpc:
+  Endpoints:
+  - 127.0.0.1:9002
+  NonBlock: true
+
+Mysql:
+  DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+- Host: 127.0.0.1:6379
+  Type: node
+
+Oss:
+  Endpoint: oss-cn-beijing.aliyuncs.com
+  PublicDomain: ""
+  Bucket: replace-me
+  AccessKeyId: replace-me
+  AccessKeySecret: replace-me
+  AvatarFolder: avatars
+  PresignExpiresSec: 600
+
+Log:
+  ServiceName: storage-api
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9113
+  Path: /metrics

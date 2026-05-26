@@ -1,0 +1,41 @@
+Name: llm-api
+Host: 0.0.0.0
+Port: 8008
+
+Mode: dev
+
+AuthRpc:
+  Endpoints:
+  - 127.0.0.1:9002
+  NonBlock: true
+
+DeepSeek:
+  BaseUrl: https://api.deepseek.com
+  ApiKey: "${DEEPSEEK_API_KEY}"
+  Model: deepseek-chat
+  TimeoutMs: 60000
+
+Tongyi:
+  BaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+  ApiKey: "${DASHSCOPE_API_KEY}"
+  Model: text-embedding-v3
+  Dims: 1024
+  BatchSize: 25
+  TimeoutMs: 30000
+
+Es:
+  Addrs:
+  - http://127.0.0.1:9200
+  TimeoutMs: 10000
+
+RagIndex: zhiguang_rag_vector
+
+Log:
+  ServiceName: llm-api
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9118
+  Path: /metrics

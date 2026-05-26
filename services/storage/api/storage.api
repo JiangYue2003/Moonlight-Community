@@ -1,0 +1,32 @@
+syntax = "v1"
+
+info (
+	title:  "Storage API"
+	desc:   "OSS 预签名上传 + 头像后端中转"
+	author: "zhiguang"
+)
+
+type (
+	PresignReq {
+		Scene       string `json:"scene"` // knowpost_content / knowpost_image
+		PostId      string `json:"postId"`
+		ContentType string `json:"contentType"`
+		Ext         string `json:"ext,optional"`
+	}
+	PresignResp {
+		Url        string            `json:"url"`
+		ObjectKey  string            `json:"objectKey"`
+		ExpiresIn  int64             `json:"expiresIn"`
+		Headers    map[string]string `json:"headers"`
+		ContentUrl string            `json:"contentUrl"`
+	}
+)
+
+@server (
+	prefix: /api/v1/storage
+)
+service storage-api {
+	@handler Presign
+	post /presign (PresignReq) returns (PresignResp)
+}
+

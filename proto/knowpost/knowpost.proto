@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package knowpost;
+option go_package = "./knowpost";
+
+// KnowPostDetail 帖子详情，用于详情页与发布/编辑回包。
+message KnowPostDetail {
+  string id              = 1;   // string 防前端精度丢失
+  int64  creator_id      = 2;
+  string title           = 3;
+  string description     = 4;
+  int64  tag_id          = 5;
+  repeated string tags   = 6;
+  string content_url     = 7;
+  string content_object_key = 8;
+  string content_etag    = 9;
+  int64  content_size    = 10;
+  string content_sha256  = 11;
+  repeated string img_urls = 12;
+  string visible         = 13;  // public / followers / school / private / unlisted
+  string status          = 14;  // draft / published / deleted
+  string type            = 15;
+  bool   is_top          = 16;
+  int64  create_time     = 17;
+  int64  update_time     = 18;
+  int64  publish_time    = 19;
+}
+
+// FeedItem Feed 流单条（去掉 etag/size/sha256）。
+message FeedItem {
+  string id              = 1;
+  int64  creator_id      = 2;
+  string title           = 3;
+  string description     = 4;
+  string content_url     = 5;
+  repeated string tags   = 6;
+  repeated string img_urls = 7;
+  string visible         = 8;
+  bool   is_top          = 9;
+  int64  publish_time    = 10;
+}
+
+message FeedPage {
+  repeated FeedItem items = 1;
+  bool has_more = 2;
+  int32 size = 3;
+  int32 page = 4;
+}
+
+message Empty {}
+
+message CreateDraftReq  { int64 creator_id = 1; }
+message CreateDraftResp { string id = 1; }
+
+message ConfirmContentReq {
+  int64  id         = 1;
+  int64  creator_id = 2;
+  string object_key = 3;
+  string etag       = 4;
+  int64  size       = 5;
+  string sha256     = 6;
+}
+
+// PatchMetadataReq 增量更新；用 *_set 区分未传与显式置空。
+message PatchMetadataReq {
+  int64 id              = 1;
+  int64 creator_id      = 2;
+  string title          = 3; bool title_set       = 4;
+  string description    = 5; bool description_set = 6;
+  int64  tag_id         = 7; bool tag_id_set      = 8;
+  repeated string tags  = 9; bool tags_set        = 10;
+  repeated string img_urls = 11; bool img_urls_set = 12;
+  string visible        = 13; bool visible_set    = 14;
+  bool   is_top         = 15; bool is_top_set     = 16;
+}
+
+message PublishReq           { int64 id = 1; int64 creator_id = 2; }
+message UpdateTopReq         { int64 id = 1; int64 creator_id = 2; bool is_top = 3; }
+message UpdateVisibilityReq  { int64 id = 1; int64 creator_id = 2; string visible = 3; }
+message DeleteReq            { int64 id = 1; int64 creator_id = 2; }
+
+message GetDetailReq        { int64 id = 1; int64 viewer_id = 2; }
+
+message GetPublicFeedReq {
+  int32 page = 1;
+  int32 size = 2;
+}
+
+message GetMyFeedReq {
+  int64 creator_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message ReindexReq { int64 id = 1; int64 creator_id = 2; }
+
+service KnowPost {
+  rpc CreateDraft      (CreateDraftReq)      returns (CreateDraftResp);
+  rpc ConfirmContent   (ConfirmContentReq)   returns (Empty);
+  rpc PatchMetadata    (PatchMetadataReq)    returns (KnowPostDetail);
+  rpc Publish          (PublishReq)          returns (KnowPostDetail);
+  rpc UpdateTop        (UpdateTopReq)        returns (Empty);
+  rpc UpdateVisibility (UpdateVisibilityReq) returns (Empty);
+  rpc Delete           (DeleteReq)           returns (Empty);
+  rpc GetDetail        (GetDetailReq)        returns (KnowPostDetail);
+  rpc GetPublicFeed    (GetPublicFeedReq)    returns (FeedPage);
+  rpc GetMyFeed        (GetMyFeedReq)        returns (FeedPage);
+  rpc Reindex          (ReindexReq)          returns (Empty);
+}

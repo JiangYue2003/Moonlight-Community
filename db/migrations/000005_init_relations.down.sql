@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS follower;
+DROP TABLE IF EXISTS following;

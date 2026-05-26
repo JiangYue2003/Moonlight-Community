@@ -1,0 +1,44 @@
+Name: user.rpc
+ListenOn: 0.0.0.0:9002
+
+Mode: dev
+
+Mysql:
+  DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+- Host: 127.0.0.1:6379
+  Type: node
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Key: user-rpc
+
+Jwt:
+  Issuer: zhiguang
+  PrivateKeyPath: certs/jwt_private.pem
+  PublicKeyPath: certs/jwt_public.pem
+  AccessTtlSeconds: 900
+  RefreshTtlSeconds: 604800
+
+Verification:
+  CodeLength: 6
+  CodeTtlSeconds: 300
+  ResendIntervalSeconds: 60
+  DailyLimit: 10
+  MaxAttempts: 5
+
+Password:
+  BcryptCost: 12
+  MinLength: 8
+
+Log:
+  ServiceName: user.rpc
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9102
+  Path: /metrics

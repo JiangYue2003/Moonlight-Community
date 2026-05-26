@@ -1,0 +1,56 @@
+syntax = "v1"
+
+info (
+	title:  "Counter API"
+	desc:   "HTTP gateway for counter-rpc (like / fav)"
+	author: "zhiguang"
+)
+
+type (
+	ActionReq {
+		EntityType string `json:"entityType"`
+		EntityId   string `json:"entityId"`
+	}
+	ActionResp {
+		Changed bool `json:"changed"`
+		Liked   bool `json:"liked,optional"`
+		Faved   bool `json:"faved,optional"`
+	}
+	CountsResp {
+		EntityType string           `json:"entityType"`
+		EntityId   string           `json:"entityId"`
+		Counts     map[string]int64 `json:"counts"`
+	}
+)
+
+@server (
+	prefix: /api/v1/action
+	jwt:    Auth
+)
+service counter-api {
+	@handler Like
+	post /like (ActionReq) returns (ActionResp)
+
+	@handler Unlike
+	post /unlike (ActionReq) returns (ActionResp)
+
+	@handler Fav
+	post /fav (ActionReq) returns (ActionResp)
+
+	@handler Unfav
+	post /unfav (ActionReq) returns (ActionResp)
+}
+
+type GetCountsPath {
+	EntityType string `path:"etype"`
+	EntityId   string `path:"eid"`
+}
+
+@server (
+	prefix: /api/v1/counter
+)
+service counter-api {
+	@handler GetCounts
+	get /:etype/:eid (GetCountsPath) returns (CountsResp)
+}
+

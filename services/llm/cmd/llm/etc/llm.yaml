@@ -1,0 +1,98 @@
+DisableAPI: true
+
+Api:
+  Name: llm-api
+  Host: 0.0.0.0
+  Port: 8008
+
+  Mode: dev
+
+  AuthRpc:
+    Endpoints:
+    - 127.0.0.1:9002
+    NonBlock: true
+
+  DeepSeek:
+    BaseUrl: https://api.deepseek.com
+    ApiKey: "${DEEPSEEK_API_KEY}"
+    Model: deepseek-chat
+    TimeoutMs: 60000
+    Temperature: 0.8
+
+  Tongyi:
+    BaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+    ApiKey: "${DASHSCOPE_API_KEY}"
+    Model: text-embedding-v4
+    Dimensions: 1536
+    BatchSize: 25
+    TimeoutMs: 30000
+
+  Es:
+    Addrs:
+    - http://127.0.0.1:9200
+    TimeoutMs: 10000
+
+  RagIndex: zhiguang_rag_vector
+
+  LlmRateLimit:
+    RedisHost: 127.0.0.1:6379
+    DescribeCapacity: 5
+    DescribeRefillPerSec: 1
+    QaCapacity: 3
+    QaRefillPerSec: 1
+
+  Log:
+    ServiceName: llm-api
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9118
+    Path: /metrics
+
+RagIndexer:
+  Es:
+    Addrs:
+    - http://127.0.0.1:9200
+    TimeoutMs: 10000
+
+  RagIndex: zhiguang_rag_vector
+
+  Kafka:
+    Brokers:
+    - 127.0.0.1:9092
+    Topic: canal-outbox
+    GroupId: rag-indexer
+    AutoOffsetReset: latest
+
+  KnowPostRpc:
+    Endpoints:
+    - 127.0.0.1:9004
+    NonBlock: true
+
+  Tongyi:
+    BaseUrl: https://dashscope.aliyuncs.com/compatible-mode/v1
+    ApiKey: "${DASHSCOPE_API_KEY}"
+    Model: text-embedding-v4
+    Dimensions: 1536
+    BatchSize: 25
+    TimeoutMs: 30000
+
+  Chunk:
+    Size: 800
+    Overlap: 100
+
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+
+  Dedup:
+    TtlSeconds: 600
+
+  HttpFetchTimeoutMs: 8000
+
+  Log:
+    ServiceName: llm.ragindexer
+    Mode: console
+    Level: info

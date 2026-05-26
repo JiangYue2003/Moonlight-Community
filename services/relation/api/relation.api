@@ -1,0 +1,76 @@
+syntax = "v1"
+
+info (
+	title:  "Relation API"
+	desc:   "HTTP gateway for relation-rpc"
+	author: "zhiguang"
+)
+
+type (
+	FollowReq {
+		ToUserId int64 `json:"toUserId"`
+	}
+	UnfollowReq {
+		ToUserId int64 `json:"toUserId"`
+	}
+	StatusReq {
+		ToUserId int64 `form:"toUserId"`
+	}
+	StatusResp {
+		Following  bool `json:"following"`
+		FollowedBy bool `json:"followedBy"`
+		Mutual     bool `json:"mutual"`
+	}
+	ListReq {
+		UserId int64 `form:"userId,optional"` // 0 表示当前登录用户
+		Limit  int32 `form:"limit,optional"`
+		Offset int32 `form:"offset,optional"`
+		Cursor int64 `form:"cursor,optional"`
+	}
+	UserSummary {
+		Id       int64  `json:"id"`
+		Nickname string `json:"nickname"`
+		Avatar   string `json:"avatar"`
+		ZgId     string `json:"zgId"`
+		Bio      string `json:"bio"`
+	}
+	ListResp {
+		Items      []UserSummary `json:"items"`
+		NextCursor int64         `json:"nextCursor"`
+		HasMore    bool          `json:"hasMore"`
+	}
+	CounterReq {
+		UserId int64 `form:"userId,optional"` // 0 表示当前登录用户
+	}
+	CounterResp {
+		Followings    int64 `json:"followings"`
+		Followers     int64 `json:"followers"`
+		Posts         int64 `json:"posts"`
+		LikesReceived int64 `json:"likesReceived"`
+	}
+	Empty  {}
+)
+
+@server (
+	prefix: /api/v1/relation
+)
+service relation-api {
+	@handler Follow
+	post /follow (FollowReq) returns (Empty)
+
+	@handler Unfollow
+	post /unfollow (UnfollowReq) returns (Empty)
+
+	@handler Status
+	get /status (StatusReq) returns (StatusResp)
+
+	@handler ListFollowing
+	get /following (ListReq) returns (ListResp)
+
+	@handler ListFollowers
+	get /followers (ListReq) returns (ListResp)
+
+	@handler Counter
+	get /counter (CounterReq) returns (CounterResp)
+}
+

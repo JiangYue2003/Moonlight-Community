@@ -1,0 +1,56 @@
+Name: knowpost.rpc
+ListenOn: 0.0.0.0:9004
+
+Mode: dev
+
+Mysql:
+  DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+- Host: 127.0.0.1:6379
+  Type: node
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+  Key: knowpost-rpc
+
+Kafka:
+  Brokers:
+  - 127.0.0.1:9092
+  CounterEventsTopic: counter-events
+  GroupId: knowpost-cache-invalidation
+
+UserCounterRpc:
+  Endpoints:
+  - 127.0.0.1:9005
+  NonBlock: true
+
+CounterRpc:
+  Endpoints:
+  - 127.0.0.1:9003
+  NonBlock: true
+
+L1:
+  DetailNumCounters: 50000
+  DetailMaxCostMB: 100
+  FeedPublicNumCounters: 10000
+  FeedPublicMaxCostMB: 50
+  FeedItemNumCounters: 50000
+  FeedItemMaxCostMB: 50
+  FeedMineNumCounters: 10000
+  FeedMineMaxCostMB: 50
+
+Snowflake:
+  WorkerId: 1
+  DatacenterId: 2
+
+Log:
+  ServiceName: knowpost.rpc
+  Mode: console
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9104
+  Path: /metrics

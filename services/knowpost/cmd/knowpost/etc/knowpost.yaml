@@ -1,0 +1,104 @@
+DisableAPI: true
+
+Api:
+  Name: knowpost-api
+  Host: 0.0.0.0
+  Port: 8005
+
+  Mode: dev
+
+  AuthRpc:
+    Endpoints:
+    - 127.0.0.1:9002
+    NonBlock: true
+
+  KnowPostRpc:
+    Endpoints:
+    - 127.0.0.1:9004
+    NonBlock: true
+
+  CounterRpc:
+    Endpoints:
+    - 127.0.0.1:9003
+    NonBlock: true
+
+  LlmProxy:
+    BaseURL: http://127.0.0.1:8008
+    TimeoutMs: 120000
+
+  Log:
+    ServiceName: knowpost-api
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9115
+    Path: /metrics
+
+Rpc:
+  Name: knowpost.rpc
+  ListenOn: 0.0.0.0:9004
+
+  Mode: dev
+
+  Mysql:
+    DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
+
+  CacheRedis:
+  - Host: 127.0.0.1:6379
+    Type: node
+
+  Redis:
+    Host: 127.0.0.1:6379
+    Type: node
+    Key: knowpost-rpc
+
+  Kafka:
+    Brokers:
+    - 127.0.0.1:9092
+    CounterEventsTopic: counter-events
+    GroupId: knowpost-cache-invalidation
+
+  UserCounterRpc:
+    Endpoints:
+    - 127.0.0.1:9003
+    NonBlock: true
+
+  CounterRpc:
+    Endpoints:
+    - 127.0.0.1:9003
+    NonBlock: true
+
+  L1:
+    DetailNumCounters: 50000
+    DetailMaxCostMB: 100
+    FeedPublicNumCounters: 10000
+    FeedPublicMaxCostMB: 50
+    FeedItemNumCounters: 50000
+    FeedItemMaxCostMB: 50
+    FeedMineNumCounters: 10000
+    FeedMineMaxCostMB: 50
+  HotKey:
+    WindowSeconds: 60
+    SegmentSeconds: 10
+    LevelLow: 50
+    LevelMedium: 200
+    LevelHigh: 500
+    ExtendLowSeconds: 20
+    ExtendMediumSeconds: 60
+    ExtendHighSeconds: 120
+
+  Snowflake:
+    WorkerId: 1
+    DatacenterId: 2
+
+  Log:
+    ServiceName: knowpost.rpc
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9104
+    Path: /metrics
