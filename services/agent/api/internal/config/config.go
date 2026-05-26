@@ -87,6 +87,7 @@ type AgentConf struct {
 
 	ModelRoute    ModelRouteConf
 	Planner       PlannerConf
+	React         ReactConf
 	Observability ObservabilityConf
 	ModelCost     ModelCostConf
 }
@@ -105,6 +106,19 @@ type PlannerConf struct {
 	UseProOnComplex          bool `json:",default=true"`
 	StrictJSON               bool `json:",default=true"`
 	ConstraintKeywordTrigger int  `json:",default=1"`
+}
+
+type ReactConf struct {
+	Enable                bool `json:",default=true"`
+	EmitInternalLog       bool `json:",default=true"`
+	MaxSteps              int  `json:",default=3"`
+	MaxElapsedMs          int  `json:",default=5000"`
+	MaxSameQueryRepeats   int  `json:",default=2"`
+	MaxRewriteWithoutGain int  `json:",default=1"`
+	MinNewEvidencePerStep int  `json:",default=1"`
+	MaxEvidencePool       int  `json:",default=24"`
+	DefaultStepTopK       int  `json:",default=6"`
+	StrictJSON            bool `json:",default=true"`
 }
 
 type MilvusConf struct {

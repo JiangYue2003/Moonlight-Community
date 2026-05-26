@@ -33,14 +33,18 @@ type Citation struct {
 }
 
 type ChatPlan struct {
-	Prompt             string
-	Citations          []Citation
-	TraceID            string
-	Planned            bool
-	QuestionType       string
-	SubQueryCount      int
-	PlanModel          string
-	PlanFallbackReason string
+	Prompt              string
+	Citations           []Citation
+	TraceID             string
+	Planned             bool
+	ReactUsed           bool
+	ReactSteps          int
+	ReactFinishReason   string
+	ReactFallbackReason string
+	QuestionType        string
+	SubQueryCount       int
+	PlanModel           string
+	PlanFallbackReason  string
 }
 
 type RetrievalBundle struct {
@@ -80,6 +84,39 @@ type PlanSubQuery struct {
 	Goal     string   `json:"goal"`
 	Query    string   `json:"query"`
 	Channels []string `json:"channels"`
+}
+
+type ReActState struct {
+	Question        string
+	StepIndex       int
+	MaxSteps        int
+	StartedAt       time.Time
+	EvidencePool    []retrieval.ScoredItem
+	VisitedQueries  map[string]int
+	ActionHistory   []string
+	StagnationCount int
+	RewriteNoGain   int
+	FinishReason    string
+}
+
+type ReActAction struct {
+	Action   string   `json:"action"`
+	Query    string   `json:"query"`
+	Goal     string   `json:"goal"`
+	Channels []string `json:"channels"`
+	TopK     int      `json:"top_k"`
+}
+
+type ReActObservation struct {
+	Query       string
+	NewEvidence []retrieval.ScoredItem
+	TotalHits   int
+}
+
+type ReActCoverage struct {
+	NeedStop     bool
+	FinishReason string
+	NewEvidence  int
 }
 
 func NewOrchestrator(ctx context.Context, svcCtx *svc.ServiceContext) *Orchestrator {
@@ -212,7 +249,17 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	plan := &ChatPlan{TraceID: traceID}
 	var bundle *RetrievalBundle
 	var err error
-	if o.shouldPlan(question) {
+	if o.shouldUseReAct(question) {
+		bundle, err = o.runReActLoop(o.ctx, userID, sessionID, traceID, strings.TrimSpace(question), topK)
+		if err == nil && bundle != nil {
+			plan.ReactUsed = true
+			plan.ReactSteps = o.svcCtx.Config.Agent.React.MaxSteps
+			plan.ReactFinishReason = "react_completed"
+		} else if err != nil {
+			plan.ReactFallbackReason = err.Error()
+		}
+	}
+	if bundle == nil && o.shouldPlan(question) {
 		var retrievalPlan *RetrievalPlan
 		retrievalPlan, err = o.buildRetrievalPlan(o.ctx, strings.TrimSpace(question))
 		if err == nil && retrievalPlan != nil {
@@ -272,6 +319,18 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	return plan, nil
 }
 
+func (o *Orchestrator) shouldUseReAct(question string) bool {
+	cfg := o.svcCtx.Config.Agent.React
+	if !cfg.Enable {
+		return false
+	}
+	q := strings.TrimSpace(question)
+	if len([]rune(q)) >= 80 {
+		return true
+	}
+	return keywordHits(q, []string{"对比", "比较", "分别", "分类", "先", "再", "然后", "适用场景", "限制"}) > 0
+}
+
 func (o *Orchestrator) shouldPlan(question string) bool {
 	cfg := o.svcCtx.Config.Agent.Planner
 	if !cfg.Enable {
@@ -291,6 +350,158 @@ func (o *Orchestrator) shouldPlan(question string) bool {
 		return true
 	}
 	return runes >= cfg.QuestionRunesThreshold
+}
+
+func (o *Orchestrator) parseReActAction(raw string) (*ReActAction, error) {
+	var action ReActAction
+	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &action); err != nil {
+		return nil, fmt.Errorf("react_action_parse_failed")
+	}
+	switch strings.TrimSpace(action.Action) {
+	case "search_knowledge", "search_memory_facts", "search_memory_preferences", "rewrite_query", "finish":
+	default:
+		return nil, fmt.Errorf("react_invalid_action")
+	}
+	return &action, nil
+}
+
+func (o *Orchestrator) detectQueryLoop(state *ReActState, query string) bool {
+	if state == nil {
+		return false
+	}
+	norm := normalizeQuery(query)
+	maxRepeat := o.svcCtx.Config.Agent.React.MaxSameQueryRepeats
+	if maxRepeat <= 0 {
+		maxRepeat = 2
+	}
+	return state.VisitedQueries[norm] >= maxRepeat
+}
+
+func (o *Orchestrator) evaluateEvidenceCoverage(state *ReActState, question string, obs ReActObservation) ReActCoverage {
+	cfg := o.svcCtx.Config.Agent.React
+	cov := ReActCoverage{NewEvidence: len(obs.NewEvidence)}
+	if state == nil {
+		return cov
+	}
+	if len(obs.NewEvidence) < cfg.MinNewEvidencePerStep {
+		state.StagnationCount++
+	} else {
+		state.StagnationCount = 0
+	}
+	if state.StagnationCount >= 2 {
+		cov.NeedStop = true
+		cov.FinishReason = "no_new_evidence"
+		return cov
+	}
+	if state.StepIndex+1 >= state.MaxSteps {
+		cov.NeedStop = true
+		cov.FinishReason = "max_steps"
+		return cov
+	}
+	if cfg.MaxElapsedMs > 0 && time.Since(state.StartedAt) >= time.Duration(cfg.MaxElapsedMs)*time.Millisecond {
+		cov.NeedStop = true
+		cov.FinishReason = "timeout"
+		return cov
+	}
+	return cov
+}
+
+func (o *Orchestrator) runReActLoop(ctx context.Context, userID int64, sessionID, traceID, question string, topK int) (*RetrievalBundle, error) {
+	cfg := o.svcCtx.Config.Agent.React
+	state := &ReActState{
+		Question:       question,
+		MaxSteps:       cfg.MaxSteps,
+		StartedAt:      time.Now(),
+		VisitedQueries: map[string]int{},
+	}
+	currentQuery := question
+	for step := 0; step < state.MaxSteps; step++ {
+		state.StepIndex = step
+		if o.detectQueryLoop(state, currentQuery) {
+			state.FinishReason = "query_loop"
+			break
+		}
+		state.VisitedQueries[normalizeQuery(currentQuery)]++
+		bundle, err := o.executeReactAction(ctx, userID, sessionID, traceID, &ReActAction{
+			Action:   "search_knowledge",
+			Query:    currentQuery,
+			Channels: []string{"vector", "keyword", "memory"},
+			TopK:     min(topK, cfg.DefaultStepTopK),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("react_action_failed")
+		}
+		obs := ReActObservation{
+			Query:       currentQuery,
+			NewEvidence: diffEvidence(state.EvidencePool, bundle.Merged),
+			TotalHits:   len(bundle.Merged),
+		}
+		state.EvidencePool = o.compressPlannedEvidence(append(state.EvidencePool, bundle.Merged...), cfg.MaxEvidencePool)
+		coverage := o.evaluateEvidenceCoverage(state, question, obs)
+		state.ActionHistory = append(state.ActionHistory, "search_knowledge")
+		if coverage.NeedStop {
+			state.FinishReason = coverage.FinishReason
+			break
+		}
+		if keywordHits(question, []string{"对比", "比较", "分别"}) > 0 && step == 0 {
+			currentQuery = question + " 差异 适用场景 限制"
+			state.RewriteNoGain++
+			continue
+		}
+		state.FinishReason = "enough_evidence"
+		break
+	}
+	if len(state.EvidencePool) == 0 {
+		return nil, fmt.Errorf("react_no_evidence")
+	}
+	return &RetrievalBundle{
+		Question: question,
+		TopK:     topK,
+		Intent:   security.GuessIntent(question),
+		Merged:   o.compressPlannedEvidence(state.EvidencePool, topK),
+	}, nil
+}
+
+func (o *Orchestrator) executeReactAction(ctx context.Context, userID int64, sessionID, traceID string, action *ReActAction) (*RetrievalBundle, error) {
+	if action == nil {
+		return nil, fmt.Errorf("react_nil_action")
+	}
+	q := strings.TrimSpace(action.Query)
+	if q == "" {
+		q = ""
+	}
+	switch action.Action {
+	case "search_knowledge", "search_memory_facts", "search_memory_preferences":
+		topK := action.TopK
+		if topK <= 0 {
+			topK = o.svcCtx.Config.Agent.React.DefaultStepTopK
+		}
+		return o.hybridRetrieve(ctx, userID, sessionID, traceID, q, topK)
+	default:
+		return nil, fmt.Errorf("react_unsupported_action")
+	}
+}
+
+func normalizeQuery(q string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(q))), " ")
+}
+
+func diffEvidence(existing, current []retrieval.ScoredItem) []retrieval.ScoredItem {
+	if len(current) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	for _, it := range existing {
+		seen[dedupKey(it)] = struct{}{}
+	}
+	out := make([]retrieval.ScoredItem, 0, len(current))
+	for _, it := range current {
+		if _, ok := seen[dedupKey(it)]; ok {
+			continue
+		}
+		out = append(out, it)
+	}
+	return out
 }
 
 func (o *Orchestrator) planModelName(question string) string {
