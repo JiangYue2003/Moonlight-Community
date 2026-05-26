@@ -183,6 +183,7 @@
 ### 4.2 Streaming QA 技术构成
 - `协议`: SSE
 - `流程`: retrieve -> model route -> stream token -> citations -> final
+- `流程(升级)`: shouldPlan -> (可选 planner 拆解) -> hybrid_retrieve(子问题) -> 去重压缩 -> model route -> stream token -> citations -> final
 - `记忆`: Redis 消息窗 + 摘要压缩
 - `限流`: token-bucket (per-user)
 

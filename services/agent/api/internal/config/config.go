@@ -38,12 +38,12 @@ type DeepSeekConf struct {
 }
 
 type TongyiConf struct {
-	BaseUrl   string `json:",default=https://dashscope.aliyuncs.com/compatible-mode/v1"`
-	ApiKey    string
-	Model     string `json:",default=text-embedding-v3"`
+	BaseUrl string `json:",default=https://dashscope.aliyuncs.com/compatible-mode/v1"`
+	ApiKey  string
+	Model   string `json:",default=text-embedding-v3"`
 	// Dimensions 对齐 Java spring.ai.openai.embedding.options.dimensions
 	Dimensions int `json:",default=1536"`
-	TimeoutMs int    `json:",default=30000"`
+	TimeoutMs  int `json:",default=30000"`
 }
 
 func (c TongyiConf) EffectiveDimensions() int {
@@ -86,8 +86,25 @@ type AgentConf struct {
 	EnableGraph   bool   `json:",default=false"`
 
 	ModelRoute    ModelRouteConf
+	Planner       PlannerConf
 	Observability ObservabilityConf
 	ModelCost     ModelCostConf
+}
+
+type PlannerConf struct {
+	Enable                   bool `json:",default=true"`
+	EmitInternalLog          bool `json:",default=true"`
+	MaxSubQueries            int  `json:",default=3"`
+	MaxTopicTerms            int  `json:",default=8"`
+	QuestionRunesThreshold   int  `json:",default=80"`
+	CompareKeywordThreshold  int  `json:",default=1"`
+	ForcePlanQuestionRunes   int  `json:",default=180"`
+	DefaultSubQueryTopK      int  `json:",default=8"`
+	MaxSubQueryTopK          int  `json:",default=12"`
+	TimeoutMs                int  `json:",default=4000"`
+	UseProOnComplex          bool `json:",default=true"`
+	StrictJSON               bool `json:",default=true"`
+	ConstraintKeywordTrigger int  `json:",default=1"`
 }
 
 type MilvusConf struct {

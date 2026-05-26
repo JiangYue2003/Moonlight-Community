@@ -2,7 +2,11 @@ package logic
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -29,9 +33,14 @@ type Citation struct {
 }
 
 type ChatPlan struct {
-	Prompt    string
-	Citations []Citation
-	TraceID   string
+	Prompt             string
+	Citations          []Citation
+	TraceID            string
+	Planned            bool
+	QuestionType       string
+	SubQueryCount      int
+	PlanModel          string
+	PlanFallbackReason string
 }
 
 type RetrievalBundle struct {
@@ -57,6 +66,20 @@ type Orchestrator struct {
 	esBM25   *providers.ESKeywordProvider
 	milvus   *providers.MilvusProvider
 	neo4j    *providers.Neo4jProvider
+}
+
+type RetrievalPlan struct {
+	QuestionType   string         `json:"question_type"`
+	Topics         []string       `json:"topics"`
+	Constraints    []string       `json:"constraints"`
+	SubQueries     []PlanSubQuery `json:"sub_queries"`
+	AnswerStrategy string         `json:"answer_strategy"`
+}
+
+type PlanSubQuery struct {
+	Goal     string   `json:"goal"`
+	Query    string   `json:"query"`
+	Channels []string `json:"channels"`
 }
 
 func NewOrchestrator(ctx context.Context, svcCtx *svc.ServiceContext) *Orchestrator {
@@ -186,25 +209,46 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	topK = security.ClampTopK(topK, o.svcCtx.Config.Agent.DefaultTopK, 1, o.svcCtx.Config.Agent.MaxTopK)
 	traceID := uuid.NewString()
 
-	ret, err := o.tools.Execute(o.ctx, tooling.Call{
-		Tool:      "hybrid_retrieve",
-		UserID:    userID,
-		SessionID: sessionID,
-		TraceID:   traceID,
-		Params: map[string]any{
-			"question": strings.TrimSpace(question),
-			"topK":     topK,
-		},
-	})
-	if err != nil {
-		return nil, errorx.Wrap(errorx.CodeInternalError, "hybrid retrieve failed", err)
+	plan := &ChatPlan{TraceID: traceID}
+	var bundle *RetrievalBundle
+	var err error
+	if o.shouldPlan(question) {
+		var retrievalPlan *RetrievalPlan
+		retrievalPlan, err = o.buildRetrievalPlan(o.ctx, strings.TrimSpace(question))
+		if err == nil && retrievalPlan != nil {
+			bundle, err = o.executePlannedRetrieval(o.ctx, userID, sessionID, traceID, topK, retrievalPlan)
+			if err == nil {
+				plan.Planned = true
+				plan.QuestionType = retrievalPlan.QuestionType
+				plan.SubQueryCount = len(retrievalPlan.SubQueries)
+				plan.PlanModel = o.planModelName(question)
+			}
+		}
+		if err != nil {
+			plan.PlanFallbackReason = err.Error()
+		}
 	}
-	bundle, ok := ret.(*RetrievalBundle)
-	if !ok || bundle == nil {
-		return nil, errorx.New(errorx.CodeInternalError, "invalid retrieval bundle")
+	if bundle == nil {
+		ret, rerr := o.tools.Execute(o.ctx, tooling.Call{
+			Tool:      "hybrid_retrieve",
+			UserID:    userID,
+			SessionID: sessionID,
+			TraceID:   traceID,
+			Params: map[string]any{
+				"question": strings.TrimSpace(question),
+				"topK":     topK,
+			},
+		})
+		if rerr != nil {
+			return nil, errorx.Wrap(errorx.CodeInternalError, "hybrid retrieve failed", rerr)
+		}
+		var ok bool
+		bundle, ok = ret.(*RetrievalBundle)
+		if !ok || bundle == nil {
+			return nil, errorx.New(errorx.CodeInternalError, "invalid retrieval bundle")
+		}
 	}
 
-	plan := &ChatPlan{TraceID: traceID}
 	if len(bundle.Merged) == 0 {
 		plan.Prompt = fmt.Sprintf("用户问题：%s\n\n未检索到可用知识，请明确说明未找到答案并建议用户补充收藏内容。", strings.TrimSpace(question))
 		return plan, nil
@@ -212,6 +256,11 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 
 	var b strings.Builder
 	b.WriteString("你是个人知识助手。只基于给定上下文回答，不要编造。\n")
+	if plan.Planned {
+		b.WriteString("问题类型：")
+		b.WriteString(plan.QuestionType)
+		b.WriteString("\n")
+	}
 	b.WriteString("问题：")
 	b.WriteString(strings.TrimSpace(question))
 	b.WriteString("\n\n上下文：\n")
@@ -221,6 +270,196 @@ func (o *Orchestrator) Build(userID int64, sessionID, question string, topK int)
 	}
 	plan.Prompt = b.String()
 	return plan, nil
+}
+
+func (o *Orchestrator) shouldPlan(question string) bool {
+	cfg := o.svcCtx.Config.Agent.Planner
+	if !cfg.Enable {
+		return false
+	}
+	q := strings.TrimSpace(question)
+	runes := len([]rune(q))
+	if runes >= cfg.ForcePlanQuestionRunes {
+		return true
+	}
+	compareHits := keywordHits(q, []string{"对比", "比较", "分别", "哪些", "分类", "同时", "异步", "同步"})
+	if compareHits >= cfg.CompareKeywordThreshold {
+		return true
+	}
+	constraintHits := keywordHits(q, []string{"只看", "仅看", "限定", "范围", "时间", "收藏"})
+	if constraintHits >= cfg.ConstraintKeywordTrigger {
+		return true
+	}
+	return runes >= cfg.QuestionRunesThreshold
+}
+
+func (o *Orchestrator) planModelName(question string) string {
+	if o.svcCtx.Config.Agent.Planner.UseProOnComplex && o.shouldPlan(question) {
+		return "pro"
+	}
+	return "lite"
+}
+
+func (o *Orchestrator) buildRetrievalPlan(ctx context.Context, question string) (*RetrievalPlan, error) {
+	_ = ctx
+	// v1: heuristic JSON plan, keeps path deterministic and fallback-safe.
+	p := &RetrievalPlan{
+		QuestionType:   "fact",
+		Topics:         []string{question},
+		Constraints:    nil,
+		AnswerStrategy: "direct",
+		SubQueries: []PlanSubQuery{
+			{Goal: "answer", Query: question, Channels: []string{"vector", "keyword", "memory"}},
+		},
+	}
+	if keywordHits(question, []string{"对比", "比较", "分别", "分类"}) > 0 {
+		p.QuestionType = "compare"
+		p.AnswerStrategy = "compare_and_classify"
+	}
+	return o.validateRetrievalPlan(p, question)
+}
+
+func (o *Orchestrator) parseRetrievalPlanFromJSON(raw string, question string) (*RetrievalPlan, error) {
+	var p RetrievalPlan
+	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &p); err != nil {
+		return nil, fmt.Errorf("planner_json_parse_failed")
+	}
+	return o.validateRetrievalPlan(&p, question)
+}
+
+func (o *Orchestrator) validateRetrievalPlan(p *RetrievalPlan, question string) (*RetrievalPlan, error) {
+	if p == nil {
+		return nil, fmt.Errorf("planner_nil")
+	}
+	cfg := o.svcCtx.Config.Agent.Planner
+	if strings.TrimSpace(p.QuestionType) == "" {
+		p.QuestionType = "fact"
+	}
+	switch p.QuestionType {
+	case "fact", "compare", "classify", "aggregate", "multi_constraint":
+	default:
+		return nil, fmt.Errorf("planner_invalid_question_type")
+	}
+	switch p.AnswerStrategy {
+	case "direct", "compare_and_classify", "group_and_summarize":
+	default:
+		return nil, fmt.Errorf("planner_invalid_answer_strategy")
+	}
+	if len(p.Topics) > cfg.MaxTopicTerms {
+		p.Topics = p.Topics[:cfg.MaxTopicTerms]
+	}
+	if len(p.SubQueries) == 0 {
+		p.SubQueries = []PlanSubQuery{{Goal: "answer", Query: question, Channels: []string{"vector", "keyword", "memory"}}}
+	}
+	if len(p.SubQueries) > cfg.MaxSubQueries {
+		return nil, fmt.Errorf("planner_subqueries_exceed")
+	}
+	for i := range p.SubQueries {
+		p.SubQueries[i].Query = strings.TrimSpace(p.SubQueries[i].Query)
+		if p.SubQueries[i].Query == "" {
+			return nil, fmt.Errorf("planner_empty_subquery")
+		}
+		if len(p.SubQueries[i].Channels) == 0 {
+			p.SubQueries[i].Channels = []string{"vector", "keyword", "memory"}
+		}
+		for _, ch := range p.SubQueries[i].Channels {
+			if !isAllowedPlannerChannel(ch) {
+				return nil, fmt.Errorf("planner_invalid_channel")
+			}
+		}
+	}
+	return p, nil
+}
+
+func (o *Orchestrator) executePlannedRetrieval(ctx context.Context, userID int64, sessionID, traceID string, topK int, p *RetrievalPlan) (*RetrievalBundle, error) {
+	subTopK := o.svcCtx.Config.Agent.Planner.DefaultSubQueryTopK
+	if subTopK <= 0 {
+		subTopK = (topK + 1) / 2
+	}
+	if subTopK > o.svcCtx.Config.Agent.Planner.MaxSubQueryTopK {
+		subTopK = o.svcCtx.Config.Agent.Planner.MaxSubQueryTopK
+	}
+	if subTopK <= 0 {
+		subTopK = 1
+	}
+	var all []retrieval.ScoredItem
+	for _, sq := range p.SubQueries {
+		b, err := o.hybridRetrieve(ctx, userID, sessionID, traceID, sq.Query, subTopK)
+		if err != nil {
+			o.Logger.Errorf("planner subquery retrieve failed: %v", err)
+			continue
+		}
+		all = append(all, b.Merged...)
+	}
+	merged := o.compressPlannedEvidence(all, topK)
+	return &RetrievalBundle{
+		Question: p.SubQueries[0].Query,
+		TopK:     topK,
+		Intent:   security.GuessIntent(p.SubQueries[0].Query),
+		Merged:   merged,
+	}, nil
+}
+
+func (o *Orchestrator) compressPlannedEvidence(items []retrieval.ScoredItem, limit int) []retrieval.ScoredItem {
+	if len(items) == 0 {
+		return nil
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Score > items[j].Score })
+	seen := make(map[string]struct{}, len(items))
+	postQuota := map[int64]int{}
+	out := make([]retrieval.ScoredItem, 0, min(limit, len(items)))
+	maxPerPost := 3
+	for _, it := range items {
+		key := dedupKey(it)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		if postQuota[it.PostID] >= maxPerPost {
+			continue
+		}
+		seen[key] = struct{}{}
+		postQuota[it.PostID]++
+		out = append(out, it)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out
+}
+
+func dedupKey(it retrieval.ScoredItem) string {
+	chunk := strings.TrimSpace(it.ChunkID)
+	if chunk != "" {
+		return "chunk:" + chunk
+	}
+	h := sha1.Sum([]byte(strings.TrimSpace(it.Source) + "|" + fmt.Sprintf("%d", it.PostID) + "|" + strings.TrimSpace(it.Text)))
+	return "fallback:" + hex.EncodeToString(h[:])
+}
+
+func keywordHits(q string, kws []string) int {
+	n := 0
+	for _, kw := range kws {
+		if strings.Contains(q, kw) {
+			n++
+		}
+	}
+	return n
+}
+
+func isAllowedPlannerChannel(ch string) bool {
+	switch strings.TrimSpace(ch) {
+	case "vector", "keyword", "memory", "graph":
+		return true
+	default:
+		return false
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (o *Orchestrator) hybridRetrieve(ctx context.Context, userID int64, sessionID, traceID, question string, topK int) (*RetrievalBundle, error) {
