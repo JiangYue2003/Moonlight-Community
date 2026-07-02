@@ -10,11 +10,11 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 
-	"github.com/zhiguang/zhiguang-go/services/search/cmd/search/internal/app"
-	"github.com/zhiguang/zhiguang-go/services/search/cmd/search/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/user/cmd/user/internal/app"
+	"github.com/zhiguang/zhiguang-go/services/user/cmd/user/internal/config"
 )
 
-var configFile = flag.String("f", "etc/search.yaml", "the config file")
+var configFile = flag.String("f", "etc/user.yaml", "the config file")
 
 func main() {
 	flag.Parse()
@@ -26,15 +26,12 @@ func main() {
 	defer stop()
 
 	components := []app.Component{
-		app.NewRPCComponent(c.Rpc),
-		app.NewIndexerComponent(c.Indexer),
-	}
-	if !c.DisableAPI {
-		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)
+		app.NewUserComponent(c.User),
+		app.NewStorageComponent(c.Storage),
 	}
 
 	if err := app.Run(ctx, components); err != nil {
-		logx.Errorf("search merged service exit: %v", err)
+		logx.Errorf("user merged service exit: %v", err)
 		os.Exit(1)
 	}
 }

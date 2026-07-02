@@ -31,8 +31,10 @@ func (s *stubKnowPostsModel) FindOne(context.Context, uint64) (*model.KnowPosts,
 	}
 	return s.row, nil
 }
-func (s *stubKnowPostsModel) Update(context.Context, *model.KnowPosts) error { panic("not implemented") }
-func (s *stubKnowPostsModel) Delete(context.Context, uint64) error            { panic("not implemented") }
+func (s *stubKnowPostsModel) Update(context.Context, *model.KnowPosts) error {
+	panic("not implemented")
+}
+func (s *stubKnowPostsModel) Delete(context.Context, uint64) error { panic("not implemented") }
 func (s *stubKnowPostsModel) ListPublicFeed(context.Context, int, int) ([]*model.KnowPosts, error) {
 	panic("not implemented")
 }
@@ -40,6 +42,9 @@ func (s *stubKnowPostsModel) ListMyFeed(context.Context, uint64, int, int) ([]*m
 	panic("not implemented")
 }
 func (s *stubKnowPostsModel) UpdateInTx(context.Context, sqlx.Session, *model.KnowPosts) error {
+	panic("not implemented")
+}
+func (s *stubKnowPostsModel) InvalidateCache(context.Context, int64) error {
 	panic("not implemented")
 }
 

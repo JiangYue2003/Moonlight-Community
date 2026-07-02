@@ -20,6 +20,9 @@ type (
 		ListMyFeed(ctx context.Context, creatorId uint64, limit, offset int) ([]*KnowPosts, error)
 		// UpdateInTx 在外部事务里执行 update，**不更新缓存**，调用方写完 outbox 后自行 Invalidate。
 		UpdateInTx(ctx context.Context, sess sqlx.Session, data *KnowPosts) error
+		// InvalidateCache 清除 FindOne/Update 使用的模型缓存（cache:knowPosts:id:{id}）。
+		// UpdateInTx 之后必须调用，否则下一次 FindOne 会读到更新前的旧行。
+		InvalidateCache(ctx context.Context, id int64) error
 	}
 
 	customKnowPostsModel struct {
@@ -57,6 +60,11 @@ func (m *customKnowPostsModel) ListMyFeed(ctx context.Context, creatorId uint64,
 
 // UpdateInTx 与 defaultModel.Update 等价，但走外部 sess（同事务）。
 // 缓存失效由调用方在事务提交后处理（避免事务回滚后仍清掉缓存）。
+//
+// 注意：这里只会执行 UPDATE，不会清模型缓存（cache:knowPosts:id:{id}）。
+// 调用方必须在事务提交成功后调用 invalidateKnowPostCaches 清掉这个 key，
+// 否则下一次任何写路径的 findOwnedRow→FindOne 会读到这里更新之前的旧行，
+// 改完自己关心的字段后整行覆盖写回库，把这次已提交的更新冲掉。
 func (m *customKnowPostsModel) UpdateInTx(ctx context.Context, sess sqlx.Session, data *KnowPosts) error {
 	query := fmt.Sprintf("update %s set %s where `id` = ?", m.table, knowPostsRowsWithPlaceHolder)
 	_, err := sess.ExecCtx(ctx, query,
@@ -65,4 +73,10 @@ func (m *customKnowPostsModel) UpdateInTx(ctx context.Context, sess sqlx.Session
 		data.CreatorId, data.IsTop, data.Type, data.Visible, data.ImgUrls, data.VideoUrl,
 		data.Status, data.PublishTime, data.Id)
 	return err
+}
+
+// InvalidateCache 清除 FindOne/Update 使用的模型缓存（cache:knowPosts:id:{id}）。
+func (m *customKnowPostsModel) InvalidateCache(ctx context.Context, id int64) error {
+	knowPostsIdKey := fmt.Sprintf("%s%v", cacheKnowPostsIdPrefix, id)
+	return m.DelCacheCtx(ctx, knowPostsIdKey)
 }

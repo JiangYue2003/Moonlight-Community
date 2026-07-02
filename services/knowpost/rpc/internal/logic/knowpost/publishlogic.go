@@ -10,10 +10,10 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/txx"
+	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"
 	event "github.com/zhiguang/zhiguang-go/services/knowpost/shared/event"
-	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
 )
 
 type PublishLogic struct {
@@ -62,6 +62,9 @@ func (l *PublishLogic) Publish(in *knowpost.PublishReq) (*knowpost.KnowPostDetai
 		return l.svcCtx.OutboxModel.InsertInTx(ctx, sess, outboxId,
 			event.AggregateType, int64(row.Id), event.TypeKnowPostPublished, string(payload))
 	}); err != nil {
+		return nil, err
+	}
+	if err := l.svcCtx.KnowPostsModel.InvalidateCache(l.ctx, int64(row.Id)); err != nil {
 		return nil, err
 	}
 	invalidateKnowPostCaches(l.ctx, l.svcCtx, int64(row.Id), in.CreatorId)

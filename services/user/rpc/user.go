@@ -1,41 +1,21 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
-
-	"github.com/zhiguang/zhiguang-go/services/user/rpc/internal/config"
-	authServer "github.com/zhiguang/zhiguang-go/services/user/rpc/internal/server/auth"
-	userServer "github.com/zhiguang/zhiguang-go/services/user/rpc/internal/server/user"
-	"github.com/zhiguang/zhiguang-go/services/user/rpc/internal/svc"
-	"github.com/zhiguang/zhiguang-go/services/user/rpc/user"
 
 	"github.com/zeromicro/go-zero/core/conf"
-	"github.com/zeromicro/go-zero/core/service"
-	"github.com/zeromicro/go-zero/zrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"github.com/zhiguang/zhiguang-go/services/user/rpc/app"
+	"github.com/zhiguang/zhiguang-go/services/user/rpc/internal/config"
 )
 
 var configFile = flag.String("f", "etc/user.yaml", "the config file")
 
 func main() {
 	flag.Parse()
-
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
-	ctx := svc.NewServiceContext(c)
-
-	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
-		user.RegisterUserServer(grpcServer, userServer.NewUserServer(ctx))
-		user.RegisterAuthServer(grpcServer, authServer.NewAuthServer(ctx))
-
-		if c.Mode == service.DevMode || c.Mode == service.TestMode {
-			reflection.Register(grpcServer)
-		}
-	})
-	defer s.Stop()
-
-	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
-	s.Start()
+	if err := app.Run(context.Background(), c); err != nil {
+		panic(err)
+	}
 }

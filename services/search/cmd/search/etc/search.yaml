@@ -29,6 +29,34 @@ Api:
     Port: 9117
     Path: /metrics
 
+Rpc:
+  Name: search.rpc
+  ListenOn: 0.0.0.0:9017
+
+  Mode: dev
+
+  CounterRpc:
+    Endpoints:
+    - 127.0.0.1:9003
+    NonBlock: true
+
+  Es:
+    Addrs:
+    - http://127.0.0.1:9200
+    TimeoutMs: 10000
+
+  ContentIndex: zhiguang_content_index
+
+  Log:
+    ServiceName: search-rpc
+    Mode: console
+    Level: info
+
+  Prometheus:
+    Host: 0.0.0.0
+    Port: 9107
+    Path: /metrics
+
 Indexer:
   Es:
     Addrs:

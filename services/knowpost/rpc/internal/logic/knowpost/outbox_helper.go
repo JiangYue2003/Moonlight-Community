@@ -27,11 +27,14 @@ func updateAndEmitOutbox(ctx context.Context, sc *svc.ServiceContext, row *model
 		PostId: int64(row.Id),
 		Author: int64(row.CreatorId),
 	})
-	return txx.WithTx(ctx, sc.Db, func(ctx context.Context, sess sqlx.Session) error {
+	if err := txx.WithTx(ctx, sc.Db, func(ctx context.Context, sess sqlx.Session) error {
 		if err := sc.KnowPostsModel.UpdateInTx(ctx, sess, row); err != nil {
 			return err
 		}
 		return sc.OutboxModel.InsertInTx(ctx, sess, outboxId,
 			event.AggregateType, int64(row.Id), event.TypeKnowPostUpdated, string(payload))
-	})
+	}); err != nil {
+		return err
+	}
+	return sc.KnowPostsModel.InvalidateCache(ctx, int64(row.Id))
 }

@@ -98,8 +98,10 @@ func (m *benchKnowPostsModel) FindOne(ctx context.Context, id uint64) (*model.Kn
 	return m.findOneFn(ctx, id)
 }
 
-func (m *benchKnowPostsModel) Update(context.Context, *model.KnowPosts) error { panic("not implemented") }
-func (m *benchKnowPostsModel) Delete(context.Context, uint64) error            { panic("not implemented") }
+func (m *benchKnowPostsModel) Update(context.Context, *model.KnowPosts) error {
+	panic("not implemented")
+}
+func (m *benchKnowPostsModel) Delete(context.Context, uint64) error { panic("not implemented") }
 
 func (m *benchKnowPostsModel) ListPublicFeed(ctx context.Context, limit, offset int) ([]*model.KnowPosts, error) {
 	if m.listPublicFeedFn == nil {
@@ -113,6 +115,10 @@ func (m *benchKnowPostsModel) ListMyFeed(context.Context, uint64, int, int) ([]*
 }
 
 func (m *benchKnowPostsModel) UpdateInTx(context.Context, sqlx.Session, *model.KnowPosts) error {
+	panic("not implemented")
+}
+
+func (m *benchKnowPostsModel) InvalidateCache(context.Context, int64) error {
 	panic("not implemented")
 }
 

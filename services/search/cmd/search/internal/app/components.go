@@ -5,6 +5,7 @@ import (
 
 	searchapiapp "github.com/zhiguang/zhiguang-go/services/search/api/app"
 	searchindexerapp "github.com/zhiguang/zhiguang-go/services/search/indexer/app"
+	searchrpcapp "github.com/zhiguang/zhiguang-go/services/search/rpc/app"
 )
 
 type apiComponent struct {
@@ -19,6 +20,20 @@ func (c *apiComponent) Name() string { return "search-api" }
 
 func (c *apiComponent) Run(ctx context.Context) error {
 	return searchapiapp.Run(ctx, c.cfg)
+}
+
+type rpcComponent struct {
+	cfg searchrpcapp.Config
+}
+
+func NewRPCComponent(cfg searchrpcapp.Config) Component {
+	return &rpcComponent{cfg: cfg}
+}
+
+func (c *rpcComponent) Name() string { return "search-rpc" }
+
+func (c *rpcComponent) Run(ctx context.Context) error {
+	return searchrpcapp.Run(ctx, c.cfg)
 }
 
 type indexerComponent struct {

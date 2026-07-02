@@ -53,6 +53,9 @@ func (l *DeleteLogic) Delete(in *knowpost.DeleteReq) (*knowpost.Empty, error) {
 	}); err != nil {
 		return nil, err
 	}
+	if err := l.svcCtx.KnowPostsModel.InvalidateCache(l.ctx, int64(row.Id)); err != nil {
+		return nil, err
+	}
 	invalidateKnowPostCaches(l.ctx, l.svcCtx, int64(row.Id), in.CreatorId)
 	return &knowpost.Empty{}, nil
 }
