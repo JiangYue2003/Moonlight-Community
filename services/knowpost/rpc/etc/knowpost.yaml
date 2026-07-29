@@ -3,6 +3,12 @@ ListenOn: 0.0.0.0:9004
 
 Mode: dev
 
+# Etcd 服务注册配置
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: knowpost.rpc
+
 Mysql:
   DataSource: root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local
 
@@ -22,13 +28,17 @@ Kafka:
   GroupId: knowpost-cache-invalidation
 
 UserCounterRpc:
-  Endpoints:
-  - 127.0.0.1:9005
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: counter.rpc
   NonBlock: true
 
 CounterRpc:
-  Endpoints:
-  - 127.0.0.1:9003
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: counter.rpc
   NonBlock: true
 
 L1:

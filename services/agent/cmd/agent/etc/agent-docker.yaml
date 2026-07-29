@@ -8,7 +8,7 @@ Api:
   AuthRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: user.rpc
     NonBlock: true
 
@@ -32,7 +32,7 @@ Api:
 
   Es:
     Addrs:
-    - http://127.0.0.1:9200
+    - http://elasticsearch:9200
     TimeoutMs: 10000
 
   KnowledgeIndex: zhiguang_agent_knowledge
@@ -47,10 +47,10 @@ Api:
     TimeoutMs: 5000
 
   Mysql:
-    DataSource: "root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local"
+    DataSource: "root:Zz123456@tcp(mysql:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local"
 
   Redis:
-    Host: 127.0.0.1:6379
+    Host: redis:6379
 
   Agent:
     MaxSteps: 3
@@ -139,7 +139,7 @@ Api:
 Indexer:
   Es:
     Addrs:
-    - http://127.0.0.1:9200
+    - http://elasticsearch:9200
     TimeoutMs: 10000
 
   KnowledgeIndex: zhiguang_agent_knowledge
@@ -156,21 +156,21 @@ Indexer:
 
   Kafka:
     Brokers:
-    - 127.0.0.1:9092
+    - kafka:29092
     Topic: counter-events
     GroupId: agent-indexer
 
   KnowPostRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: knowpost.rpc
     NonBlock: true
 
   CounterRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: counter.rpc
     NonBlock: true
 
@@ -186,10 +186,10 @@ Indexer:
     Overlap: 100
 
   Mysql:
-    DataSource: "root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local"
+    DataSource: "root:Zz123456@tcp(mysql:3306)/zhiguang?charset=utf8mb4&parseTime=true&loc=Local"
 
   Redis:
-    Host: 127.0.0.1:6379
+    Host: redis:6379
     Type: node
 
   Dedup:

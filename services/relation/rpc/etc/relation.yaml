@@ -1,6 +1,12 @@
 Name: relation.rpc
 ListenOn: 0.0.0.0:9006
 
+# Etcd 服务注册配置
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: relation.rpc
+
 Mode: dev
 
 Mysql:
@@ -16,8 +22,10 @@ Redis:
   Key: relation-rpc
 
 UserRpc:
-  Endpoints:
-  - 127.0.0.1:9002
+  Etcd:
+    Hosts:
+    - 127.0.0.1:2379
+    Key: user.rpc
   NonBlock: true
 
 RateLimit:

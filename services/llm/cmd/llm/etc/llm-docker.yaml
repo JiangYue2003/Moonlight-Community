@@ -10,7 +10,7 @@ Api:
   AuthRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: user.rpc
     NonBlock: true
 
@@ -31,13 +31,13 @@ Api:
 
   Es:
     Addrs:
-    - http://127.0.0.1:9200
+    - http://elasticsearch:9200
     TimeoutMs: 10000
 
   RagIndex: zhiguang_rag_vector
 
   LlmRateLimit:
-    RedisHost: 127.0.0.1:6379
+    RedisHost: redis:6379
     DescribeCapacity: 5
     DescribeRefillPerSec: 1
     QaCapacity: 3
@@ -56,14 +56,14 @@ Api:
 RagIndexer:
   Es:
     Addrs:
-    - http://127.0.0.1:9200
+    - http://elasticsearch:9200
     TimeoutMs: 10000
 
   RagIndex: zhiguang_rag_vector
 
   Kafka:
     Brokers:
-    - 127.0.0.1:9092
+    - kafka:29092
     Topic: canal-outbox
     GroupId: rag-indexer
     AutoOffsetReset: latest
@@ -71,7 +71,7 @@ RagIndexer:
   KnowPostRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: knowpost.rpc
     NonBlock: true
 
@@ -88,7 +88,7 @@ RagIndexer:
     Overlap: 100
 
   Redis:
-    Host: 127.0.0.1:6379
+    Host: redis:6379
     Type: node
 
   Dedup:

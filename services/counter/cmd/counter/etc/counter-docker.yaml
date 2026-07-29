@@ -10,14 +10,14 @@ Api:
   CounterRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: counter.rpc
     NonBlock: true
 
   AuthRpc:
     Etcd:
       Hosts:
-      - 127.0.0.1:2379
+      - etcd:2379
       Key: user.rpc
     NonBlock: true
 
@@ -42,19 +42,19 @@ Rpc:
   # Etcd 服务注册配置
   Etcd:
     Hosts:
-    - 127.0.0.1:2379
+    - etcd:2379
     Key: counter.rpc
 
   Mode: dev
 
   Redis:
-    Host: 127.0.0.1:6379
+    Host: redis:6379
     Type: node
     Key: counter-rpc
 
   Kafka:
     Brokers:
-    - 127.0.0.1:9092
+    - kafka:29092
     Topic: counter-events
     Producer:
       LingerMs: 10
@@ -82,13 +82,13 @@ Rpc:
 
 Aggregator:
   Redis:
-    Host: 127.0.0.1:6379
+    Host: redis:6379
     Type: node
     Key: counter-aggregator
 
   Kafka:
     Brokers:
-    - 127.0.0.1:9092
+    - kafka:29092
     Topic: counter-events
     GroupId: counter-agg
 

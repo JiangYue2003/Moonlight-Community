@@ -61,7 +61,12 @@ zhiguang-go/
 
 ```bash
 docker compose -f deploy/compose/docker-compose.dev.yml up -d
+
+# 启动 Etcd (服务发现)
+etcd
 ```
+
+**注意**：项目已支持基于 Etcd 的服务发现，所有 RPC 服务会自动注册到 Etcd，支持多实例部署和高可用。
 
 ### 2. 执行迁移
 
@@ -112,8 +117,22 @@ http://localhost:8080
 - 统一业务入口：`http://localhost:8080/api/v1/*`
 - Agent 独立入口：`http://localhost:8011/api/v1/agent/*`
 
+## 高可用特性
+
+项目已完成以下高可用改进：
+
+- ✅ **基于 Etcd 的服务发现**：所有 RPC 服务支持动态注册与发现，自动负载均衡
+- ✅ **多实例部署**：每个服务都可以启动多个实例，自动故障切换
+- ✅ **水平扩展**：新增服务实例无需修改配置，自动加入服务池
+
+详细说明：
+- 服务发现文档：[docs/etcd-service-discovery.md](./docs/etcd-service-discovery.md)
+- 快速开始指南：[docs/service-discovery-quickstart.md](./docs/service-discovery-quickstart.md)
+
 ## 参考文档
 
-- 总体分析：[docs/project-analysis.md](/F:/zhiguang_be/zhiguang-go/docs/project-analysis.md)
-- 服务合并记录：[docs/phase7-merge-service.md](/F:/zhiguang_be/zhiguang-go/docs/phase7-merge-service.md)
-- 本阶段网关收缩总结：`docs/phase8-gateway-consolidation.md`
+- 总体分析：[docs/project-analysis.md](./docs/project-analysis.md)
+- 服务合并记录：[docs/phase7-merge-service.md](./docs/phase7-merge-service.md)
+- 网关收缩总结：[docs/phase8-gateway-consolidation.md](./docs/phase8-gateway-consolidation.md)
+- 数据库设计：[docs/db-schema-design.md](./docs/db-schema-design.md)
+- Counter 设计：[docs/counter-design-qa.md](./docs/counter-design-qa.md)
