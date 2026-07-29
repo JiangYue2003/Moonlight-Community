@@ -1,0 +1,46 @@
+version: "3.9"
+
+# 知光单容器部署 - 所有服务在一个容器内运行
+# 用于开发和联调，方便快速启动
+# 用法：docker compose -f deploy/compose/docker-compose.allinone.yml up -d --build
+
+services:
+  zhiguang-allinone:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.allinone
+    container_name: zhiguang-allinone
+    restart: unless-stopped
+    ports:
+      - "8080:8080"      # Gateway
+      - "3306:3306"      # MySQL
+      - "6379:6379"      # Redis
+      - "2379:2379"      # Etcd
+      - "9002:9002"      # User RPC
+      - "9003:9003"      # Counter RPC
+      - "9004:9004"      # KnowPost RPC
+      - "9006:9006"      # Relation RPC
+      - "9013:9013"      # Storage RPC
+      - "9017:9017"      # Search RPC
+      - "9018:9018"      # LLM RPC
+    volumes:
+      # 持久化数据
+      - zhiguang_mysql:/var/lib/mysql
+      - zhiguang_redis:/var/lib/redis
+      - zhiguang_etcd:/var/lib/etcd
+      # 方便查看日志
+      - zhiguang_logs:/var/log/supervisor
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  zhiguang_mysql:
+  zhiguang_redis:
+  zhiguang_etcd:
+  zhiguang_logs:

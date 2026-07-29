@@ -1,0 +1,135 @@
+version: "3.9"
+
+# 知光测试部署配置（基础设施 + 核心服务）
+# 用于快速测试 Etcd 服务发现功能
+# 用法：docker compose -f deploy/compose/docker-compose.test.yml up -d --build
+
+services:
+  # ==================== 基础设施 ====================
+
+  mysql:
+    image: mysql:8.0
+    container_name: zg-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Zz123456
+      MYSQL_DATABASE: zhiguang
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - zg_mysql_data:/var/lib/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --log-bin=mysql-bin
+      --server-id=1
+      --binlog-format=ROW
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pZz123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: zg-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - zg_redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: zg-etcd
+    restart: unless-stopped
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    volumes:
+      - zg_etcd_data:/bitnami/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== 核心应用服务 ====================
+
+  user-storage:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-user-storage
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/storage-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    volumes:
+      - ./../../services/user/cmd/user/etc:/app/services/user/cmd/user/etc:ro
+      - ./../../certs:/app/certs:ro
+
+  counter:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-counter
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/counter-merged", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
+    volumes:
+      - ./../../services/counter/cmd/counter/etc:/app/services/counter/cmd/counter/etc:ro
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-gateway
+    restart: unless-stopped
+    depends_on:
+      etcd:
+        condition: service_healthy
+      user-storage:
+        condition: service_started
+      counter:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/gateway", "-f", "services/gateway/etc/gateway-docker.yaml"]
+    volumes:
+      - ./../../services/gateway/etc:/app/services/gateway/etc:ro
+      - ./../../certs:/app/certs:ro
+
+volumes:
+  zg_mysql_data:
+  zg_redis_data:
+  zg_etcd_data:

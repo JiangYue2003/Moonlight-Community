@@ -1,0 +1,350 @@
+version: "3.9"
+
+# 知光完整部署配置（包含所有基础设施和应用服务）
+# 用法：docker compose -f deploy/compose/docker-compose.full.yml up -d
+#
+# 端口约定：
+#   MySQL         3306
+#   Redis         6379
+#   Kafka         9092 (host) / 29092 (internal)
+#   ZooKeeper     2181
+#   Canal         11111
+#   Etcd          2379 (client) / 2380 (peer)
+#   Elasticsearch 9200
+#   Kibana        5601 (可选)
+#   Adminer       8090 (DB Web UI)
+#   Gateway       8080 (统一入口)
+#   Agent         8011 (独立入口)
+
+services:
+  # ==================== 基础设施层 ====================
+
+  mysql:
+    image: mysql:8.0
+    container_name: zg-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Zz123456
+      MYSQL_DATABASE: zhiguang
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - zg_mysql_data:/var/lib/mysql
+      - ./../../db/migrations:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+      --log-bin=mysql-bin
+      --server-id=1
+      --binlog-format=ROW
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pZz123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: zg-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - zg_redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  zookeeper:
+    image: bitnamilegacy/zookeeper:3.8.4
+    container_name: zg-zk
+    restart: unless-stopped
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+    volumes:
+      - zg_zk_data:/bitnami/zookeeper
+
+  kafka:
+    image: bitnamilegacy/kafka:3.7.0
+    container_name: zg-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 3
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    volumes:
+      - zg_kafka_data:/bitnami/kafka
+
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: zg-etcd
+    restart: unless-stopped
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    volumes:
+      - zg_etcd_data:/bitnami/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  canal-server:
+    image: canal/canal-server:v1.1.7
+    container_name: zg-canal
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    ports:
+      - "11111:11111"
+    volumes:
+      - ./canal-conf/canal.properties:/home/admin/canal-server/conf/canal.properties:ro
+      - ./canal-conf/instance.properties:/home/admin/canal-server/conf/example/instance.properties:ro
+      - zg_canal_logs:/home/admin/canal-server/logs
+
+  elasticsearch:
+    image: elasticsearch:9.0.3
+    container_name: zg-es
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - zg_es_data:/usr/share/elasticsearch/data
+      - ./es-plugins/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik:ro
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: zg-adminer
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    profiles: ["tools"]
+
+  kibana:
+    image: kibana:9.0.3
+    container_name: zg-kibana
+    profiles: ["tools"]
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+
+  # ==================== 应用服务层 ====================
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-gateway
+    restart: unless-stopped
+    depends_on:
+      etcd:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/gateway", "-f", "services/gateway/etc/gateway-docker.yaml"]
+    volumes:
+      - ./../../services/gateway/etc:/app/services/gateway/etc:ro
+      - ./../../certs:/app/certs:ro
+
+  user-storage:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-user-storage
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/storage-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    volumes:
+      - ./../../services/user/cmd/user/etc:/app/services/user/cmd/user/etc:ro
+      - ./../../certs:/app/certs:ro
+
+  counter:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-counter
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/counter-merged", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
+    volumes:
+      - ./../../services/counter/cmd/counter/etc:/app/services/counter/cmd/counter/etc:ro
+
+  knowpost:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-knowpost
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/knowpost-merged", "-f", "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml"]
+    volumes:
+      - ./../../services/knowpost/cmd/knowpost/etc:/app/services/knowpost/cmd/knowpost/etc:ro
+
+  relation:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-relation
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/relation-merged", "-f", "services/relation/cmd/relation/etc/relation-docker.yaml"]
+    volumes:
+      - ./../../services/relation/cmd/relation/etc:/app/services/relation/cmd/relation/etc:ro
+
+  search:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-search
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/search-merged", "-f", "services/search/cmd/search/etc/search-docker.yaml"]
+    volumes:
+      - ./../../services/search/cmd/search/etc:/app/services/search/cmd/search/etc:ro
+
+  llm:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-llm
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+    command: ["./bin/llm-merged", "-f", "services/llm/cmd/llm/etc/llm-docker.yaml"]
+    volumes:
+      - ./../../services/llm/cmd/llm/etc:/app/services/llm/cmd/llm/etc:ro
+
+  agent:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-agent
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      etcd:
+        condition: service_healthy
+    ports:
+      - "8011:8011"
+    environment:
+      - TZ=Asia/Shanghai
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - MILVUS_API_KEY=${MILVUS_API_KEY}
+    command: ["./bin/agent", "-f", "services/agent/cmd/agent/etc/agent-docker.yaml"]
+    volumes:
+      - ./../../services/agent/cmd/agent/etc:/app/services/agent/cmd/agent/etc:ro
+
+volumes:
+  zg_mysql_data:
+  zg_redis_data:
+  zg_zk_data:
+  zg_kafka_data:
+  zg_etcd_data:
+  zg_canal_logs:
+  zg_es_data:
