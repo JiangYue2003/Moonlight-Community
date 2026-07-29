@@ -1,7 +1,10 @@
 package svc
 
 import (
+	"context"
+
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"github.com/zhiguang/zhiguang-go/pkg/cachex"
@@ -11,9 +14,11 @@ import (
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/cache/detail"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/cache/mine"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/feed"
 	pb "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"
 	model "github.com/zhiguang/zhiguang-go/services/knowpost/shared/model"
 	outboxmodel "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
+	relationpb "github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 )
 
 type ServiceContext struct {
@@ -27,6 +32,7 @@ type ServiceContext struct {
 
 	UserCounterRpc counterpb.UserCounterClient
 	CounterRpc     counterpb.CounterClient
+	RelationRpc    relationpb.RelationClient
 
 	DetailCache   cachex.Cache[*pb.KnowPostDetail]
 	FeedMineCache cachex.Cache[*pb.FeedPage]
@@ -42,6 +48,10 @@ type ServiceContext struct {
 	HotFeedMine   *hotkey.Detector
 
 	Snowflake *snowflakex.Generator
+
+	// Feed推拉架构
+	FeedWriter *feed.FeedWriter
+	FeedReader *feed.FeedReader
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -79,6 +89,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Redis:          rdb,
 		UserCounterRpc: counterpb.NewUserCounterClient(zrpc.MustNewClient(c.UserCounterRpc).Conn()),
 		CounterRpc:     counterpb.NewCounterClient(zrpc.MustNewClient(c.CounterRpc).Conn()),
+		RelationRpc:    relationpb.NewRelationClient(zrpc.MustNewClient(c.RelationRpc).Conn()),
 
 		DetailCache:   detail.New(l1Detail, l2, hotDetail),
 		FeedMineCache: mine.New(l1FeedMine, l2, hotFeedMine),
@@ -92,6 +103,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		HotFeedMine:   hotFeedMine,
 
 		Snowflake: snowflakex.MustNew(c.Snowflake.DatacenterId, c.Snowflake.WorkerId),
+
+		// 初始化 FeedWriter（暂时用 nil Kafka，后续添加）
+		FeedWriter: feed.NewFeedWriter(
+			feed.NewRedisAdapter(rdb),
+			nil, // TODO: 添加 Kafka Producer
+			logx.WithContext(context.Background()),
+		),
+
+		// 初始化 FeedReader
+		FeedReader: feed.NewFeedReader(
+			feed.NewRedisAdapter(rdb),
+			feed.NewRelationClientAdapter(relationpb.NewRelationClient(zrpc.MustNewClient(c.RelationRpc).Conn())),
+			feed.NewCounterClientAdapter(counterpb.NewUserCounterClient(zrpc.MustNewClient(c.UserCounterRpc).Conn())),
+			logx.WithContext(context.Background()),
+		),
 	}
 }
 

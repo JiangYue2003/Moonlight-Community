@@ -77,5 +77,23 @@ func (l *PublishLogic) Publish(in *knowpost.PublishReq) (*knowpost.KnowPostDetai
 	}); err != nil {
 		l.Logger.Errorf("usercounter increment posts: %v", err)
 	}
+
+	// ===== 推拉混合架构：发帖推送 =====
+	// 获取用户的粉丝数
+	followerCount := int64(0)
+	if snapshot, err := l.svcCtx.UserCounterRpc.GetUserSnapshot(l.ctx, &counterpb.GetUserSnapshotReq{
+		UserId: int64(row.CreatorId),
+	}); err != nil {
+		l.Logger.Errorf("get user snapshot failed: %v", err)
+		// 降级：粉丝数为0，使用推模式
+	} else if snapshot != nil && snapshot.Snapshot != nil {
+		followerCount = snapshot.Snapshot.Followers
+	}
+
+	if err := l.svcCtx.FeedWriter.OnPostPublished(l.ctx, int64(row.Id), int64(row.CreatorId), followerCount); err != nil {
+		l.Logger.Errorf("feed writer on post published: %v", err)
+		// 不返回错误，不影响发帖成功
+	}
+
 	return rowToDetail(row), nil
 }

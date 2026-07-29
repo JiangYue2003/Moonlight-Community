@@ -10,8 +10,8 @@ require (
 	github.com/cloudwego/eino-ext/components/embedding/dashscope v0.0.0-20260514101140-176d453b133a
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.1.6
 	github.com/dgraph-io/ristretto v0.2.0
-	github.com/go-redsync/redsync/v4 v4.16.0
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-redsync/redsync/v4 v4.16.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/milvus-io/milvus/client/v2 v2.6.4
@@ -139,6 +139,7 @@ require (
 	github.com/yargevad/filepathx v1.0.0 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
+	github.com/zeromicro/go-queue v1.2.2 // indirect
 	go.etcd.io/bbolt v1.3.11 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.21 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.21 // indirect

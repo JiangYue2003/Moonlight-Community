@@ -17,6 +17,7 @@ type Config struct {
 
 	UserCounterRpc zrpc.RpcClientConf
 	CounterRpc     zrpc.RpcClientConf
+	RelationRpc    zrpc.RpcClientConf // 关系服务
 
 	L1 L1Conf
 	// HotKeyDetector 与 Java cache.hotkey.* 参数对齐
