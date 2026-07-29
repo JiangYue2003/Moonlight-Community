@@ -1156,6 +1156,66 @@ func (x *GetMyFeedReq) GetSize() int32 {
 	return 0
 }
 
+type GetUserFeedReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	Size          int32                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserFeedReq) Reset() {
+	*x = GetUserFeedReq{}
+	mi := &file_proto_knowpost_knowpost_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserFeedReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserFeedReq) ProtoMessage() {}
+
+func (x *GetUserFeedReq) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_knowpost_knowpost_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserFeedReq.ProtoReflect.Descriptor instead.
+func (*GetUserFeedReq) Descriptor() ([]byte, []int) {
+	return file_proto_knowpost_knowpost_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetUserFeedReq) GetUserId() int64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *GetUserFeedReq) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *GetUserFeedReq) GetSize() int32 {
+	if x != nil {
+		return x.Size
+	}
+	return 0
+}
+
 type ReindexReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1166,7 +1226,7 @@ type ReindexReq struct {
 
 func (x *ReindexReq) Reset() {
 	*x = ReindexReq{}
-	mi := &file_proto_knowpost_knowpost_proto_msgTypes[15]
+	mi := &file_proto_knowpost_knowpost_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1178,7 +1238,7 @@ func (x *ReindexReq) String() string {
 func (*ReindexReq) ProtoMessage() {}
 
 func (x *ReindexReq) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_knowpost_knowpost_proto_msgTypes[15]
+	mi := &file_proto_knowpost_knowpost_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1191,7 +1251,7 @@ func (x *ReindexReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReindexReq.ProtoReflect.Descriptor instead.
 func (*ReindexReq) Descriptor() ([]byte, []int) {
-	return file_proto_knowpost_knowpost_proto_rawDescGZIP(), []int{15}
+	return file_proto_knowpost_knowpost_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReindexReq) GetId() int64 {
@@ -1324,12 +1384,16 @@ const file_proto_knowpost_knowpost_proto_rawDesc = "" +
 	"\n" +
 	"creator_id\x18\x01 \x01(\x03R\tcreatorId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
+	"\x04size\x18\x03 \x01(\x05R\x04size\"Q\n" +
+	"\x0eGetUserFeedReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x05R\x04size\";\n" +
 	"\n" +
 	"ReindexReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
-	"creator_id\x18\x02 \x01(\x03R\tcreatorId2\xa5\x05\n" +
+	"creator_id\x18\x02 \x01(\x03R\tcreatorId2\xe2\x05\n" +
 	"\bKnowPost\x12B\n" +
 	"\vCreateDraft\x12\x18.knowpost.CreateDraftReq\x1a\x19.knowpost.CreateDraftResp\x12>\n" +
 	"\x0eConfirmContent\x12\x1b.knowpost.ConfirmContentReq\x1a\x0f.knowpost.Empty\x12E\n" +
@@ -1340,7 +1404,8 @@ const file_proto_knowpost_knowpost_proto_rawDesc = "" +
 	"\x06Delete\x12\x13.knowpost.DeleteReq\x1a\x0f.knowpost.Empty\x12=\n" +
 	"\tGetDetail\x12\x16.knowpost.GetDetailReq\x1a\x18.knowpost.KnowPostDetail\x12?\n" +
 	"\rGetPublicFeed\x12\x1a.knowpost.GetPublicFeedReq\x1a\x12.knowpost.FeedPage\x127\n" +
-	"\tGetMyFeed\x12\x16.knowpost.GetMyFeedReq\x1a\x12.knowpost.FeedPage\x120\n" +
+	"\tGetMyFeed\x12\x16.knowpost.GetMyFeedReq\x1a\x12.knowpost.FeedPage\x12;\n" +
+	"\vGetUserFeed\x12\x18.knowpost.GetUserFeedReq\x1a\x12.knowpost.FeedPage\x120\n" +
 	"\aReindex\x12\x14.knowpost.ReindexReq\x1a\x0f.knowpost.EmptyB\fZ\n" +
 	"./knowpostb\x06proto3"
 
@@ -1356,7 +1421,7 @@ func file_proto_knowpost_knowpost_proto_rawDescGZIP() []byte {
 	return file_proto_knowpost_knowpost_proto_rawDescData
 }
 
-var file_proto_knowpost_knowpost_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_proto_knowpost_knowpost_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_proto_knowpost_knowpost_proto_goTypes = []any{
 	(*KnowPostDetail)(nil),      // 0: knowpost.KnowPostDetail
 	(*FeedItem)(nil),            // 1: knowpost.FeedItem
@@ -1373,7 +1438,8 @@ var file_proto_knowpost_knowpost_proto_goTypes = []any{
 	(*GetDetailReq)(nil),        // 12: knowpost.GetDetailReq
 	(*GetPublicFeedReq)(nil),    // 13: knowpost.GetPublicFeedReq
 	(*GetMyFeedReq)(nil),        // 14: knowpost.GetMyFeedReq
-	(*ReindexReq)(nil),          // 15: knowpost.ReindexReq
+	(*GetUserFeedReq)(nil),      // 15: knowpost.GetUserFeedReq
+	(*ReindexReq)(nil),          // 16: knowpost.ReindexReq
 }
 var file_proto_knowpost_knowpost_proto_depIdxs = []int32{
 	1,  // 0: knowpost.FeedPage.items:type_name -> knowpost.FeedItem
@@ -1387,20 +1453,22 @@ var file_proto_knowpost_knowpost_proto_depIdxs = []int32{
 	12, // 8: knowpost.KnowPost.GetDetail:input_type -> knowpost.GetDetailReq
 	13, // 9: knowpost.KnowPost.GetPublicFeed:input_type -> knowpost.GetPublicFeedReq
 	14, // 10: knowpost.KnowPost.GetMyFeed:input_type -> knowpost.GetMyFeedReq
-	15, // 11: knowpost.KnowPost.Reindex:input_type -> knowpost.ReindexReq
-	5,  // 12: knowpost.KnowPost.CreateDraft:output_type -> knowpost.CreateDraftResp
-	3,  // 13: knowpost.KnowPost.ConfirmContent:output_type -> knowpost.Empty
-	0,  // 14: knowpost.KnowPost.PatchMetadata:output_type -> knowpost.KnowPostDetail
-	0,  // 15: knowpost.KnowPost.Publish:output_type -> knowpost.KnowPostDetail
-	3,  // 16: knowpost.KnowPost.UpdateTop:output_type -> knowpost.Empty
-	3,  // 17: knowpost.KnowPost.UpdateVisibility:output_type -> knowpost.Empty
-	3,  // 18: knowpost.KnowPost.Delete:output_type -> knowpost.Empty
-	0,  // 19: knowpost.KnowPost.GetDetail:output_type -> knowpost.KnowPostDetail
-	2,  // 20: knowpost.KnowPost.GetPublicFeed:output_type -> knowpost.FeedPage
-	2,  // 21: knowpost.KnowPost.GetMyFeed:output_type -> knowpost.FeedPage
-	3,  // 22: knowpost.KnowPost.Reindex:output_type -> knowpost.Empty
-	12, // [12:23] is the sub-list for method output_type
-	1,  // [1:12] is the sub-list for method input_type
+	15, // 11: knowpost.KnowPost.GetUserFeed:input_type -> knowpost.GetUserFeedReq
+	16, // 12: knowpost.KnowPost.Reindex:input_type -> knowpost.ReindexReq
+	5,  // 13: knowpost.KnowPost.CreateDraft:output_type -> knowpost.CreateDraftResp
+	3,  // 14: knowpost.KnowPost.ConfirmContent:output_type -> knowpost.Empty
+	0,  // 15: knowpost.KnowPost.PatchMetadata:output_type -> knowpost.KnowPostDetail
+	0,  // 16: knowpost.KnowPost.Publish:output_type -> knowpost.KnowPostDetail
+	3,  // 17: knowpost.KnowPost.UpdateTop:output_type -> knowpost.Empty
+	3,  // 18: knowpost.KnowPost.UpdateVisibility:output_type -> knowpost.Empty
+	3,  // 19: knowpost.KnowPost.Delete:output_type -> knowpost.Empty
+	0,  // 20: knowpost.KnowPost.GetDetail:output_type -> knowpost.KnowPostDetail
+	2,  // 21: knowpost.KnowPost.GetPublicFeed:output_type -> knowpost.FeedPage
+	2,  // 22: knowpost.KnowPost.GetMyFeed:output_type -> knowpost.FeedPage
+	2,  // 23: knowpost.KnowPost.GetUserFeed:output_type -> knowpost.FeedPage
+	3,  // 24: knowpost.KnowPost.Reindex:output_type -> knowpost.Empty
+	13, // [13:25] is the sub-list for method output_type
+	1,  // [1:13] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -1417,7 +1485,7 @@ func file_proto_knowpost_knowpost_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_knowpost_knowpost_proto_rawDesc), len(file_proto_knowpost_knowpost_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

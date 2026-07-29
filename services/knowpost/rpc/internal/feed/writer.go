@@ -123,6 +123,10 @@ func (w *FeedWriter) pushToBigVOutbox(ctx context.Context, creatorID, postID, ti
 
 // sendFanoutEvent 发送扇出事件到Kafka
 func (w *FeedWriter) sendFanoutEvent(ctx context.Context, postID, creatorID, createTime int64) error {
+	if w.kafka == nil {
+		return fmt.Errorf("kafka producer is not configured")
+	}
+
 	event := FeedEvent{
 		PostID:     postID,
 		CreatorID:  creatorID,

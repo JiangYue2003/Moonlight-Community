@@ -21,6 +21,8 @@ type Config = config.Config
 
 func Run(ctx context.Context, cfg Config) error {
 	sc := svc.NewServiceContext(cfg)
+	sc.StartFeedFanoutWorker()
+	defer sc.Close()
 
 	go func() {
 		if err := listener.Run(ctx, sc); err != nil {

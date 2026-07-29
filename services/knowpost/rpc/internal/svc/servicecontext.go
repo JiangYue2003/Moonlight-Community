@@ -4,7 +4,9 @@ import (
 	"context"
 
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"github.com/zhiguang/zhiguang-go/pkg/cachex"
@@ -17,8 +19,8 @@ import (
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/feed"
 	pb "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"
 	model "github.com/zhiguang/zhiguang-go/services/knowpost/shared/model"
-	outboxmodel "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
 	relationpb "github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
+	outboxmodel "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
 )
 
 type ServiceContext struct {
@@ -52,6 +54,9 @@ type ServiceContext struct {
 	// Feed推拉架构
 	FeedWriter *feed.FeedWriter
 	FeedReader *feed.FeedReader
+
+	feedPusher       *kq.Pusher
+	feedFanoutWorker queue.MessageQueue
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -81,15 +86,32 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	hotFeedItem := hotkey.New(hotCfg)
 	hotFeedMine := hotkey.New(hotCfg)
 
+	userCounterClient := counterpb.NewUserCounterClient(zrpc.MustNewClient(c.UserCounterRpc).Conn())
+	counterClient := counterpb.NewCounterClient(zrpc.MustNewClient(c.CounterRpc).Conn())
+	relationClient := relationpb.NewRelationClient(zrpc.MustNewClient(c.RelationRpc).Conn())
+	redisAdapter := feed.NewRedisAdapter(rdb)
+	relationAdapter := feed.NewRelationClientAdapter(relationClient)
+	feedPusher := kq.NewPusher(
+		c.Kafka.Brokers,
+		feed.FEED_FANOUT_TOPIC,
+		kq.WithAllowAutoTopicCreation(),
+	)
+	feedFanoutWorker := feed.NewFeedFanoutWorker(
+		c.Kafka.Brokers,
+		redisAdapter,
+		relationAdapter,
+		logx.WithContext(context.Background()),
+	)
+
 	return &ServiceContext{
 		Config:         c,
 		Db:             conn,
 		KnowPostsModel: model.NewKnowPostsModel(conn, c.CacheRedis),
 		OutboxModel:    outboxmodel.NewOutboxModel(conn, c.CacheRedis),
 		Redis:          rdb,
-		UserCounterRpc: counterpb.NewUserCounterClient(zrpc.MustNewClient(c.UserCounterRpc).Conn()),
-		CounterRpc:     counterpb.NewCounterClient(zrpc.MustNewClient(c.CounterRpc).Conn()),
-		RelationRpc:    relationpb.NewRelationClient(zrpc.MustNewClient(c.RelationRpc).Conn()),
+		UserCounterRpc: userCounterClient,
+		CounterRpc:     counterClient,
+		RelationRpc:    relationClient,
 
 		DetailCache:   detail.New(l1Detail, l2, hotDetail),
 		FeedMineCache: mine.New(l1FeedMine, l2, hotFeedMine),
@@ -104,20 +126,34 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 		Snowflake: snowflakex.MustNew(c.Snowflake.DatacenterId, c.Snowflake.WorkerId),
 
-		// 初始化 FeedWriter（暂时用 nil Kafka，后续添加）
 		FeedWriter: feed.NewFeedWriter(
-			feed.NewRedisAdapter(rdb),
-			nil, // TODO: 添加 Kafka Producer
+			redisAdapter,
+			feed.NewKafkaProducerAdapter(feedPusher),
 			logx.WithContext(context.Background()),
 		),
 
 		// 初始化 FeedReader
 		FeedReader: feed.NewFeedReader(
-			feed.NewRedisAdapter(rdb),
-			feed.NewRelationClientAdapter(relationpb.NewRelationClient(zrpc.MustNewClient(c.RelationRpc).Conn())),
-			feed.NewCounterClientAdapter(counterpb.NewUserCounterClient(zrpc.MustNewClient(c.UserCounterRpc).Conn())),
+			redisAdapter,
+			relationAdapter,
+			feed.NewCounterClientAdapter(userCounterClient),
 			logx.WithContext(context.Background()),
 		),
+
+		feedPusher:       feedPusher,
+		feedFanoutWorker: feedFanoutWorker,
+	}
+}
+
+func (s *ServiceContext) StartFeedFanoutWorker() {
+	go s.feedFanoutWorker.Start()
+	logx.Info("feed fanout worker started")
+}
+
+func (s *ServiceContext) Close() {
+	s.feedFanoutWorker.Stop()
+	if err := s.feedPusher.Close(); err != nil {
+		logx.Errorf("close feed kafka producer: %v", err)
 	}
 }
 

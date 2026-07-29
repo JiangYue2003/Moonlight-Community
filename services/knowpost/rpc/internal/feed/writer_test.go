@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // MockRedisClient 用于测试的 Redis Mock
 type MockRedisClient struct {
-	zaddCalls    []ZAddCall
-	expireCalls  []ExpireCall
-	existsCalls  []ExistsCall
-	setExCalls   []SetExCall
+	zaddCalls   []ZAddCall
+	expireCalls []ExpireCall
+	existsCalls []ExistsCall
+	setExCalls  []SetExCall
 }
 
 type ZAddCall struct {
@@ -123,6 +124,17 @@ func TestFeedWriter_PushMode(t *testing.T) {
 	// 2. 应该发送 Kafka 消息（推模式）
 	assert.Equal(t, 1, len(kafka.messages))
 	assert.Equal(t, FEED_FANOUT_TOPIC, kafka.messages[0].Topic)
+}
+
+func TestFeedWriter_PushModeWithoutKafkaReturnsError(t *testing.T) {
+	redis := NewMockRedisClient()
+	writer := NewFeedWriter(redis, nil, logx.WithContext(context.Background()))
+
+	var err error
+	require.NotPanics(t, func() {
+		err = writer.OnPostPublished(context.Background(), 123, 456, 500)
+	})
+	require.ErrorContains(t, err, "kafka producer is not configured")
 }
 
 func TestFeedWriter_PullMode(t *testing.T) {

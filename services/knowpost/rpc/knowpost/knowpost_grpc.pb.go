@@ -29,6 +29,7 @@ const (
 	KnowPost_GetDetail_FullMethodName        = "/knowpost.KnowPost/GetDetail"
 	KnowPost_GetPublicFeed_FullMethodName    = "/knowpost.KnowPost/GetPublicFeed"
 	KnowPost_GetMyFeed_FullMethodName        = "/knowpost.KnowPost/GetMyFeed"
+	KnowPost_GetUserFeed_FullMethodName      = "/knowpost.KnowPost/GetUserFeed"
 	KnowPost_Reindex_FullMethodName          = "/knowpost.KnowPost/Reindex"
 )
 
@@ -46,6 +47,7 @@ type KnowPostClient interface {
 	GetDetail(ctx context.Context, in *GetDetailReq, opts ...grpc.CallOption) (*KnowPostDetail, error)
 	GetPublicFeed(ctx context.Context, in *GetPublicFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
 	GetMyFeed(ctx context.Context, in *GetMyFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
+	GetUserFeed(ctx context.Context, in *GetUserFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
 	Reindex(ctx context.Context, in *ReindexReq, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -157,6 +159,16 @@ func (c *knowPostClient) GetMyFeed(ctx context.Context, in *GetMyFeedReq, opts .
 	return out, nil
 }
 
+func (c *knowPostClient) GetUserFeed(ctx context.Context, in *GetUserFeedReq, opts ...grpc.CallOption) (*FeedPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FeedPage)
+	err := c.cc.Invoke(ctx, KnowPost_GetUserFeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *knowPostClient) Reindex(ctx context.Context, in *ReindexReq, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
@@ -181,6 +193,7 @@ type KnowPostServer interface {
 	GetDetail(context.Context, *GetDetailReq) (*KnowPostDetail, error)
 	GetPublicFeed(context.Context, *GetPublicFeedReq) (*FeedPage, error)
 	GetMyFeed(context.Context, *GetMyFeedReq) (*FeedPage, error)
+	GetUserFeed(context.Context, *GetUserFeedReq) (*FeedPage, error)
 	Reindex(context.Context, *ReindexReq) (*Empty, error)
 	mustEmbedUnimplementedKnowPostServer()
 }
@@ -221,6 +234,9 @@ func (UnimplementedKnowPostServer) GetPublicFeed(context.Context, *GetPublicFeed
 }
 func (UnimplementedKnowPostServer) GetMyFeed(context.Context, *GetMyFeedReq) (*FeedPage, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetMyFeed not implemented")
+}
+func (UnimplementedKnowPostServer) GetUserFeed(context.Context, *GetUserFeedReq) (*FeedPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUserFeed not implemented")
 }
 func (UnimplementedKnowPostServer) Reindex(context.Context, *ReindexReq) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Reindex not implemented")
@@ -426,6 +442,24 @@ func _KnowPost_GetMyFeed_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _KnowPost_GetUserFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserFeedReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KnowPostServer).GetUserFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KnowPost_GetUserFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KnowPostServer).GetUserFeed(ctx, req.(*GetUserFeedReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _KnowPost_Reindex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReindexReq)
 	if err := dec(in); err != nil {
@@ -490,6 +524,10 @@ var KnowPost_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMyFeed",
 			Handler:    _KnowPost_GetMyFeed_Handler,
+		},
+		{
+			MethodName: "GetUserFeed",
+			Handler:    _KnowPost_GetUserFeed_Handler,
 		},
 		{
 			MethodName: "Reindex",

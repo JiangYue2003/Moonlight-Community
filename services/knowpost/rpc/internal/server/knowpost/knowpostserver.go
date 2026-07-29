@@ -73,6 +73,11 @@ func (s *KnowPostServer) GetMyFeed(ctx context.Context, in *knowpost.GetMyFeedRe
 	return l.GetMyFeed(in)
 }
 
+func (s *KnowPostServer) GetUserFeed(ctx context.Context, in *knowpost.GetUserFeedReq) (*knowpost.FeedPage, error) {
+	l := knowpostlogic.NewGetUserFeedLogic(ctx, s.svcCtx)
+	return l.GetUserFeed(in)
+}
+
 func (s *KnowPostServer) Reindex(ctx context.Context, in *knowpost.ReindexReq) (*knowpost.Empty, error) {
 	l := knowpostlogic.NewReindexLogic(ctx, s.svcCtx)
 	return l.Reindex(in)

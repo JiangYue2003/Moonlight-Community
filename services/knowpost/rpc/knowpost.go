@@ -27,6 +27,8 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 	sc := svc.NewServiceContext(c)
+	sc.StartFeedFanoutWorker()
+	defer sc.Close()
 
 	// 启动 Kafka cache invalidation listener（与 gRPC server 并行运行）
 	listenerCtx, cancelListener := context.WithCancel(context.Background())

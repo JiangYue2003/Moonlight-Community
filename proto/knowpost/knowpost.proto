@@ -92,6 +92,12 @@ message GetMyFeedReq {
   int32 size = 3;
 }
 
+message GetUserFeedReq {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
 message ReindexReq { int64 id = 1; int64 creator_id = 2; }
 
 service KnowPost {
@@ -105,5 +111,6 @@ service KnowPost {
   rpc GetDetail        (GetDetailReq)        returns (KnowPostDetail);
   rpc GetPublicFeed    (GetPublicFeedReq)    returns (FeedPage);
   rpc GetMyFeed        (GetMyFeedReq)        returns (FeedPage);
+  rpc GetUserFeed      (GetUserFeedReq)      returns (FeedPage);  // 推拉混合Feed
   rpc Reindex          (ReindexReq)          returns (Empty);
 }

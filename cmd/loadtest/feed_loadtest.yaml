@@ -1,0 +1,53 @@
+# Feed推拉结合架构 - 压力测试配置
+
+# 用户配置
+UserCount: 200          # 测试用户数量
+UserIDStart: 100000     # 起始用户ID
+BigVUserCount: 20       # 大V用户数量（粉丝>1000）
+
+# 关系配置
+FollowingsPerUser: 30   # 每个用户关注数量
+FollowRatio: 40         # 关注大V的比例（0-100）
+
+# 发帖配置
+PostCount: 2000         # 总发帖数
+PostConcurrency: 20     # 发帖并发数
+PostInterval: 10ms      # 发帖间隔
+
+# 读取配置
+ReadCount: 10000        # 总读取数
+ReadConcurrency: 100    # 读取并发数
+ReadInterval: 5ms       # 读取间隔
+
+# RPC服务配置
+KnowPostRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: knowpost.rpc
+  NonBlock: true
+  Timeout: 5000
+
+RelationRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: relation.rpc
+  NonBlock: true
+  Timeout: 5000
+
+CounterRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: counter.rpc
+  NonBlock: true
+  Timeout: 5000
+
+UserRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: user.rpc
+  NonBlock: true
+  Timeout: 5000

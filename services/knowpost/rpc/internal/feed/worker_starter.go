@@ -7,22 +7,36 @@ import (
 
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
+	"github.com/zeromicro/go-zero/core/service"
 )
 
-// StartFeedFanoutWorker 启动 Feed 扇出 Worker
-func StartFeedFanoutWorker(
+func newFeedFanoutQueueConfig(brokers []string) kq.KqConf {
+	return kq.KqConf{
+		ServiceConf: service.ServiceConf{Name: "feed-fanout-consumer"},
+		Brokers:     brokers,
+		Group:       "feed-fanout-group",
+		Topic:       FEED_FANOUT_TOPIC,
+		Offset:      "last",
+		Conns:       1,
+		Consumers:   1,
+		Processors:  8,
+		MinBytes:    1,
+		MaxBytes:    10 * 1024 * 1024,
+		ForceCommit: true,
+	}
+}
+
+// NewFeedFanoutWorker 创建 Feed 扇出 Worker，由服务生命周期负责启动和停止。
+func NewFeedFanoutWorker(
 	brokers []string,
 	redis RedisClient,
 	relationClient RelationClient,
 	logger logx.Logger,
-) error {
+) queue.MessageQueue {
 
 	// 创建 Kafka consumer
-	_ = kq.MustNewQueue(kq.KqConf{
-		Brokers: brokers,
-		Group:   "feed-fanout-group",
-		Topic:   FEED_FANOUT_TOPIC,
-	}, kq.WithHandle(func(ctx context.Context, k, v string) error {
+	return kq.MustNewQueue(newFeedFanoutQueueConfig(brokers), kq.WithHandle(func(ctx context.Context, k, v string) error {
 		// 处理消息
 		var event FeedEvent
 		if err := json.Unmarshal([]byte(v), &event); err != nil {
@@ -76,11 +90,18 @@ func StartFeedFanoutWorker(
 
 		return nil
 	}))
+}
 
-	// queue.Start() 会在 MustNewQueue 内部自动调用
-
+// StartFeedFanoutWorker 启动并阻塞运行 Feed 扇出 Worker。
+func StartFeedFanoutWorker(
+	brokers []string,
+	redis RedisClient,
+	relationClient RelationClient,
+	logger logx.Logger,
+) error {
+	worker := NewFeedFanoutWorker(brokers, redis, relationClient, logger)
 	logger.Info("feed fanout worker started")
-
+	worker.Start()
 	return nil
 }
 
@@ -108,4 +129,3 @@ func markProcessed(ctx context.Context, redis RedisClient, processKey string, lo
 		logger.Errorf("mark processed failed: key=%s, err=%v", processKey, err)
 	}
 }
-

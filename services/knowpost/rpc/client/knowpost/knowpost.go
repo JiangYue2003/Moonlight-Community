@@ -23,6 +23,7 @@ type (
 	GetDetailReq        = knowpost.GetDetailReq
 	GetMyFeedReq        = knowpost.GetMyFeedReq
 	GetPublicFeedReq    = knowpost.GetPublicFeedReq
+	GetUserFeedReq      = knowpost.GetUserFeedReq
 	KnowPostDetail      = knowpost.KnowPostDetail
 	PatchMetadataReq    = knowpost.PatchMetadataReq
 	PublishReq          = knowpost.PublishReq
@@ -41,6 +42,7 @@ type (
 		GetDetail(ctx context.Context, in *GetDetailReq, opts ...grpc.CallOption) (*KnowPostDetail, error)
 		GetPublicFeed(ctx context.Context, in *GetPublicFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
 		GetMyFeed(ctx context.Context, in *GetMyFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
+		GetUserFeed(ctx context.Context, in *GetUserFeedReq, opts ...grpc.CallOption) (*FeedPage, error)
 		Reindex(ctx context.Context, in *ReindexReq, opts ...grpc.CallOption) (*Empty, error)
 	}
 
@@ -103,6 +105,11 @@ func (m *defaultKnowPost) GetPublicFeed(ctx context.Context, in *GetPublicFeedRe
 func (m *defaultKnowPost) GetMyFeed(ctx context.Context, in *GetMyFeedReq, opts ...grpc.CallOption) (*FeedPage, error) {
 	client := knowpost.NewKnowPostClient(m.cli.Conn())
 	return client.GetMyFeed(ctx, in, opts...)
+}
+
+func (m *defaultKnowPost) GetUserFeed(ctx context.Context, in *GetUserFeedReq, opts ...grpc.CallOption) (*FeedPage, error) {
+	client := knowpost.NewKnowPostClient(m.cli.Conn())
+	return client.GetUserFeed(ctx, in, opts...)
 }
 
 func (m *defaultKnowPost) Reindex(ctx context.Context, in *ReindexReq, opts ...grpc.CallOption) (*Empty, error) {
