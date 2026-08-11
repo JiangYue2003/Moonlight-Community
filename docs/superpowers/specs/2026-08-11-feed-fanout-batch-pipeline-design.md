@@ -35,7 +35,7 @@
 4. 任意批次失败时立即返回错误。
 5. 所有批次成功后写入 processed 标记。
 
-Kafka consumer 只负责反序列化 `FeedEvent` 并调用 handler，现有无法解析的消息仍记录错误后跳过。
+Kafka consumer 只负责反序列化 `FeedEvent` 并调用 handler，现有无法解析的消息仍记录错误后跳过。由于项目锁定的 `go-queue v1.2.2` 不会自动重放返回错误的消息，consumer 使用单 processor，并在同一消息内以一秒间隔重试完整 handler；只有 handler 成功后才返回成功并提交 offset。服务停止时取消重试，保留未提交 offset 供重启后继续消费。
 
 ### Inbox batch writer
 
@@ -47,14 +47,18 @@ Kafka consumer 只负责反序列化 `FeedEvent` 并调用 handler，现有无�
 
 Pipeline 返回错误时，调用方把整批视为失败。Redis 可能已经执行其中一部分命令，但下一次整事件重试会安全覆盖相同 ZSet member，并重新执行容量和 TTL 修复。
 
+公开 Worker 构造函数继续接收原有 `RedisClient`，保持已有调用方和测试 mock 的源码兼容。运行时若实现同时提供批量接口（生产 `RedisAdapter` 即如此），自动选择 Pipeline；旧自定义实现则使用顺序兼容 writer。
+
 ## 错误与重试语义
 
 - processed 标记已存在：直接返回成功，不执行 fanout。
 - processed 查询失败：记录错误后继续 fanout；实际 Redis 写入失败仍会触发重试。
 - Relation 查询失败：返回错误，由 Kafka 重试。
-- 任意 Pipeline 失败：停止后续分块，不写 processed 标记并返回错误。
-- processed 标记写入失败：返回错误，由 Kafka 重试整条事件。
+- 任意 Pipeline 失败：停止后续分块，不写 processed 标记，由 consumer 退避后重试整条事件。
+- processed 标记写入失败：由 consumer 退避后重试整条事件。
 - 空粉丝列表：不执行 Pipeline，直接写 processed 标记。
+
+consumer 配置 `Processors=1`、`ForceCommit=false`，避免后续成功消息推进同一 partition 的 offset 并跳过失败事件。重试循环在服务停止时可取消；消费回调在解析消息前同步检查 Worker 生命周期，确保已经预取的下一条消息也返回错误，不会越过失败 offset。
 
 该设计提供至少一次处理，不承诺恰好一次；用户可见结果依靠 ZSet member 幂等收敛。
 
@@ -65,6 +69,10 @@ Pipeline 返回错误时，调用方把整批视为失败。Redis 可能已经�
 - 所有批次成功后 processed 标记存在。
 - processed 标记写入失败时 handler 返回错误。
 - 空粉丝列表不调用 batch writer，但写入 processed 标记。
+- consumer 使用单 processor 且 handler 错误不强制提交 offset。
+- 整事件重试在临时错误恢复后成功，并可在服务停止时取消。
+- 服务停止后拒绝已经预取的下一条消息，即使该消息无法解析也不返回成功。
+- 公开 Worker 构造函数保持原有 `RedisClient` 签名，旧实现走兼容 writer，生产实现走原生 batch writer。
 - 使用 miniredis 验证 RedisAdapter 批量写入、容量裁剪和 TTL。
 - 重复处理相同事件后，每个 inbox 中该 post ID 仍只有一个成员。
 - KnowPost Feed 相关包及受影响服务回归测试保持通过。
