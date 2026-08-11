@@ -35,6 +35,14 @@ func hydrateUsers(ctx context.Context, sc *svc.ServiceContext, ids []int64) ([]*
 	return out, nil
 }
 
+func summarizeUserIDs(ids []int64) []*pb.UserSummary {
+	out := make([]*pb.UserSummary, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, &pb.UserSummary{Id: id})
+	}
+	return out
+}
+
 func clampLimit(n int32) int {
 	if n <= 0 {
 		return 20

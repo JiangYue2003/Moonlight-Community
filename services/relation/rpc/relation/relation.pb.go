@@ -334,7 +334,8 @@ type ListReq struct {
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"` // 1..100
 	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
-	Cursor        int64                  `protobuf:"varint,4,opt,name=cursor,proto3" json:"cursor,omitempty"` // 0 表示首页
+	Cursor        int64                  `protobuf:"varint,4,opt,name=cursor,proto3" json:"cursor,omitempty"`                  // 0 表示首页
+	IdsOnly       bool                   `protobuf:"varint,5,opt,name=ids_only,json=idsOnly,proto3" json:"ids_only,omitempty"` // 内部调用可跳过用户资料填充，仅返回 id
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -395,6 +396,13 @@ func (x *ListReq) GetCursor() int64 {
 		return x.Cursor
 	}
 	return 0
+}
+
+func (x *ListReq) GetIdsOnly() bool {
+	if x != nil {
+		return x.IdsOnly
+	}
+	return false
 }
 
 type UserSummary struct {
@@ -563,12 +571,13 @@ const file_proto_relation_relation_proto_rawDesc = "" +
 	"\tfollowing\x18\x01 \x01(\bR\tfollowing\x12\x1f\n" +
 	"\vfollowed_by\x18\x02 \x01(\bR\n" +
 	"followedBy\x12\x16\n" +
-	"\x06mutual\x18\x03 \x01(\bR\x06mutual\"h\n" +
+	"\x06mutual\x18\x03 \x01(\bR\x06mutual\"\x83\x01\n" +
 	"\aListReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x16\n" +
-	"\x06cursor\x18\x04 \x01(\x03R\x06cursor\"x\n" +
+	"\x06cursor\x18\x04 \x01(\x03R\x06cursor\x12\x19\n" +
+	"\bids_only\x18\x05 \x01(\bR\aidsOnly\"x\n" +
 	"\vUserSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\bnickname\x18\x02 \x01(\tR\bnickname\x12\x16\n" +

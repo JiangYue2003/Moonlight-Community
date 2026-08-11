@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
@@ -11,10 +12,15 @@ import (
 var _ KnowPostsModel = (*customKnowPostsModel)(nil)
 
 type (
+	FeedPostLoader interface {
+		FindPublishedFeedByIDs(ctx context.Context, ids []uint64) ([]*KnowPosts, error)
+	}
+
 	// KnowPostsModel is an interface to be customized, add more methods here,
 	// and implement the added methods in customKnowPostsModel.
 	KnowPostsModel interface {
 		knowPostsModel
+		FeedPostLoader
 		// 业务专用方法（不使用缓存层，直接走 sqlx 原生连接）。
 		ListPublicFeed(ctx context.Context, limit, offset int) ([]*KnowPosts, error)
 		ListMyFeed(ctx context.Context, creatorId uint64, limit, offset int) ([]*KnowPosts, error)
@@ -55,6 +61,28 @@ func (m *customKnowPostsModel) ListMyFeed(ctx context.Context, creatorId uint64,
 		knowPostsRows, m.table)
 	var rows []*KnowPosts
 	err := m.QueryRowsNoCacheCtx(ctx, &rows, query, creatorId, limit, offset)
+	return rows, err
+}
+
+// FindPublishedFeedByIDs 批量加载可进入关注 Feed 的帖子。
+// 返回顺序不作保证，调用方按候选 ID 顺序重排。
+func (m *customKnowPostsModel) FindPublishedFeedByIDs(ctx context.Context, ids []uint64) ([]*KnowPosts, error) {
+	if len(ids) == 0 {
+		return []*KnowPosts{}, nil
+	}
+
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	query := fmt.Sprintf(
+		"select %s from %s where `id` in (%s) and status='published' and visible in ('public','followers')",
+		knowPostsRows, m.table, placeholders,
+	)
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+
+	var rows []*KnowPosts
+	err := m.QueryRowsNoCacheCtx(ctx, &rows, query, args...)
 	return rows, err
 }
 

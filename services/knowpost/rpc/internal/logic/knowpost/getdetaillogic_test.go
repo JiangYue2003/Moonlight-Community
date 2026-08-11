@@ -41,6 +41,9 @@ func (s *stubKnowPostsModel) ListPublicFeed(context.Context, int, int) ([]*model
 func (s *stubKnowPostsModel) ListMyFeed(context.Context, uint64, int, int) ([]*model.KnowPosts, error) {
 	panic("not implemented")
 }
+func (s *stubKnowPostsModel) FindPublishedFeedByIDs(context.Context, []uint64) ([]*model.KnowPosts, error) {
+	panic("not implemented")
+}
 func (s *stubKnowPostsModel) UpdateInTx(context.Context, sqlx.Session, *model.KnowPosts) error {
 	panic("not implemented")
 }

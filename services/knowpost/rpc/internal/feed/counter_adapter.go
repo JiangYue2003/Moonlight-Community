@@ -15,17 +15,27 @@ func NewCounterClientAdapter(client counterpb.UserCounterClient) *CounterClientA
 	return &CounterClientAdapter{client: client}
 }
 
-func (c *CounterClientAdapter) GetFollowerCount(ctx context.Context, userID int64) (int64, error) {
-	resp, err := c.client.GetUserSnapshot(ctx, &counterpb.GetUserSnapshotReq{
-		UserId: userID,
+func (c *CounterClientAdapter) BatchGetFollowerCounts(ctx context.Context, userIDs []int64) (map[int64]int64, error) {
+	counts := make(map[int64]int64, len(userIDs))
+	if len(userIDs) == 0 {
+		return counts, nil
+	}
+
+	resp, err := c.client.BatchGetUserSnapshot(ctx, &counterpb.BatchGetUserSnapshotReq{
+		UserIds: userIDs,
 	})
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	if resp == nil || resp.Snapshot == nil {
-		return 0, nil
+	if resp == nil {
+		return counts, nil
 	}
 
-	return resp.Snapshot.Followers, nil
+	for _, userID := range userIDs {
+		if snapshot := resp.Result[userID]; snapshot != nil {
+			counts[userID] = snapshot.Followers
+		}
+	}
+	return counts, nil
 }

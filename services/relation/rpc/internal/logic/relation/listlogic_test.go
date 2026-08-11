@@ -107,3 +107,57 @@ func TestListFollowers_UsesTopCacheBeforeRedisAndDB(t *testing.T) {
 		t.Fatalf("unexpected top cache items: %+v", resp.Items)
 	}
 }
+
+func TestListFollowing_IDsOnlySkipsUserHydration(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	sc := &svc.ServiceContext{
+		Redis:          rdb,
+		FollowingModel: panicFollowingModel{},
+		FollowingTopCache: map[int64][]int64{
+			9: {301, 302},
+		},
+		// UserRpc deliberately remains nil: IDs-only requests must not hydrate profiles.
+	}
+
+	resp, err := NewListFollowingLogic(context.Background(), sc).ListFollowing(&relation.ListReq{
+		UserId:  9,
+		Limit:   2,
+		IdsOnly: true,
+	})
+	if err != nil {
+		t.Fatalf("list following ids only: %v", err)
+	}
+	if len(resp.Items) != 2 || resp.Items[0].GetId() != 301 || resp.Items[1].GetId() != 302 {
+		t.Fatalf("unexpected ids-only items: %+v", resp.Items)
+	}
+}
+
+func TestListFollowers_IDsOnlySkipsUserHydration(t *testing.T) {
+	mr := miniredis.RunT(t)
+	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
+	defer rdb.Close()
+
+	sc := &svc.ServiceContext{
+		Redis:         rdb,
+		FollowerModel: panicFollowerModel{},
+		FollowerTopCache: map[int64][]int64{
+			10: {401, 402},
+		},
+		// UserRpc deliberately remains nil: IDs-only requests must not hydrate profiles.
+	}
+
+	resp, err := NewListFollowersLogic(context.Background(), sc).ListFollowers(&relation.ListReq{
+		UserId:  10,
+		Limit:   2,
+		IdsOnly: true,
+	})
+	if err != nil {
+		t.Fatalf("list followers ids only: %v", err)
+	}
+	if len(resp.Items) != 2 || resp.Items[0].GetId() != 401 || resp.Items[1].GetId() != 402 {
+		t.Fatalf("unexpected ids-only items: %+v", resp.Items)
+	}
+}

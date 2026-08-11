@@ -114,6 +114,10 @@ func (m *benchKnowPostsModel) ListMyFeed(context.Context, uint64, int, int) ([]*
 	panic("not implemented")
 }
 
+func (m *benchKnowPostsModel) FindPublishedFeedByIDs(context.Context, []uint64) ([]*model.KnowPosts, error) {
+	panic("not implemented")
+}
+
 func (m *benchKnowPostsModel) UpdateInTx(context.Context, sqlx.Session, *model.KnowPosts) error {
 	panic("not implemented")
 }

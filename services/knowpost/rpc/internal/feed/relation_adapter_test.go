@@ -73,6 +73,8 @@ func TestRelationClientAdapterPaginatesFollowersAndFollowings(t *testing.T) {
 	require.Equal(t, int32(100), client.followerRequests[0].Limit)
 	require.Equal(t, int32(0), client.followerRequests[0].Offset)
 	require.Equal(t, int32(100), client.followerRequests[1].Offset)
+	require.True(t, client.followerRequests[0].IdsOnly)
+	require.True(t, client.followerRequests[1].IdsOnly)
 
 	followings, err := adapter.GetFollowings(context.Background(), 42)
 	require.NoError(t, err)
@@ -80,4 +82,6 @@ func TestRelationClientAdapterPaginatesFollowersAndFollowings(t *testing.T) {
 	require.Len(t, client.followingRequests, 2)
 	require.Equal(t, int32(100), client.followingRequests[0].Limit)
 	require.Equal(t, int32(100), client.followingRequests[1].Offset)
+	require.True(t, client.followingRequests[0].IdsOnly)
+	require.True(t, client.followingRequests[1].IdsOnly)
 }

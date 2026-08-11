@@ -1,12 +1,16 @@
 package feed
 
 import (
+	"container/heap"
 	"context"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
+
+const maxBigVPullConcurrency = 16
 
 // Post 帖子基本信息（用于排序和去重）
 type Post struct {
@@ -23,6 +27,14 @@ type FeedReader struct {
 	logger         logx.Logger
 }
 
+// FeedReadSnapshot 固化一次请求中的关注关系和大V分类，供过滤回填复用。
+type FeedReadSnapshot struct {
+	reader     *FeedReader
+	userID     int64
+	bigVs      []int64
+	followings map[int64]struct{}
+}
+
 func NewFeedReader(redis RedisClient, relationClient RelationClient, counterClient CounterClient, logger logx.Logger) *FeedReader {
 	return &FeedReader{
 		redis:          redis,
@@ -35,34 +47,60 @@ func NewFeedReader(redis RedisClient, relationClient RelationClient, counterClie
 // GetFeed 读取用户的 Feed 流（推拉混合）
 // 返回帖子 ID 列表，调用方负责批量查询详情
 func (r *FeedReader) GetFeed(ctx context.Context, userID int64, page, size int) ([]int64, bool, error) {
-	// 1. 获取关注列表
+	snapshot, err := r.Prepare(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	return snapshot.GetFeed(ctx, page, size)
+}
+
+// Prepare 获取并分类一次关注列表；同一请求内的候选回填应复用返回的快照。
+func (r *FeedReader) Prepare(ctx context.Context, userID int64) (*FeedReadSnapshot, error) {
 	followings, err := r.relationClient.GetFollowings(ctx, userID)
 	if err != nil {
 		r.logger.Errorf("get followings failed: user=%d, err=%v", userID, err)
-		return nil, false, fmt.Errorf("get followings failed: %w", err)
+		return nil, fmt.Errorf("get followings failed: %w", err)
 	}
 
-	if len(followings) == 0 {
-		// 没有关注任何人，返回空
-		r.logger.Infof("user %d has no followings", userID)
-		return []int64{}, false, nil
-	}
-
-	// 2. 区分大V和普通用户
 	bigVs, normalUsers := r.classifyFollowings(ctx, followings)
 	r.logger.Infof("user %d followings: %d bigVs, %d normal users",
 		userID, len(bigVs), len(normalUsers))
+	followingSet := make(map[int64]struct{}, len(followings))
+	for _, followingID := range followings {
+		followingSet[followingID] = struct{}{}
+	}
+	return &FeedReadSnapshot{
+		reader:     r,
+		userID:     userID,
+		bigVs:      bigVs,
+		followings: followingSet,
+	}, nil
+}
 
-	// 3. 读收件箱（推模式的内容）
-	inboxPosts, err := r.readInbox(ctx, userID, size*2) // 多读一些，用于去重后分页
+// AllowsCreator 判断候选作者是否仍属于当前用户的关注流；用户自己的内容始终允许。
+func (s *FeedReadSnapshot) AllowsCreator(creatorID int64) bool {
+	if creatorID == s.userID {
+		return true
+	}
+	_, ok := s.followings[creatorID]
+	return ok
+}
+
+// GetFeed 从已准备的关注快照读取候选，避免过滤回填重复调用 Relation/Counter。
+func (s *FeedReadSnapshot) GetFeed(ctx context.Context, page, size int) ([]int64, bool, error) {
+	r := s.reader
+
+	start := (page - 1) * size
+	end := start + size
+	candidateLimit := end + 1
+	inboxPosts, err := r.readInbox(ctx, s.userID, candidateLimit)
 	if err != nil {
 		r.logger.Errorf("read inbox failed: %v", err)
 		// 降级：继续处理，只是收件箱为空
 		inboxPosts = []Post{}
 	}
 
-	// 4. 实时拉取大V内容
-	bigVPosts := r.pullFromBigVs(ctx, bigVs, size)
+	bigVPosts := r.pullFromBigVs(ctx, s.bigVs, candidateLimit)
 
 	// 5. 归并、去重、排序
 	allPosts := MergePosts(inboxPosts, bigVPosts)
@@ -72,8 +110,6 @@ func (r *FeedReader) GetFeed(ctx context.Context, userID int64, page, size int) 
 	allPosts = BalanceFeed(allPosts, 0.5) // 大V内容最多占50%
 
 	// 7. 分页
-	start := (page - 1) * size
-	end := start + size
 	hasMore := len(allPosts) > end
 
 	if start >= len(allPosts) {
@@ -96,18 +132,18 @@ func (r *FeedReader) GetFeed(ctx context.Context, userID int64, page, size int) 
 func (r *FeedReader) classifyFollowings(ctx context.Context, followings []int64) (bigVs, normalUsers []int64) {
 	bigVs = []int64{}
 	normalUsers = []int64{}
+	if len(followings) == 0 {
+		return bigVs, normalUsers
+	}
+
+	followerCounts, err := r.counterClient.BatchGetFollowerCounts(ctx, followings)
+	if err != nil {
+		r.logger.Errorf("batch get follower counts failed: users=%d, err=%v", len(followings), err)
+		return bigVs, append(normalUsers, followings...)
+	}
 
 	for _, uid := range followings {
-		// 从 Counter 获取粉丝数
-		followerCount, err := r.counterClient.GetFollowerCount(ctx, uid)
-		if err != nil {
-			r.logger.Errorf("get follower count failed: user=%d, err=%v", uid, err)
-			// 降级：当作普通用户处理
-			normalUsers = append(normalUsers, uid)
-			continue
-		}
-
-		if followerCount > BIGV_THRESHOLD {
+		if followerCounts[uid] > BIGV_THRESHOLD {
 			bigVs = append(bigVs, uid)
 		} else {
 			normalUsers = append(normalUsers, uid)
@@ -138,45 +174,80 @@ func (r *FeedReader) readInbox(ctx context.Context, userID int64, limit int) ([]
 	return posts, nil
 }
 
-// pullFromBigVs 实时拉取大V的最新内容（并行）
+// pullFromBigVs 实时拉取大V的最新内容（有界并行）
 func (r *FeedReader) pullFromBigVs(ctx context.Context, bigVs []int64, limit int) []Post {
-	if len(bigVs) == 0 {
+	if len(bigVs) == 0 || limit <= 0 {
 		return []Post{}
 	}
 
-	// 计算每个大V拉取多少条
-	perBigV := limit / len(bigVs)
-	if perBigV == 0 {
-		perBigV = 1
+	// 每个大V都必须提供足够深度，才能形成正确的全局 Top-N。
+	// 单个 outbox 最多保留 BIGV_OUTBOX_MAX_SIZE 条，因此读取量有明确上限。
+	perBigV := limit
+	if perBigV > BIGV_OUTBOX_MAX_SIZE {
+		perBigV = BIGV_OUTBOX_MAX_SIZE
 	}
 
-	// 并行拉取
 	type result struct {
 		posts []Post
 		err   error
 	}
 
-	ch := make(chan result, len(bigVs))
-
-	for _, bigV := range bigVs {
-		go func(creatorID int64) {
-			posts, err := r.pullFromBigV(ctx, creatorID, perBigV)
-			ch <- result{posts: posts, err: err}
-		}(bigV)
+	workerCount := len(bigVs)
+	if workerCount > maxBigVPullConcurrency {
+		workerCount = maxBigVPullConcurrency
 	}
+	jobs := make(chan int64)
+	results := make(chan result, workerCount)
+	var workers sync.WaitGroup
+	workers.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer workers.Done()
+			for creatorID := range jobs {
+				posts, err := r.pullFromBigV(ctx, creatorID, perBigV)
+				results <- result{posts: posts, err: err}
+			}
+		}()
+	}
+	go func() {
+		defer close(jobs)
+		for _, creatorID := range bigVs {
+			select {
+			case jobs <- creatorID:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	go func() {
+		workers.Wait()
+		close(results)
+	}()
 
-	// 收集结果
-	allPosts := []Post{}
-	for i := 0; i < len(bigVs); i++ {
-		res := <-ch
+	// 每个 worker 最多暂存一个 outbox；聚合侧只维护全局 Top-N。
+	topPosts := make(postMinHeap, 0, limit)
+	heap.Init(&topPosts)
+	for res := range results {
 		if res.err != nil {
 			r.logger.Errorf("pull from bigv failed: %v", res.err)
 			continue
 		}
-		allPosts = append(allPosts, res.posts...)
+		for _, post := range res.posts {
+			if topPosts.Len() < limit {
+				heap.Push(&topPosts, post)
+				continue
+			}
+			if postComesBefore(post, topPosts[0]) {
+				heap.Pop(&topPosts)
+				heap.Push(&topPosts, post)
+			}
+		}
 	}
 
-	return allPosts
+	sort.Slice(topPosts, func(i, j int) bool {
+		return postComesBefore(topPosts[i], topPosts[j])
+	})
+	return topPosts
 }
 
 // pullFromBigV 从单个大V的发件箱拉取
@@ -203,6 +274,32 @@ func (r *FeedReader) pullFromBigV(ctx context.Context, creatorID int64, limit in
 
 // ===== 辅助函数（纯函数，容易测试）=====
 
+// postMinHeap 把最旧的候选放在堆顶，便于在固定空间内维护全局 Top-N。
+type postMinHeap []Post
+
+func (h postMinHeap) Len() int { return len(h) }
+func (h postMinHeap) Less(i, j int) bool {
+	return postComesBefore(h[j], h[i])
+}
+func (h postMinHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
+func (h *postMinHeap) Push(value interface{}) {
+	*h = append(*h, value.(Post))
+}
+func (h *postMinHeap) Pop() interface{} {
+	old := *h
+	last := len(old) - 1
+	value := old[last]
+	*h = old[:last]
+	return value
+}
+
+func postComesBefore(left, right Post) bool {
+	if left.CreateTime == right.CreateTime {
+		return left.ID > right.ID
+	}
+	return left.CreateTime > right.CreateTime
+}
+
 // MergePosts 归并两个帖子列表（按时间倒序）
 func MergePosts(list1, list2 []Post) []Post {
 	result := make([]Post, 0, len(list1)+len(list2))
@@ -211,7 +308,7 @@ func MergePosts(list1, list2 []Post) []Post {
 
 	// 按时间戳降序排序
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].CreateTime > result[j].CreateTime
+		return postComesBefore(result[i], result[j])
 	})
 
 	return result

@@ -28,6 +28,7 @@ type ServiceContext struct {
 
 	Db             sqlx.SqlConn
 	KnowPostsModel model.KnowPostsModel
+	FeedPostLoader model.FeedPostLoader
 	OutboxModel    outboxmodel.OutboxModel
 
 	Redis goredis.UniversalClient
@@ -102,11 +103,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		relationAdapter,
 		logx.WithContext(context.Background()),
 	)
+	knowPostsModel := model.NewKnowPostsModel(conn, c.CacheRedis)
 
 	return &ServiceContext{
 		Config:         c,
 		Db:             conn,
-		KnowPostsModel: model.NewKnowPostsModel(conn, c.CacheRedis),
+		KnowPostsModel: knowPostsModel,
+		FeedPostLoader: knowPostsModel,
 		OutboxModel:    outboxmodel.NewOutboxModel(conn, c.CacheRedis),
 		Redis:          rdb,
 		UserCounterRpc: userCounterClient,

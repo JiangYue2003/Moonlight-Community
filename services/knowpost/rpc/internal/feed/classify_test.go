@@ -23,11 +23,11 @@ func TestFeedReader_ClassifyBigV(t *testing.T) {
 	relation.SetFollowings(userID, []int64{201, 202, 203, 301, 302})
 
 	// 设置粉丝数
-	counter.SetFollowerCount(201, 100)     // 普通用户
-	counter.SetFollowerCount(202, 500)     // 普通用户
-	counter.SetFollowerCount(203, 1000)    // 普通用户（刚好阈值）
-	counter.SetFollowerCount(301, 5000)    // 大V
-	counter.SetFollowerCount(302, 100000)  // 超级大V
+	counter.SetFollowerCount(201, 100)    // 普通用户
+	counter.SetFollowerCount(202, 500)    // 普通用户
+	counter.SetFollowerCount(203, 1000)   // 普通用户（刚好阈值）
+	counter.SetFollowerCount(301, 5000)   // 大V
+	counter.SetFollowerCount(302, 100000) // 超级大V
 
 	result, hasMore, err := reader.GetFeed(ctx, userID, 1, 20)
 
@@ -35,6 +35,7 @@ func TestFeedReader_ClassifyBigV(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.False(t, hasMore)
+	assert.Equal(t, 1, counter.batchCalls)
 
 	// 验证分类逻辑（通过日志可以看到）
 	// 预期：3个普通用户，2个大V

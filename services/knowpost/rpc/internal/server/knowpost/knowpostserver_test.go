@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -29,9 +31,13 @@ func (noFollowingsRelation) GetFollowings(context.Context, int64) ([]int64, erro
 }
 
 func TestGetUserFeedIsServedByRegisteredServer(t *testing.T) {
+	redisServer := miniredis.RunT(t)
+	redisClient := redis.NewClient(&redis.Options{Addr: redisServer.Addr()})
+	t.Cleanup(func() { _ = redisClient.Close() })
+
 	serviceCtx := &svc.ServiceContext{
 		FeedReader: feed.NewFeedReader(
-			nil,
+			feed.NewRedisAdapter(redisClient),
 			noFollowingsRelation{},
 			nil,
 			logx.WithContext(context.Background()),

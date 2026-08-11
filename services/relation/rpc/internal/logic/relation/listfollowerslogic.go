@@ -74,9 +74,13 @@ func (l *ListFollowersLogic) ListFollowers(in *relation.ListReq) (*relation.List
 		}
 	}
 
-	users, err := hydrateUsers(l.ctx, l.svcCtx, ids)
-	if err != nil {
-		return nil, err
+	users := summarizeUserIDs(ids)
+	if !in.IdsOnly {
+		var err error
+		users, err = hydrateUsers(l.ctx, l.svcCtx, ids)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &relation.ListResp{
 		Items:      users,

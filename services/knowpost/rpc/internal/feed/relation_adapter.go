@@ -39,9 +39,10 @@ func listRelationUserIDs(
 
 	for {
 		resp, err := list(ctx, &relationpb.ListReq{
-			UserId: userID,
-			Offset: offset,
-			Limit:  relationPageSize,
+			UserId:  userID,
+			Offset:  offset,
+			Limit:   relationPageSize,
+			IdsOnly: true,
 		})
 		if err != nil {
 			return nil, err
