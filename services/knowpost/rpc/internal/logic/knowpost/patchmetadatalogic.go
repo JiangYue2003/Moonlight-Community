@@ -74,10 +74,15 @@ func (l *PatchMetadataLogic) PatchMetadata(in *knowpost.PatchMetadataReq) (*know
 			row.IsTop = 0
 		}
 	}
-	if err := updateAndEmitOutbox(l.ctx, l.svcCtx, row); err != nil {
-		return nil, err
+	committed, updateErr := updateAndEmitOutbox(l.ctx, l.svcCtx, row)
+	if !committed {
+		return nil, updateErr
 	}
 	invalidateKnowPostCaches(l.ctx, l.svcCtx, int64(row.Id), in.CreatorId)
+	bumpFeedPageSafety(l.ctx, l.svcCtx)
+	if updateErr != nil {
+		return nil, updateErr
+	}
 	return rowToDetail(row), nil
 }
 

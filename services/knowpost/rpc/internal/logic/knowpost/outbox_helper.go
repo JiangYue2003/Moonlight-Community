@@ -12,15 +12,17 @@ import (
 )
 
 // updateAndEmitOutbox 在同一事务里：UPDATE knowposts + INSERT outbox。
+// committed=true 表示事务已提交；此时即使后续 model cache invalidation
+// 返回错误，调用方仍必须推进 content-safety epoch。
 //
 // 无论 status 是否为 published，都写 outbox（KnowPostUpdated）。
 // search-indexer 收到事件后会检查 status/visible，对非 published 帖子执行 SoftDelete，
 // 确保撤稿、改可见性等操作能及时从 ES 中移除文档。
 // 删除事件由 deletelogic 自行处理（事件类型 KnowPostDeleted），不走此 helper。
-func updateAndEmitOutbox(ctx context.Context, sc *svc.ServiceContext, row *model.KnowPosts) error {
+func updateAndEmitOutbox(ctx context.Context, sc *svc.ServiceContext, row *model.KnowPosts) (bool, error) {
 	outboxId, err := sc.Snowflake.NextId()
 	if err != nil {
-		return err
+		return false, err
 	}
 	payload, _ := json.Marshal(event.KnowPostEvent{
 		Type:   event.TypeKnowPostUpdated,
@@ -34,7 +36,7 @@ func updateAndEmitOutbox(ctx context.Context, sc *svc.ServiceContext, row *model
 		return sc.OutboxModel.InsertInTx(ctx, sess, outboxId,
 			event.AggregateType, int64(row.Id), event.TypeKnowPostUpdated, string(payload))
 	}); err != nil {
-		return err
+		return false, err
 	}
-	return sc.KnowPostsModel.InvalidateCache(ctx, int64(row.Id))
+	return true, sc.KnowPostsModel.InvalidateCache(ctx, int64(row.Id))
 }

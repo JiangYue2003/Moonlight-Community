@@ -11,11 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zhiguang/zhiguang-go/common/ctxdata"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
+	counterclient "github.com/zhiguang/zhiguang-go/services/counter/rpc/client/counter"
+	usercounterclient "github.com/zhiguang/zhiguang-go/services/counter/rpc/client/usercounter"
 	gh "github.com/zhiguang/zhiguang-go/services/gateway/internal/httpx"
 	"github.com/zhiguang/zhiguang-go/services/gateway/internal/middleware"
 	"github.com/zhiguang/zhiguang-go/services/gateway/internal/srv"
-	counterclient "github.com/zhiguang/zhiguang-go/services/counter/rpc/client/counter"
-	usercounterclient "github.com/zhiguang/zhiguang-go/services/counter/rpc/client/usercounter"
 	knowpostclient "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/client/knowpost"
 	llmclient "github.com/zhiguang/zhiguang-go/services/llm/rpc/client/llm"
 	relationclient "github.com/zhiguang/zhiguang-go/services/relation/rpc/client/relation"
@@ -24,11 +24,18 @@ import (
 	authclient "github.com/zhiguang/zhiguang-go/services/user/rpc/client/auth"
 	userclient "github.com/zhiguang/zhiguang-go/services/user/rpc/client/user"
 	userpb "github.com/zhiguang/zhiguang-go/services/user/rpc/user"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+const maxFeedCursorLength = 256
 
 func NewEngine(sc *srv.ServiceContext) *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	if sc.Config.HTTPAccessLog {
+		r.Use(gin.Logger())
+	}
+	r.Use(gin.Recovery())
 
 	auth := r.Group("/api/v1/auth")
 	{
@@ -71,6 +78,7 @@ func NewEngine(sc *srv.ServiceContext) *gin.Engine {
 		privateKnowpost.PATCH("/:id/visibility", updateVisibility(sc))
 		privateKnowpost.DELETE("/:id", deleteKnowpost(sc))
 		privateKnowpost.GET("/mine", getMyFeed(sc))
+		privateKnowpost.GET("/following-feed", getFollowingFeed(sc))
 		privateKnowpost.POST("/:id/reindex", reindex(sc))
 		privateKnowpost.POST("/:id/rag/reindex", reindex(sc))
 	}
@@ -151,12 +159,12 @@ func register(sc *srv.ServiceContext) gin.HandlerFunc {
 		}
 		resp, err := sc.AuthRpc.Register(c.Request.Context(), &authclient.RegisterReq{
 			Identifier: req.Identifier,
-			Password: req.Password,
-			Code: req.Code,
-			Nickname: req.Nickname,
+			Password:   req.Password,
+			Code:       req.Code,
+			Nickname:   req.Nickname,
 			AgreeTerms: req.AgreeTerms,
-			Ip: c.ClientIP(),
-			UserAgent: c.Request.UserAgent(),
+			Ip:         c.ClientIP(),
+			UserAgent:  c.Request.UserAgent(),
 		})
 		if err != nil {
 			gh.WriteError(c, err)
@@ -180,11 +188,11 @@ func login(sc *srv.ServiceContext) gin.HandlerFunc {
 		}
 		resp, err := sc.AuthRpc.Login(c.Request.Context(), &authclient.LoginReq{
 			Identifier: req.Identifier,
-			Password: req.Password,
-			Code: req.Code,
-			Channel: req.Channel,
-			Ip: c.ClientIP(),
-			UserAgent: c.Request.UserAgent(),
+			Password:   req.Password,
+			Code:       req.Code,
+			Channel:    req.Channel,
+			Ip:         c.ClientIP(),
+			UserAgent:  c.Request.UserAgent(),
 		})
 		if err != nil {
 			gh.WriteError(c, err)
@@ -215,8 +223,8 @@ func refresh(sc *srv.ServiceContext) gin.HandlerFunc {
 func passwordReset(sc *srv.ServiceContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
-			Identifier string `json:"identifier"`
-			Code string `json:"code"`
+			Identifier  string `json:"identifier"`
+			Code        string `json:"code"`
 			NewPassword string `json:"newPassword"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -236,7 +244,9 @@ func passwordReset(sc *srv.ServiceContext) gin.HandlerFunc {
 
 func logout(sc *srv.ServiceContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var req struct{ RefreshToken string `json:"refreshToken"` }
+		var req struct {
+			RefreshToken string `json:"refreshToken"`
+		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
 			return
@@ -301,13 +311,13 @@ func patchProfile(sc *srv.ServiceContext) gin.HandlerFunc {
 		}
 		var req struct {
 			Nickname *string `json:"nickname"`
-			Bio *string `json:"bio"`
-			Gender *string `json:"gender"`
+			Bio      *string `json:"bio"`
+			Gender   *string `json:"gender"`
 			Birthday *string `json:"birthday"`
-			ZgId *string `json:"zgId"`
-			School *string `json:"school"`
+			ZgId     *string `json:"zgId"`
+			School   *string `json:"school"`
 			TagsJson *string `json:"tagsJson"`
-			TagJson *string `json:"tagJson"`
+			TagJson  *string `json:"tagJson"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
@@ -410,10 +420,10 @@ func presign(sc *srv.ServiceContext) gin.HandlerFunc {
 			return
 		}
 		var req struct {
-			Scene string `json:"scene"`
-			PostId string `json:"postId"`
+			Scene       string `json:"scene"`
+			PostId      string `json:"postId"`
 			ContentType string `json:"contentType"`
-			Ext string `json:"ext"`
+			Ext         string `json:"ext"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
 			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
@@ -433,32 +443,454 @@ func presign(sc *srv.ServiceContext) gin.HandlerFunc {
 	}
 }
 
-func createDraft(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); resp, err := sc.KnowPostRpc.CreateDraft(c.Request.Context(), &knowpostclient.CreateDraftReq{CreatorId: uid}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, gin.H{"id": resp.Id}) } }
-func confirmContent(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; var req struct{ ObjectKey string `json:"objectKey"`; Etag string `json:"etag"`; Size int64 `json:"size"`; Sha256 string `json:"sha256"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; _, err = sc.KnowPostRpc.ConfirmContent(c.Request.Context(), &knowpostclient.ConfirmContentReq{Id: id, CreatorId: uid, ObjectKey: req.ObjectKey, Etag: req.Etag, Size: req.Size, Sha256: req.Sha256}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func patchMetadata(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; var req struct{ Title *string `json:"title"`; Description *string `json:"description"`; TagId *int64 `json:"tagId"`; Tags []string `json:"tags"`; TagsSet bool `json:"tagsSet"`; ImgUrls []string `json:"imgUrls"`; ImgUrlsSet bool `json:"imgUrlsSet"`; Visible *string `json:"visible"`; IsTop *bool `json:"isTop"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; in := &knowpostclient.PatchMetadataReq{Id: id, CreatorId: uid}; if req.Title != nil { in.Title, in.TitleSet = *req.Title, true }; if req.Description != nil { in.Description, in.DescriptionSet = *req.Description, true }; if req.TagId != nil { in.TagId, in.TagIdSet = *req.TagId, true }; in.Tags, in.TagsSet = req.Tags, req.TagsSet; in.ImgUrls, in.ImgUrlsSet = req.ImgUrls, req.ImgUrlsSet; if req.Visible != nil { in.Visible, in.VisibleSet = *req.Visible, true }; if req.IsTop != nil { in.IsTop, in.IsTopSet = *req.IsTop, true }; resp, err := sc.KnowPostRpc.PatchMetadata(c.Request.Context(), in); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toKnowPostDetail(resp)) } }
-func publish(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; resp, err := sc.KnowPostRpc.Publish(c.Request.Context(), &knowpostclient.PublishReq{Id: id, CreatorId: uid}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toKnowPostDetail(resp)) } }
-func updateTop(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; var req struct{ IsTop bool `json:"isTop"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; _, err = sc.KnowPostRpc.UpdateTop(c.Request.Context(), &knowpostclient.UpdateTopReq{Id: id, CreatorId: uid, IsTop: req.IsTop}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func updateVisibility(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; var req struct{ Visible string `json:"visible"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; _, err = sc.KnowPostRpc.UpdateVisibility(c.Request.Context(), &knowpostclient.UpdateVisibilityReq{Id: id, CreatorId: uid, Visible: req.Visible}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func deleteKnowpost(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; _, err = sc.KnowPostRpc.Delete(c.Request.Context(), &knowpostclient.DeleteReq{Id: id, CreatorId: uid}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func getPublicFeed(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { page := int32(queryInt(c, "page", 1)); size := int32(queryInt(c, "size", 20)); resp, err := sc.KnowPostRpc.GetPublicFeed(c.Request.Context(), &knowpostclient.GetPublicFeedReq{Page: page, Size: size}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toFeedPage(resp)) } }
-func getMyFeed(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); page := int32(queryInt(c, "page", 1)); size := int32(queryInt(c, "size", 20)); resp, err := sc.KnowPostRpc.GetMyFeed(c.Request.Context(), &knowpostclient.GetMyFeedReq{CreatorId: uid, Page: page, Size: size}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toFeedPage(resp)) } }
-func getDetail(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; viewer,_ := ctxdata.GetUserId(c.Request.Context()); resp, err := sc.KnowPostRpc.GetDetail(c.Request.Context(), &knowpostclient.GetDetailReq{Id: id, ViewerId: viewer}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toKnowPostDetail(resp)) } }
-func reindex(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); id, err := parsePathInt64(c, "id"); if err != nil { gh.WriteError(c, err); return }; _, err = sc.KnowPostRpc.Reindex(c.Request.Context(), &knowpostclient.ReindexReq{Id: id, CreatorId: uid}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
+func createDraft(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		resp, err := sc.KnowPostRpc.CreateDraft(c.Request.Context(), &knowpostclient.CreateDraftReq{CreatorId: uid})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"id": resp.Id})
+	}
+}
+func confirmContent(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		var req struct {
+			ObjectKey string `json:"objectKey"`
+			Etag      string `json:"etag"`
+			Size      int64  `json:"size"`
+			Sha256    string `json:"sha256"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		_, err = sc.KnowPostRpc.ConfirmContent(c.Request.Context(), &knowpostclient.ConfirmContentReq{Id: id, CreatorId: uid, ObjectKey: req.ObjectKey, Etag: req.Etag, Size: req.Size, Sha256: req.Sha256})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func patchMetadata(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		var req struct {
+			Title       *string  `json:"title"`
+			Description *string  `json:"description"`
+			TagId       *int64   `json:"tagId"`
+			Tags        []string `json:"tags"`
+			TagsSet     bool     `json:"tagsSet"`
+			ImgUrls     []string `json:"imgUrls"`
+			ImgUrlsSet  bool     `json:"imgUrlsSet"`
+			Visible     *string  `json:"visible"`
+			IsTop       *bool    `json:"isTop"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		in := &knowpostclient.PatchMetadataReq{Id: id, CreatorId: uid}
+		if req.Title != nil {
+			in.Title, in.TitleSet = *req.Title, true
+		}
+		if req.Description != nil {
+			in.Description, in.DescriptionSet = *req.Description, true
+		}
+		if req.TagId != nil {
+			in.TagId, in.TagIdSet = *req.TagId, true
+		}
+		in.Tags, in.TagsSet = req.Tags, req.TagsSet
+		in.ImgUrls, in.ImgUrlsSet = req.ImgUrls, req.ImgUrlsSet
+		if req.Visible != nil {
+			in.Visible, in.VisibleSet = *req.Visible, true
+		}
+		if req.IsTop != nil {
+			in.IsTop, in.IsTopSet = *req.IsTop, true
+		}
+		resp, err := sc.KnowPostRpc.PatchMetadata(c.Request.Context(), in)
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toKnowPostDetail(resp))
+	}
+}
+func publish(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		resp, err := sc.KnowPostRpc.Publish(c.Request.Context(), &knowpostclient.PublishReq{Id: id, CreatorId: uid})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toKnowPostDetail(resp))
+	}
+}
+func updateTop(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		var req struct {
+			IsTop bool `json:"isTop"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		_, err = sc.KnowPostRpc.UpdateTop(c.Request.Context(), &knowpostclient.UpdateTopReq{Id: id, CreatorId: uid, IsTop: req.IsTop})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func updateVisibility(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		var req struct {
+			Visible string `json:"visible"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		_, err = sc.KnowPostRpc.UpdateVisibility(c.Request.Context(), &knowpostclient.UpdateVisibilityReq{Id: id, CreatorId: uid, Visible: req.Visible})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func deleteKnowpost(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		_, err = sc.KnowPostRpc.Delete(c.Request.Context(), &knowpostclient.DeleteReq{Id: id, CreatorId: uid})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func getPublicFeed(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		page := int32(queryInt(c, "page", 1))
+		size := int32(queryInt(c, "size", 20))
+		resp, err := sc.KnowPostRpc.GetPublicFeed(c.Request.Context(), &knowpostclient.GetPublicFeedReq{Page: page, Size: size})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toFeedPage(resp))
+	}
+}
+func getMyFeed(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		page := int32(queryInt(c, "page", 1))
+		size := int32(queryInt(c, "size", 20))
+		resp, err := sc.KnowPostRpc.GetMyFeed(c.Request.Context(), &knowpostclient.GetMyFeedReq{CreatorId: uid, Page: page, Size: size})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toFeedPage(resp))
+	}
+}
+func getFollowingFeed(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		cursor := c.Query("cursor")
+		if len(cursor) > maxFeedCursorLength {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, "cursor is too long"))
+			return
+		}
+		sizeValue, err := queryIntStrict(c, "size", 20)
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		if sizeValue < 1 || sizeValue > 100 {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, "size must be between 1 and 100"))
+			return
+		}
+		page := int32(0)
+		if cursor == "" {
+			pageValue, err := queryIntStrict(c, "page", 1)
+			if err != nil {
+				gh.WriteError(c, err)
+				return
+			}
+			if pageValue < 1 {
+				gh.WriteError(c, errorx.New(errorx.CodeBadRequest, "page must be >= 1"))
+				return
+			}
+			page = int32(pageValue)
+		}
+		size := int32(sizeValue)
+		resp, err := sc.KnowPostRpc.GetUserFeed(c.Request.Context(), &knowpostclient.GetUserFeedReq{
+			UserId: uid,
+			Page:   page,
+			Size:   size,
+			Cursor: cursor,
+		})
+		if err != nil {
+			if status.Code(err) == codes.InvalidArgument {
+				gh.WriteError(c, errorx.New(errorx.CodeBadRequest, status.Convert(err).Message()))
+				return
+			}
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toFeedPage(resp))
+	}
+}
+func getDetail(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		viewer, _ := ctxdata.GetUserId(c.Request.Context())
+		resp, err := sc.KnowPostRpc.GetDetail(c.Request.Context(), &knowpostclient.GetDetailReq{Id: id, ViewerId: viewer})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toKnowPostDetail(resp))
+	}
+}
+func reindex(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		id, err := parsePathInt64(c, "id")
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		_, err = sc.KnowPostRpc.Reindex(c.Request.Context(), &knowpostclient.ReindexReq{Id: id, CreatorId: uid})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
 
-func follow(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); var req struct{ ToUserId int64 `json:"toUserId"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; _, err := sc.RelationRpc.Follow(c.Request.Context(), &relationclient.FollowReq{FromUserId: uid, ToUserId: req.ToUserId}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func unfollow(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); var req struct{ ToUserId int64 `json:"toUserId"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; _, err := sc.RelationRpc.Unfollow(c.Request.Context(), &relationclient.UnfollowReq{FromUserId: uid, ToUserId: req.ToUserId}); if err != nil { gh.WriteError(c, err); return }; c.Status(http.StatusNoContent) } }
-func relationStatus(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { toUserId := int64(queryInt(c, "toUserId", 0)); fromUserId,_ := ctxdata.GetUserId(c.Request.Context()); resp, err := sc.RelationRpc.Status(c.Request.Context(), &relationclient.StatusReq{FromUserId: fromUserId, ToUserId: toUserId}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, gin.H{"following": resp.Following, "followedBy": resp.FollowedBy, "mutual": resp.Mutual}) } }
-func listFollowing(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { userId := int64(queryInt(c, "userId", 0)); if userId == 0 { userId,_ = ctxdata.GetUserId(c.Request.Context()) }; limit := int32(queryInt(c, "limit", 20)); offset := int32(queryInt(c, "offset", 0)); cursor := int64(queryInt(c, "cursor", 0)); resp, err := sc.RelationRpc.ListFollowing(c.Request.Context(), &relationclient.ListReq{UserId: userId, Limit: limit, Offset: offset, Cursor: cursor}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toRelationList(resp)) } }
-func listFollowers(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { userId := int64(queryInt(c, "userId", 0)); if userId == 0 { userId,_ = ctxdata.GetUserId(c.Request.Context()) }; limit := int32(queryInt(c, "limit", 20)); offset := int32(queryInt(c, "offset", 0)); cursor := int64(queryInt(c, "cursor", 0)); resp, err := sc.RelationRpc.ListFollowers(c.Request.Context(), &relationclient.ListReq{UserId: userId, Limit: limit, Offset: offset, Cursor: cursor}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, toRelationList(resp)) } }
-func relationCounter(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { userId := int64(queryInt(c, "userId", 0)); if userId == 0 { userId,_ = ctxdata.GetUserId(c.Request.Context()) }; resp, err := sc.UserCounterRpc.GetUserSnapshot(c.Request.Context(), &usercounterclient.GetUserSnapshotReq{UserId: userId}); if err != nil { gh.WriteError(c, err); return }; snap := resp.GetSnapshot(); c.JSON(http.StatusOK, gin.H{"followings": snap.GetFollowings(), "followers": snap.GetFollowers(), "posts": snap.GetPosts(), "likedPosts": int64(0), "favedPosts": int64(0), "likesReceived": snap.GetLikesReceived()}) } }
+func follow(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		var req struct {
+			ToUserId int64 `json:"toUserId"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		_, err := sc.RelationRpc.Follow(c.Request.Context(), &relationclient.FollowReq{FromUserId: uid, ToUserId: req.ToUserId})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func unfollow(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		var req struct {
+			ToUserId int64 `json:"toUserId"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		_, err := sc.RelationRpc.Unfollow(c.Request.Context(), &relationclient.UnfollowReq{FromUserId: uid, ToUserId: req.ToUserId})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	}
+}
+func relationStatus(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		toUserId := int64(queryInt(c, "toUserId", 0))
+		fromUserId, _ := ctxdata.GetUserId(c.Request.Context())
+		resp, err := sc.RelationRpc.Status(c.Request.Context(), &relationclient.StatusReq{FromUserId: fromUserId, ToUserId: toUserId})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"following": resp.Following, "followedBy": resp.FollowedBy, "mutual": resp.Mutual})
+	}
+}
+func listFollowing(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userId := int64(queryInt(c, "userId", 0))
+		if userId == 0 {
+			userId, _ = ctxdata.GetUserId(c.Request.Context())
+		}
+		limit := int32(queryInt(c, "limit", 20))
+		offset := int32(queryInt(c, "offset", 0))
+		cursor := int64(queryInt(c, "cursor", 0))
+		resp, err := sc.RelationRpc.ListFollowing(c.Request.Context(), &relationclient.ListReq{UserId: userId, Limit: limit, Offset: offset, Cursor: cursor})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toRelationList(resp))
+	}
+}
+func listFollowers(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userId := int64(queryInt(c, "userId", 0))
+		if userId == 0 {
+			userId, _ = ctxdata.GetUserId(c.Request.Context())
+		}
+		limit := int32(queryInt(c, "limit", 20))
+		offset := int32(queryInt(c, "offset", 0))
+		cursor := int64(queryInt(c, "cursor", 0))
+		resp, err := sc.RelationRpc.ListFollowers(c.Request.Context(), &relationclient.ListReq{UserId: userId, Limit: limit, Offset: offset, Cursor: cursor})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, toRelationList(resp))
+	}
+}
+func relationCounter(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userId := int64(queryInt(c, "userId", 0))
+		if userId == 0 {
+			userId, _ = ctxdata.GetUserId(c.Request.Context())
+		}
+		resp, err := sc.UserCounterRpc.GetUserSnapshot(c.Request.Context(), &usercounterclient.GetUserSnapshotReq{UserId: userId})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		snap := resp.GetSnapshot()
+		c.JSON(http.StatusOK, gin.H{"followings": snap.GetFollowings(), "followers": snap.GetFollowers(), "posts": snap.GetPosts(), "likedPosts": int64(0), "favedPosts": int64(0), "likesReceived": snap.GetLikesReceived()})
+	}
+}
 
-func toggleMetric(sc *srv.ServiceContext, metric string, add bool) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); var req struct{ EntityType string `json:"entityType"`; EntityId string `json:"entityId"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; resp, err := sc.CounterRpc.Toggle(c.Request.Context(), &counterclient.ToggleReq{EntityType: req.EntityType, EntityId: req.EntityId, Metric: metric, UserId: uid, Add: add}); if err != nil { gh.WriteError(c, err); return }; key := map[string]string{"like":"liked","fav":"faved"}[metric]; c.JSON(http.StatusOK, gin.H{"changed": resp.Changed, key: add}) } }
-func getCounts(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { etype := c.Param("etype"); eid := c.Param("eid"); resp, err := sc.CounterRpc.GetCounts(c.Request.Context(), &counterclient.GetCountsReq{EntityType: etype, EntityId: eid}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, gin.H{"entityType": etype, "entityId": eid, "counts": resp.Counts}) } }
+func toggleMetric(sc *srv.ServiceContext, metric string, add bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		var req struct {
+			EntityType string `json:"entityType"`
+			EntityId   string `json:"entityId"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		resp, err := sc.CounterRpc.Toggle(c.Request.Context(), &counterclient.ToggleReq{EntityType: req.EntityType, EntityId: req.EntityId, Metric: metric, UserId: uid, Add: add})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		key := map[string]string{"like": "liked", "fav": "faved"}[metric]
+		c.JSON(http.StatusOK, gin.H{"changed": resp.Changed, key: add})
+	}
+}
+func getCounts(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		etype := c.Param("etype")
+		eid := c.Param("eid")
+		resp, err := sc.CounterRpc.GetCounts(c.Request.Context(), &counterclient.GetCountsReq{EntityType: etype, EntityId: eid})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"entityType": etype, "entityId": eid, "counts": resp.Counts})
+	}
+}
 
-func searchPosts(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { viewer,_ := ctxdata.GetUserId(c.Request.Context()); size := int32(queryInt(c, "size", 20)); resp, err := sc.SearchRpc.Search(c.Request.Context(), &searchclient.SearchReq{Q: c.Query("q"), Size: size, Tags: c.Query("tags"), After: c.Query("after"), ViewerId: viewer}); if err != nil { gh.WriteError(c, err); return }; items := make([]gin.H, 0, len(resp.Items)); for _, item := range resp.Items { items = append(items, gin.H{"contentId": item.Id, "contentType": "knowpost", "title": item.Title, "description": item.Description, "snippet": item.Description, "tags": item.Tags, "authorId": item.AuthorId, "authorNickname": item.AuthorNickname, "authorAvatar": item.AuthorAvatar, "likeCount": item.LikeCount, "favoriteCount": item.FavoriteCount, "viewCount": 0, "imgUrls": []string{item.CoverImage}, "isTop": item.IsTop}) }; c.JSON(http.StatusOK, gin.H{"items": items, "nextAfter": resp.NextAfter, "hasMore": resp.HasMore}) } }
-func suggestSearch(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { size := int32(queryInt(c, "size", 10)); resp, err := sc.SearchRpc.Suggest(c.Request.Context(), &searchclient.SuggestReq{Prefix: c.Query("prefix"), Size: size}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, gin.H{"items": resp.Items}) } }
+func searchPosts(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		viewer, _ := ctxdata.GetUserId(c.Request.Context())
+		size := int32(queryInt(c, "size", 20))
+		resp, err := sc.SearchRpc.Search(c.Request.Context(), &searchclient.SearchReq{Q: c.Query("q"), Size: size, Tags: c.Query("tags"), After: c.Query("after"), ViewerId: viewer})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		items := make([]gin.H, 0, len(resp.Items))
+		for _, item := range resp.Items {
+			items = append(items, gin.H{"contentId": item.Id, "contentType": "knowpost", "title": item.Title, "description": item.Description, "snippet": item.Description, "tags": item.Tags, "authorId": item.AuthorId, "authorNickname": item.AuthorNickname, "authorAvatar": item.AuthorAvatar, "likeCount": item.LikeCount, "favoriteCount": item.FavoriteCount, "viewCount": 0, "imgUrls": []string{item.CoverImage}, "isTop": item.IsTop})
+		}
+		c.JSON(http.StatusOK, gin.H{"items": items, "nextAfter": resp.NextAfter, "hasMore": resp.HasMore})
+	}
+}
+func suggestSearch(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		size := int32(queryInt(c, "size", 10))
+		resp, err := sc.SearchRpc.Suggest(c.Request.Context(), &searchclient.SuggestReq{Prefix: c.Query("prefix"), Size: size})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"items": resp.Items})
+	}
+}
 
-func llmDescribe(sc *srv.ServiceContext) gin.HandlerFunc { return func(c *gin.Context) { uid,_ := ctxdata.GetUserId(c.Request.Context()); var req struct{ Body string `json:"body"`; Content string `json:"content"` }; if err := c.ShouldBindJSON(&req); err != nil { gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error())); return }; resp, err := sc.LlmRpc.Describe(c.Request.Context(), &llmclient.DescribeReq{UserId: uid, Body: req.Body, Content: req.Content}); if err != nil { gh.WriteError(c, err); return }; c.JSON(http.StatusOK, gin.H{"description": resp.Description}) } }
+func llmDescribe(sc *srv.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uid, _ := ctxdata.GetUserId(c.Request.Context())
+		var req struct {
+			Body    string `json:"body"`
+			Content string `json:"content"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			gh.WriteError(c, errorx.New(errorx.CodeBadRequest, err.Error()))
+			return
+		}
+		resp, err := sc.LlmRpc.Describe(c.Request.Context(), &llmclient.DescribeReq{UserId: uid, Body: req.Body, Content: req.Content})
+		if err != nil {
+			gh.WriteError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"description": resp.Description})
+	}
+}
 func suggestDescription(sc *srv.ServiceContext) gin.HandlerFunc { return llmDescribe(sc) }
 
 func llmQaStream(sc *srv.ServiceContext) gin.HandlerFunc {
@@ -525,12 +957,14 @@ func toAuthResp(resp *authclient.AuthResp) gin.H {
 	u := resp.User
 	t := resp.Token
 	return gin.H{
-		"user": gin.H{"id": u.Id, "nickname": u.Nickname, "avatar": u.Avatar, "phone": u.Phone, "zgId": u.ZgId, "birthday": u.Birthday, "school": u.School, "bio": u.Bio, "gender": u.Gender, "tagsJson": u.TagsJson},
+		"user":  gin.H{"id": u.Id, "nickname": u.Nickname, "avatar": u.Avatar, "phone": u.Phone, "zgId": u.ZgId, "birthday": u.Birthday, "school": u.School, "bio": u.Bio, "gender": u.Gender, "tagsJson": u.TagsJson},
 		"token": gin.H{"accessToken": t.AccessToken, "accessExpiresAt": t.AccessExpiresAt, "accessTokenExpiresAt": t.AccessExpiresAt, "refreshToken": t.RefreshToken, "refreshExpiresAt": t.RefreshExpiresAt, "refreshTokenExpiresAt": t.RefreshExpiresAt, "refreshTokenId": t.RefreshTokenId},
 	}
 }
 
-func toProfileResp(u *userpb.UserInfo) gin.H { return gin.H{"id": u.Id, "nickname": u.Nickname, "avatar": u.Avatar, "bio": u.Bio, "zgId": u.ZgId, "gender": u.Gender, "birthday": u.Birthday, "school": u.School, "phone": u.Phone, "email": u.Email, "tagsJson": u.TagsJson, "tagJson": u.TagsJson} }
+func toProfileResp(u *userpb.UserInfo) gin.H {
+	return gin.H{"id": u.Id, "nickname": u.Nickname, "avatar": u.Avatar, "bio": u.Bio, "zgId": u.ZgId, "gender": u.Gender, "birthday": u.Birthday, "school": u.School, "phone": u.Phone, "email": u.Email, "tagsJson": u.TagsJson, "tagJson": u.TagsJson}
+}
 
 func toKnowPostDetail(resp *knowpostclient.KnowPostDetail) gin.H {
 	return gin.H{
@@ -550,7 +984,10 @@ func toFeedPage(resp *knowpostclient.FeedPage) gin.H {
 			"isTop": item.IsTop, "publishTime": item.PublishTime,
 		})
 	}
-	return gin.H{"items": items, "hasMore": resp.HasMore, "size": resp.Size, "page": resp.Page}
+	return gin.H{
+		"items": items, "hasMore": resp.HasMore, "size": resp.Size, "page": resp.Page,
+		"nextCursor": resp.NextCursor,
+	}
 }
 
 func toRelationList(resp *relationclient.ListResp) gin.H {
@@ -576,6 +1013,18 @@ func queryInt(c *gin.Context, key string, def int) int {
 		}
 	}
 	return def
+}
+
+func queryIntStrict(c *gin.Context, key string, def int) (int, error) {
+	s := c.Query(key)
+	if s == "" {
+		return def, nil
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, errorx.New(errorx.CodeBadRequest, "invalid "+key)
+	}
+	return n, nil
 }
 
 var _ = context.Background

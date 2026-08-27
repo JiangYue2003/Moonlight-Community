@@ -1,5 +1,9 @@
 DisableAPI: true
 
+DebugHTTP:
+  Enabled: true
+  ListenOn: 0.0.0.0:6064
+
 Api:
   Name: knowpost-api
   Host: 0.0.0.0
@@ -71,23 +75,56 @@ Rpc:
     - kafka:29092
     CounterEventsTopic: counter-events
     GroupId: knowpost-cache-invalidation
+    CanalOutboxTopic: canal-outbox
+    RelationEpochGroupId: knowpost-feed-relation-epoch
+    SafetyEpochGroupId: knowpost-feed-content-safety-epoch
 
   Feed:
+    Strategy: ${FEED_STRATEGY}
     AuthorTier:
-      Mode: "off"
+      Mode: "${FEED_AUTHOR_TIER_MODE}"
+    Observability:
+      Enabled: ${FEED_OBSERVABILITY}
+    Epoch:
+      KeyPrefix: feed
+      RelationL1TTL: 1s
+      SafetyL1TTL: 1s
+      RelationConsumerEnabled: ${FEED_RELATION_EPOCH_ENABLED}
+      SafetyConsumerEnabled: ${FEED_CONTENT_SAFETY_EPOCH_ENABLED}
+    RouteSnapshot:
+      Enabled: ${FEED_ROUTE_SNAPSHOT_ENABLED}
+      TTL: 5s
+    CombinedPipeline:
+      Enabled: ${FEED_COMBINED_PIPELINE_ENABLED}
+      BatchSize: 128
+    CursorPagination:
+      Enabled: ${FEED_CURSOR_PAGINATION_ENABLED}
+    PageCache:
+      Mode: "${FEED_PAGE_CACHE_MODE}"
+      KeyPrefix: feed
+      Page: 1
+      Size: 20
+      L1FreshTTL: 800ms
+      L2FreshTTL: 4s
+      StaleTTL: 10s
+      JitterPercent: 20
+      RefreshWorkers: 32
+      RefreshQueue: 1024
+      LoaderTimeout: 2s
 
   UserCounterRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: counter.rpc
+    Endpoints:
+    - counter:9003
     NonBlock: true
 
   CounterRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: counter.rpc
+    Endpoints:
+    - counter:9003
+    NonBlock: true
+
+  RelationRpc:
+    Endpoints:
+    - relation:9006
     NonBlock: true
 
   L1:
@@ -99,6 +136,12 @@ Rpc:
     FeedItemMaxCostMB: 50
     FeedMineNumCounters: 10000
     FeedMineMaxCostMB: 50
+    FeedEpochNumCounters: 200000
+    FeedEpochMaxCostMB: 4
+    FeedRouteNumCounters: 100000
+    FeedRouteMaxCostMB: 32
+    FeedPageNumCounters: 100000
+    FeedPageMaxCostMB: 128
   HotKey:
     WindowSeconds: 60
     SegmentSeconds: 10

@@ -1,5 +1,9 @@
 DisableAPI: true
 
+DebugHTTP:
+  Enabled: true
+  ListenOn: 0.0.0.0:6066
+
 Api:
   Name: relation-api
   Host: 0.0.0.0
@@ -63,10 +67,8 @@ Rpc:
     Key: relation-rpc
 
   UserRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: user.rpc
+    Endpoints:
+    - user-storage:9002
     NonBlock: true
 
   RateLimit:
@@ -108,10 +110,8 @@ Syncer:
     AutoOffsetReset: latest
 
   UserCounterRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: counter.rpc
+    Endpoints:
+    - counter:9003
 
   Dedup:
     TtlSeconds: 86400

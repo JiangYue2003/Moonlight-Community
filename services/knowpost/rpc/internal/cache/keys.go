@@ -62,6 +62,14 @@ func FeedItemKey(id int64) string {
 	return fmt.Sprintf("feed:item:%d", id)
 }
 
+// PersonalFeedItemKey isolates personal Feed hydration by the global content
+// safety generation. A failed deletion of an older FeedItem key therefore
+// cannot repopulate a page after a delete or visibility mutation advances the
+// generation.
+func PersonalFeedItemKey(id int64, safetyEpoch uint64) string {
+	return fmt.Sprintf("feed:item:personal:s%d:%d", safetyEpoch, id)
+}
+
 // FeedReverseIndexKey 反向索引：feed:public:index:{eid}:{hourSlot} → set of pageKey
 func FeedReverseIndexKey(eid int64, hourSlot int64) string {
 	return fmt.Sprintf("feed:public:index:%d:%d", eid, hourSlot)

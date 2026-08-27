@@ -1,5 +1,9 @@
 DisableAPI: true
 
+DebugHTTP:
+  Enabled: true
+  ListenOn: 127.0.0.1:6064
+
 Api:
   Name: knowpost-api
   Host: 0.0.0.0
@@ -71,10 +75,42 @@ Rpc:
     - 127.0.0.1:9092
     CounterEventsTopic: counter-events
     GroupId: knowpost-cache-invalidation
+    CanalOutboxTopic: canal-outbox
+    RelationEpochGroupId: knowpost-feed-relation-epoch
+    SafetyEpochGroupId: knowpost-feed-content-safety-epoch
 
   Feed:
+    Strategy: ${FEED_STRATEGY}
     AuthorTier:
       Mode: "off"
+    Observability:
+      Enabled: false
+    Epoch:
+      KeyPrefix: feed
+      RelationL1TTL: 1s
+      SafetyL1TTL: 1s
+      RelationConsumerEnabled: false
+      SafetyConsumerEnabled: false
+    RouteSnapshot:
+      Enabled: false
+      TTL: 5s
+    CombinedPipeline:
+      Enabled: false
+      BatchSize: 128
+    CursorPagination:
+      Enabled: false
+    PageCache:
+      Mode: "off"
+      KeyPrefix: feed
+      Page: 1
+      Size: 20
+      L1FreshTTL: 800ms
+      L2FreshTTL: 4s
+      StaleTTL: 10s
+      JitterPercent: 20
+      RefreshWorkers: 32
+      RefreshQueue: 1024
+      LoaderTimeout: 2s
 
   UserCounterRpc:
     Etcd:
@@ -106,6 +142,12 @@ Rpc:
     FeedItemMaxCostMB: 50
     FeedMineNumCounters: 10000
     FeedMineMaxCostMB: 50
+    FeedEpochNumCounters: 200000
+    FeedEpochMaxCostMB: 4
+    FeedRouteNumCounters: 100000
+    FeedRouteMaxCostMB: 32
+    FeedPageNumCounters: 100000
+    FeedPageMaxCostMB: 128
   HotKey:
     WindowSeconds: 60
     SegmentSeconds: 10

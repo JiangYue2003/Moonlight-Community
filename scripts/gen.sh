@@ -29,6 +29,11 @@ goctl rpc protoc proto/counter/counter.proto \
   --zrpc_out=services/counter/rpc \
   -m
 
+echo "== generate knowpost protobuf =="
+protoc --go_out=services/knowpost/rpc \
+  --go-grpc_out=services/knowpost/rpc \
+  proto/knowpost/knowpost.proto
+
 echo "== generate auth-api =="
 goctl api go -api services/auth/api/auth.api -dir services/auth/api
 

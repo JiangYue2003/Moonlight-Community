@@ -33,9 +33,14 @@ func (l *UpdateVisibilityLogic) UpdateVisibility(in *knowpost.UpdateVisibilityRe
 		return nil, err
 	}
 	row.Visible = in.Visible
-	if err := updateAndEmitOutbox(l.ctx, l.svcCtx, row); err != nil {
-		return nil, err
+	committed, updateErr := updateAndEmitOutbox(l.ctx, l.svcCtx, row)
+	if !committed {
+		return nil, updateErr
 	}
 	invalidateKnowPostCaches(l.ctx, l.svcCtx, int64(row.Id), in.CreatorId)
+	bumpFeedPageSafety(l.ctx, l.svcCtx)
+	if updateErr != nil {
+		return nil, updateErr
+	}
 	return &knowpost.Empty{}, nil
 }

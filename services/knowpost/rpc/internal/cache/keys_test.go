@@ -22,6 +22,9 @@ func TestKeysHaveExpectedShape(t *testing.T) {
 	if got := FeedItemKey(99); got != "feed:item:99" {
 		t.Fatalf("FeedItemKey: %q", got)
 	}
+	if got := PersonalFeedItemKey(99, 7); got != "feed:item:personal:s7:99" {
+		t.Fatalf("PersonalFeedItemKey: %q", got)
+	}
 	if got := FeedReverseIndexKey(99, 12345); got != "feed:public:index:99:12345" {
 		t.Fatalf("FeedReverseIndexKey: %q", got)
 	}

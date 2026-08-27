@@ -10,6 +10,7 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 
+	"github.com/zhiguang/zhiguang-go/pkg/debughttp"
 	"github.com/zhiguang/zhiguang-go/services/relation/cmd/relation/internal/app"
 	"github.com/zhiguang/zhiguang-go/services/relation/cmd/relation/internal/config"
 )
@@ -28,6 +29,7 @@ func main() {
 	components := []app.Component{
 		app.NewRPCComponent(c.Rpc),
 		app.NewSyncerComponent(c.Syncer),
+		debughttp.New(c.DebugHTTP),
 	}
 	if !c.DisableAPI {
 		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)

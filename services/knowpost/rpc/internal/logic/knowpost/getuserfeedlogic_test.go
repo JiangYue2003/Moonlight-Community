@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -14,6 +15,8 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	cachekeys "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/cache"
+	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/cache/userfeed"
+	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/config"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/feed"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"
@@ -295,5 +298,427 @@ func TestGetUserFeedRejectsRevokedFollowerContentFromCacheAndDB(t *testing.T) {
 func TestPersonalFeedWindowRejectsUnboundedPage(t *testing.T) {
 	if _, _, _, ok := personalFeedWindow(math.MaxInt32, 50); ok {
 		t.Fatal("unbounded page should be rejected before allocating candidate maps")
+	}
+}
+
+type recordingPageCache struct {
+	calls        int
+	request      userfeed.Request
+	page         *knowpost.FeedPage
+	source       userfeed.Source
+	err          error
+	invokeLoader bool
+	loaderCtx    context.Context
+	beforeReturn func()
+}
+
+func (c *recordingPageCache) GetOrLoad(
+	_ context.Context,
+	req userfeed.Request,
+	loader userfeed.Loader,
+) (*knowpost.FeedPage, userfeed.Source, error) {
+	c.calls++
+	c.request = req
+	if c.invokeLoader {
+		page, err := loader(c.loaderCtx)
+		return page, userfeed.SourceLoad, err
+	}
+	if c.beforeReturn != nil {
+		c.beforeReturn()
+	}
+	return c.page, c.source, c.err
+}
+
+func (*recordingPageCache) Close() error { return nil }
+
+type stubFeedEpochs struct {
+	relation      uint64
+	safety        uint64
+	relationErr   error
+	safetyErr     error
+	flushErr      error
+	pending       bool
+	relationCalls int
+	safetyCalls   int
+	flushCalls    int
+}
+
+func (s *stubFeedEpochs) Relation(context.Context, int64) (uint64, error) {
+	s.relationCalls++
+	return s.relation, s.relationErr
+}
+
+func (s *stubFeedEpochs) BumpRelation(context.Context, int64) (uint64, error) {
+	s.relation++
+	return s.relation, nil
+}
+
+func (s *stubFeedEpochs) Safety(context.Context) (uint64, error) {
+	s.safetyCalls++
+	return s.safety, s.safetyErr
+}
+
+func (s *stubFeedEpochs) BumpSafety(context.Context) (uint64, error) {
+	s.safety++
+	return s.safety, nil
+}
+func (s *stubFeedEpochs) MarkSafetyPending()  { s.pending = true }
+func (s *stubFeedEpochs) SafetyPending() bool { return s.pending }
+func (s *stubFeedEpochs) FlushPendingSafety(context.Context) error {
+	s.flushCalls++
+	if s.flushErr != nil {
+		return s.flushErr
+	}
+	if s.pending {
+		s.safety++
+	}
+	s.pending = false
+	return nil
+}
+
+func TestGetUserFeedPageCacheHitUsesEpochKeyWithoutColdCompute(t *testing.T) {
+	observer := &logicRecordingObserver{}
+	pageCache := &recordingPageCache{
+		page:   &knowpost.FeedPage{Page: 1, Size: 20, Items: []*knowpost.FeedItem{{Id: "cached"}}},
+		source: userfeed.SourceL1Fresh,
+	}
+	epochs := &stubFeedEpochs{relation: 7, safety: 9}
+	serviceCtx := &svc.ServiceContext{
+		Config: config.Config{Feed: config.FeedConf{
+			Strategy:  "hybrid",
+			PageCache: config.FeedPageCacheConf{Mode: "l1-l2"},
+		}},
+		FeedEpochs:    epochs,
+		FeedPageCache: pageCache,
+		FeedObserver:  observer,
+	}
+
+	got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+		UserId: 42,
+		Page:   1,
+		Size:   20,
+	})
+	requireNoError(t, err)
+	if len(got.Items) != 1 || got.Items[0].Id != "cached" {
+		t.Fatalf("unexpected cached response: %+v", got)
+	}
+	if pageCache.calls != 1 {
+		t.Fatalf("page cache calls = %d, want 1", pageCache.calls)
+	}
+	wantReq := userfeed.Request{
+		UserID:          42,
+		StrategyVersion: userfeed.StrategyHybridV1,
+		RelationEpoch:   7,
+		SafetyEpoch:     9,
+		Page:            1,
+		Size:            20,
+	}
+	if pageCache.request != wantReq {
+		t.Fatalf("page cache request = %+v, want %+v", pageCache.request, wantReq)
+	}
+	if epochs.relationCalls != 2 || epochs.safetyCalls != 2 {
+		t.Fatalf("epoch calls relation=%d safety=%d, want 2 each for pre/post lookup validation", epochs.relationCalls, epochs.safetyCalls)
+	}
+	if !logicHasPageCache(observer.calls, feed.PageCacheL1Fresh, feed.OutcomeSuccess) {
+		t.Fatalf("missing page cache hit metric: %+v", observer.calls)
+	}
+}
+
+func TestGetUserFeedDiscardsCachedPageWhenEpochStateChangesDuringLookup(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		source userfeed.Source
+		change func(*stubFeedEpochs)
+	}{
+		{name: "safety pending fresh", source: userfeed.SourceL1Fresh, change: func(epochs *stubFeedEpochs) { epochs.MarkSafetyPending() }},
+		{name: "safety pending stale", source: userfeed.SourceL2Stale, change: func(epochs *stubFeedEpochs) { epochs.MarkSafetyPending() }},
+		{name: "relation bump", source: userfeed.SourceL1Fresh, change: func(epochs *stubFeedEpochs) { _, _ = epochs.BumpRelation(context.Background(), 42) }},
+		{name: "safety bump", source: userfeed.SourceL1Fresh, change: func(epochs *stubFeedEpochs) { _, _ = epochs.BumpSafety(context.Background()) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			epochs := &stubFeedEpochs{relation: 7, safety: 9}
+			observer := &logicRecordingObserver{}
+			pageCache := &recordingPageCache{
+				page:   &knowpost.FeedPage{Page: 1, Size: 20, Items: []*knowpost.FeedItem{{Id: "stale-sentinel"}}},
+				source: tc.source,
+			}
+			pageCache.beforeReturn = func() { tc.change(epochs) }
+			serviceCtx := emptyFeedServiceContext(t)
+			serviceCtx.Config.Feed.Strategy = "hybrid"
+			serviceCtx.Config.Feed.PageCache = config.FeedPageCacheConf{Mode: "l1-l2"}
+			serviceCtx.FeedEpochs = epochs
+			serviceCtx.FeedPageCache = pageCache
+			serviceCtx.FeedObserver = observer
+
+			got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+				UserId: 42, Page: 1, Size: 20,
+			})
+			requireNoError(t, err)
+			if got == nil || len(got.Items) != 0 {
+				t.Fatalf("stale cached page was returned after %s: %+v", tc.name, got)
+			}
+			if pageCache.calls != 1 {
+				t.Fatalf("page cache calls = %d, want 1", pageCache.calls)
+			}
+			if !logicHasPageCache(observer.calls, feed.PageCacheBypass, feed.OutcomeSuccess) {
+				t.Fatalf("missing post-lookup bypass metric: %+v", observer.calls)
+			}
+			if logicHasPageCache(observer.calls, pageCacheMetricSource(tc.source), feed.OutcomeSuccess) {
+				t.Fatalf("discarded hit was recorded as served: %+v", observer.calls)
+			}
+		})
+	}
+}
+
+func TestGetUserFeedBypassesPageCacheWhenEpochCannotBeTrusted(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		epochs            *stubFeedEpochs
+		wantRelationCalls int
+		wantSafetyCalls   int
+		wantFlushCalls    int
+	}{
+		{name: "safety pending", epochs: &stubFeedEpochs{pending: true, flushErr: errors.New("safety flush")}, wantRelationCalls: 0, wantSafetyCalls: 0, wantFlushCalls: 1},
+		{name: "relation error", epochs: &stubFeedEpochs{relationErr: errors.New("relation epoch")}, wantRelationCalls: 1, wantSafetyCalls: 0},
+		{name: "safety error", epochs: &stubFeedEpochs{relation: 1, safetyErr: errors.New("safety epoch")}, wantRelationCalls: 1, wantSafetyCalls: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			pageCache := &recordingPageCache{page: &knowpost.FeedPage{Page: 1, Size: 20}}
+			serviceCtx := emptyFeedServiceContext(t)
+			serviceCtx.Config.Feed.Strategy = "hybrid"
+			serviceCtx.Config.Feed.PageCache = config.FeedPageCacheConf{Mode: "l2"}
+			serviceCtx.FeedEpochs = tc.epochs
+			serviceCtx.FeedPageCache = pageCache
+
+			got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+				UserId: 42,
+				Page:   1,
+				Size:   20,
+			})
+			requireNoError(t, err)
+			if got == nil || len(got.Items) != 0 {
+				t.Fatalf("cold fallback response = %+v", got)
+			}
+			if pageCache.calls != 0 {
+				t.Fatalf("untrusted epoch reached page cache: calls=%d", pageCache.calls)
+			}
+			if tc.epochs.relationCalls != tc.wantRelationCalls || tc.epochs.safetyCalls != tc.wantSafetyCalls {
+				t.Fatalf("epoch calls relation=%d safety=%d, want %d/%d",
+					tc.epochs.relationCalls, tc.epochs.safetyCalls, tc.wantRelationCalls, tc.wantSafetyCalls)
+			}
+			if tc.epochs.flushCalls != tc.wantFlushCalls {
+				t.Fatalf("flush calls=%d, want %d", tc.epochs.flushCalls, tc.wantFlushCalls)
+			}
+		})
+	}
+}
+
+func TestGetUserFeedFlushesPendingSafetyBeforeUsingPageCache(t *testing.T) {
+	epochs := &stubFeedEpochs{relation: 7, safety: 9, pending: true}
+	pageCache := &recordingPageCache{
+		page:   &knowpost.FeedPage{Page: 1, Size: 20, Items: []*knowpost.FeedItem{{Id: "fresh-after-flush"}}},
+		source: userfeed.SourceL2Fresh,
+	}
+	serviceCtx := emptyFeedServiceContext(t)
+	serviceCtx.Config.Feed.Strategy = "hybrid"
+	serviceCtx.Config.Feed.PageCache = config.FeedPageCacheConf{Mode: "l2"}
+	serviceCtx.FeedEpochs = epochs
+	serviceCtx.FeedPageCache = pageCache
+
+	got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+		UserId: 42,
+		Page:   1,
+		Size:   20,
+	})
+	requireNoError(t, err)
+	if len(got.Items) != 1 || got.Items[0].Id != "fresh-after-flush" {
+		t.Fatalf("unexpected response after safety flush: %+v", got)
+	}
+	if epochs.flushCalls != 1 || epochs.pending {
+		t.Fatalf("flush calls=%d pending=%t, want 1/false", epochs.flushCalls, epochs.pending)
+	}
+	if pageCache.calls != 1 || pageCache.request.SafetyEpoch != 10 {
+		t.Fatalf("page cache calls=%d safety epoch=%d, want 1/10", pageCache.calls, pageCache.request.SafetyEpoch)
+	}
+}
+
+func TestGetUserFeedSafetyEpochDoesNotReuseUnversionedFeedItem(t *testing.T) {
+	serviceCtx, epochs, pageCache := staleFeedItemSafetyFixture(t)
+
+	got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+		UserId: 42,
+		Page:   1,
+		Size:   20,
+	})
+	requireNoError(t, err)
+	if len(got.Items) != 0 {
+		t.Fatalf("old unversioned FeedItem leaked into new safety generation: %+v", got.Items)
+	}
+	if pageCache.calls != 1 || pageCache.request.SafetyEpoch != epochs.safety {
+		t.Fatalf("page cache calls=%d safety=%d, want 1/%d", pageCache.calls, pageCache.request.SafetyEpoch, epochs.safety)
+	}
+}
+
+func TestGetUserFeedSafetyPendingBypassDoesNotTrustFeedItemCache(t *testing.T) {
+	serviceCtx, epochs, pageCache := staleFeedItemSafetyFixture(t)
+	epochs.pending = true
+	epochs.flushErr = errors.New("redis unavailable")
+	oldItem, err := json.Marshal(&knowpost.FeedItem{Id: "1", CreatorId: 7, Visible: "public"})
+	requireNoError(t, err)
+	requireNoError(t, serviceCtx.Redis.Set(
+		context.Background(), cachekeys.PersonalFeedItemKey(1, epochs.safety), oldItem, time.Minute,
+	).Err())
+
+	got, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+		UserId: 42,
+		Page:   1,
+		Size:   20,
+	})
+	requireNoError(t, err)
+	if len(got.Items) != 0 {
+		t.Fatalf("old FeedItem leaked while safety state was pending: %+v", got.Items)
+	}
+	if epochs.flushCalls != 1 || pageCache.calls != 0 {
+		t.Fatalf("flush calls=%d page cache calls=%d, want 1/0", epochs.flushCalls, pageCache.calls)
+	}
+}
+
+func staleFeedItemSafetyFixture(t *testing.T) (*svc.ServiceContext, *stubFeedEpochs, *recordingPageCache) {
+	t.Helper()
+	redisServer := miniredis.RunT(t)
+	redisClient := redis.NewClient(&redis.Options{Addr: redisServer.Addr()})
+	t.Cleanup(func() { _ = redisClient.Close() })
+
+	ctx := context.Background()
+	const (
+		userID int64 = 42
+		postID int64 = 1
+	)
+	requireNoError(t, redisClient.ZAdd(ctx, fmt.Sprintf(feed.FEED_INBOX_KEY, userID), redis.Z{
+		Score:  1000,
+		Member: postID,
+	}).Err())
+	oldItem, err := json.Marshal(&knowpost.FeedItem{Id: "1", CreatorId: 7, Visible: "public"})
+	requireNoError(t, err)
+	requireNoError(t, redisClient.Set(ctx, cachekeys.FeedItemKey(postID), oldItem, time.Minute).Err())
+	requireNoError(t, redisClient.Set(ctx, cachekeys.PersonalFeedItemKey(postID, 8), oldItem, time.Minute).Err())
+
+	epochs := &stubFeedEpochs{relation: 7, safety: 9}
+	pageCache := &recordingPageCache{invokeLoader: true, loaderCtx: ctx}
+	serviceCtx := &svc.ServiceContext{
+		Config: config.Config{Feed: config.FeedConf{
+			Strategy:  "hybrid",
+			PageCache: config.FeedPageCacheConf{Mode: "l2"},
+		}},
+		Redis:          redisClient,
+		FeedPostLoader: &recordingFeedPostLoader{rows: map[uint64]*model.KnowPosts{}},
+		FeedReader: feed.NewFeedReader(
+			feed.NewRedisAdapter(redisClient),
+			oneFollowingRelation{},
+			zeroFollowerCounter{},
+			logx.WithContext(ctx),
+		),
+		FeedEpochs:    epochs,
+		FeedPageCache: pageCache,
+	}
+	return serviceCtx, epochs, pageCache
+}
+
+func TestGetUserFeedIneligibleRequestSkipsEpochAndPageCache(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		strategy string
+		page     int32
+		size     int32
+	}{
+		{name: "pull", strategy: "pull", page: 1, size: 20},
+		{name: "page two", strategy: "hybrid", page: 2, size: 20},
+		{name: "size ten", strategy: "hybrid", page: 1, size: 10},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			epochs := &stubFeedEpochs{}
+			pageCache := &recordingPageCache{}
+			serviceCtx := emptyFeedServiceContext(t)
+			serviceCtx.Config.Feed.Strategy = tc.strategy
+			serviceCtx.Config.Feed.PageCache = config.FeedPageCacheConf{Mode: "l1-l2"}
+			serviceCtx.FeedEpochs = epochs
+			serviceCtx.FeedPageCache = pageCache
+
+			_, err := NewGetUserFeedLogic(context.Background(), serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{
+				UserId: 42,
+				Page:   tc.page,
+				Size:   tc.size,
+			})
+			requireNoError(t, err)
+			if pageCache.calls != 0 || epochs.relationCalls != 0 || epochs.safetyCalls != 0 {
+				t.Fatalf("ineligible request touched cache: page=%d relation=%d safety=%d",
+					pageCache.calls, epochs.relationCalls, epochs.safetyCalls)
+			}
+		})
+	}
+}
+
+type contextKey string
+
+type contextRecordingFeedPostLoader struct {
+	row       *model.KnowPosts
+	seenValue any
+}
+
+func (l *contextRecordingFeedPostLoader) FindPublishedFeedByIDs(ctx context.Context, _ []uint64) ([]*model.KnowPosts, error) {
+	l.seenValue = ctx.Value(contextKey("page-cache-loader"))
+	return []*model.KnowPosts{l.row}, nil
+}
+
+func TestGetUserFeedColdLoaderUsesContextProvidedByPageCache(t *testing.T) {
+	redisServer := miniredis.RunT(t)
+	redisClient := redis.NewClient(&redis.Options{Addr: redisServer.Addr()})
+	t.Cleanup(func() { _ = redisClient.Close() })
+	ctx := context.Background()
+	requireNoError(t, redisClient.ZAdd(ctx, fmt.Sprintf(feed.FEED_INBOX_KEY, int64(42)), redis.Z{
+		Score: 1000, Member: 1,
+	}).Err())
+
+	loaderCtx := context.WithValue(context.Background(), contextKey("page-cache-loader"), "cache-context")
+	pageCache := &recordingPageCache{invokeLoader: true, loaderCtx: loaderCtx}
+	epochs := &stubFeedEpochs{relation: 7, safety: 9}
+	postLoader := &contextRecordingFeedPostLoader{row: &model.KnowPosts{
+		Id: 1, CreatorId: 7, Visible: "public", Status: "published",
+	}}
+	serviceCtx := &svc.ServiceContext{
+		Config: config.Config{Feed: config.FeedConf{
+			Strategy:  "hybrid",
+			PageCache: config.FeedPageCacheConf{Mode: "l1-l2"},
+		}},
+		Redis:          redisClient,
+		FeedPostLoader: postLoader,
+		FeedReader: feed.NewFeedReader(
+			feed.NewRedisAdapter(redisClient), oneFollowingRelation{}, zeroFollowerCounter{}, logx.WithContext(ctx),
+		),
+		FeedEpochs:    epochs,
+		FeedPageCache: pageCache,
+	}
+
+	got, err := NewGetUserFeedLogic(ctx, serviceCtx).GetUserFeed(&knowpost.GetUserFeedReq{UserId: 42, Page: 1, Size: 20})
+	requireNoError(t, err)
+	if len(got.Items) != 1 {
+		t.Fatalf("items = %d, want 1", len(got.Items))
+	}
+	if postLoader.seenValue != "cache-context" {
+		t.Fatalf("post loader context value = %v, want cache-context", postLoader.seenValue)
+	}
+}
+
+func emptyFeedServiceContext(t *testing.T) *svc.ServiceContext {
+	t.Helper()
+	redisServer := miniredis.RunT(t)
+	redisClient := redis.NewClient(&redis.Options{Addr: redisServer.Addr()})
+	t.Cleanup(func() { _ = redisClient.Close() })
+	ctx := context.Background()
+	return &svc.ServiceContext{
+		Redis: redisClient,
+		FeedReader: feed.NewFeedReader(
+			feed.NewRedisAdapter(redisClient), oneFollowingRelation{}, zeroFollowerCounter{}, logx.WithContext(ctx),
+		),
 	}
 }

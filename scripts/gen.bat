@@ -30,6 +30,12 @@ goctl rpc protoc proto/counter/counter.proto ^
   -m
 if errorlevel 1 goto :err
 
+echo == generate knowpost protobuf ==
+protoc --go_out=services/knowpost/rpc ^
+  --go-grpc_out=services/knowpost/rpc ^
+  proto/knowpost/knowpost.proto
+if errorlevel 1 goto :err
+
 echo == generate auth-api ==
 goctl api go -api services/auth/api/auth.api -dir services/auth/api
 if errorlevel 1 goto :err

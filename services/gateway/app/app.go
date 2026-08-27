@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zhiguang/zhiguang-go/services/gateway/internal/config"
 	"github.com/zhiguang/zhiguang-go/services/gateway/internal/handler"
 	"github.com/zhiguang/zhiguang-go/services/gateway/internal/srv"
 )
 
 func Run(ctx context.Context, c config.Config) error {
+	// Configure process-global logging before zrpc clients are constructed;
+	// otherwise their first log call wins logx's one-shot initialization.
+	logx.MustSetup(c.Log)
 	sc := srv.NewServiceContext(c)
 	engine := handler.NewEngine(sc)
 	server := &http.Server{

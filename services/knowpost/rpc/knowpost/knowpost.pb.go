@@ -333,6 +333,7 @@ type FeedPage struct {
 	HasMore       bool                   `protobuf:"varint,2,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	Size          int32                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	Page          int32                  `protobuf:"varint,4,opt,name=page,proto3" json:"page,omitempty"`
+	NextCursor    string                 `protobuf:"bytes,5,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -393,6 +394,13 @@ func (x *FeedPage) GetPage() int32 {
 		return x.Page
 	}
 	return 0
+}
+
+func (x *FeedPage) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
 }
 
 type Empty struct {
@@ -1161,6 +1169,7 @@ type GetUserFeedReq struct {
 	UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
 	Size          int32                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
+	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1214,6 +1223,13 @@ func (x *GetUserFeedReq) GetSize() int32 {
 		return x.Size
 	}
 	return 0
+}
+
+func (x *GetUserFeedReq) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
 }
 
 type ReindexReq struct {
@@ -1311,12 +1327,14 @@ const file_proto_knowpost_knowpost_proto_rawDesc = "" +
 	"\avisible\x18\b \x01(\tR\avisible\x12\x15\n" +
 	"\x06is_top\x18\t \x01(\bR\x05isTop\x12!\n" +
 	"\fpublish_time\x18\n" +
-	" \x01(\x03R\vpublishTime\"w\n" +
+	" \x01(\x03R\vpublishTime\"\x98\x01\n" +
 	"\bFeedPage\x12(\n" +
 	"\x05items\x18\x01 \x03(\v2\x12.knowpost.FeedItemR\x05items\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x05R\x04size\x12\x12\n" +
-	"\x04page\x18\x04 \x01(\x05R\x04page\"\a\n" +
+	"\x04page\x18\x04 \x01(\x05R\x04page\x12\x1f\n" +
+	"\vnext_cursor\x18\x05 \x01(\tR\n" +
+	"nextCursor\"\a\n" +
 	"\x05Empty\"/\n" +
 	"\x0eCreateDraftReq\x12\x1d\n" +
 	"\n" +
@@ -1384,11 +1402,12 @@ const file_proto_knowpost_knowpost_proto_rawDesc = "" +
 	"\n" +
 	"creator_id\x18\x01 \x01(\x03R\tcreatorId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
-	"\x04size\x18\x03 \x01(\x05R\x04size\"Q\n" +
+	"\x04size\x18\x03 \x01(\x05R\x04size\"i\n" +
 	"\x0eGetUserFeedReq\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x12\n" +
-	"\x04size\x18\x03 \x01(\x05R\x04size\";\n" +
+	"\x04size\x18\x03 \x01(\x05R\x04size\x12\x16\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\";\n" +
 	"\n" +
 	"ReindexReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +

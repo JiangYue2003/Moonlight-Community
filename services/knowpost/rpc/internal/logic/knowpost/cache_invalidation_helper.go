@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	cachekeys "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/cache"
 	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/svc"
 )
+
+const safetyBumpLogInterval = 10 * time.Second
+
+var safetyBumpLog atomic.Int64
 
 // invalidateKnowPostCaches 执行 knowpost 写路径的缓存失效。
 //
@@ -23,17 +29,56 @@ func invalidateKnowPostCaches(ctx context.Context, sc *svc.ServiceContext, postI
 		return
 	}
 
-	_ = sc.DetailCache.Invalidate(ctx, cachekeys.DetailKey(postID))
+	if sc.DetailCache != nil {
+		_ = sc.DetailCache.Invalidate(ctx, cachekeys.DetailKey(postID))
+	}
 
 	itemKey := cachekeys.FeedItemKey(postID)
-	_ = sc.L2.Del(ctx, itemKey)
-	sc.L1FeedItem.Del(itemKey)
+	if sc.L2 != nil {
+		_ = sc.L2.Del(ctx, itemKey)
+	}
+	if sc.L1FeedItem != nil {
+		sc.L1FeedItem.Del(itemKey)
+	}
 
 	invalidatePublicFeedPagesByPost(ctx, sc, postID)
 	invalidateMineFeedPagesByCreator(ctx, sc, creatorID)
 }
 
+// bumpFeedPageSafety invalidates every previously materialized personal Feed
+// page after a content mutation. The database write is already committed at
+// this point, so an epoch-store failure must degrade reads to cache bypass
+// instead of changing the mutation's business result.
+func bumpFeedPageSafety(ctx context.Context, sc *svc.ServiceContext) {
+	if sc == nil || sc.FeedEpochs == nil {
+		return
+	}
+	if _, err := sc.FeedEpochs.BumpSafety(ctx); err != nil {
+		if !sc.FeedEpochs.SafetyPending() {
+			sc.FeedEpochs.MarkSafetyPending()
+		}
+		logSafetyBumpFailure(ctx, err)
+	}
+}
+
+func logSafetyBumpFailure(ctx context.Context, err error) {
+	now := time.Now().UnixNano()
+	for {
+		last := safetyBumpLog.Load()
+		if last != 0 && time.Duration(now-last) < safetyBumpLogInterval {
+			return
+		}
+		if safetyBumpLog.CompareAndSwap(last, now) {
+			logx.WithContext(ctx).Errorf("Feed PageCache safety epoch bump failed; reads will bypass cache: %v", err)
+			return
+		}
+	}
+}
+
 func invalidatePublicFeedPagesByPost(ctx context.Context, sc *svc.ServiceContext, postID int64) {
+	if sc == nil || sc.Redis == nil {
+		return
+	}
 	curr := cachekeys.HourSlot(time.Now())
 	for _, hour := range []int64{curr, curr - 1} {
 		ridx := cachekeys.FeedReverseIndexKey(postID, hour)
@@ -48,7 +93,9 @@ func invalidatePublicFeedPagesByPost(ctx context.Context, sc *svc.ServiceContext
 			delKeys = append(delKeys, pageKey)
 			_ = sc.Redis.SRem(ctx, cachekeys.FeedAllPagesKey, pageKey).Err()
 			if size, page, ok := parseFeedPublicPageKey(pageKey); ok {
-				sc.L1FeedPublic.Del(cachekeys.FeedPublicL1Key(size, page))
+				if sc.L1FeedPublic != nil {
+					sc.L1FeedPublic.Del(cachekeys.FeedPublicL1Key(size, page))
+				}
 				for _, idsKey := range findFeedPublicIDsKeys(size, page, []int64{hour, hour - 1, hour + 1}) {
 					delKeys = append(delKeys, idsKey, cachekeys.FeedPublicHasMoreKey(idsKey))
 				}
@@ -60,7 +107,7 @@ func invalidatePublicFeedPagesByPost(ctx context.Context, sc *svc.ServiceContext
 }
 
 func invalidateMineFeedPagesByCreator(ctx context.Context, sc *svc.ServiceContext, creatorID int64) {
-	if creatorID <= 0 {
+	if sc == nil || sc.Redis == nil || sc.FeedMineCache == nil || creatorID <= 0 {
 		return
 	}
 	pattern := fmt.Sprintf("feed:mine:%d:*", creatorID)
