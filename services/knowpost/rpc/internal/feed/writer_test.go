@@ -2,6 +2,7 @@ package feed
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -192,4 +193,27 @@ func TestFeedWriter_Threshold(t *testing.T) {
 	err = writer.OnPostPublished(ctx, 2, 2, 1001)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(kafka.messages), "粉丝数=1001应该使用拉模式")
+}
+
+func TestFeedWriterHybridEnforceStopsBeforeDispatchWhenTierIsUnresolved(t *testing.T) {
+	redis := NewMockRedisClient()
+	kafka := NewMockKafkaProducer()
+	resolver := NewAuthorTierResolver(
+		&memoryTierStore{},
+		&scriptedTierCounter{err: errors.New("counter down")},
+		&scriptedActiveFollowerCounter{err: errors.New("mysql down")},
+		nil,
+	)
+	writer := NewFeedWriterWithOptions(redis, kafka, logx.WithContext(context.Background()), FeedWriterOptions{
+		Strategy:     StrategyHybrid,
+		TierMode:     AuthorTierModeEnforce,
+		TierResolver: resolver,
+	})
+
+	err := writer.OnPostPublished(context.Background(), 123, 456, 0)
+
+	require.Error(t, err)
+	require.True(t, IsTierResolutionError(err))
+	require.Empty(t, redis.zaddCalls)
+	require.Empty(t, kafka.messages)
 }

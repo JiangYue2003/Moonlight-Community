@@ -22,15 +22,23 @@ func (r *RedisAdapter) ZAdd(ctx context.Context, key string, members ...interfac
 	// 转换为 redis.Z 结构
 	zs := make([]redis.Z, 0, len(members)/2)
 	for i := 0; i < len(members); i += 2 {
+		if i+1 >= len(members) {
+			break // 不完整的对，跳过
+		}
 		score, ok1 := members[i].(float64)
 		member, ok2 := members[i+1].(int64)
 		if !ok1 || !ok2 {
+			// Debug: type mismatch detected
 			continue
 		}
 		zs = append(zs, redis.Z{
 			Score:  score,
 			Member: member,
 		})
+	}
+	if len(zs) == 0 {
+		// No valid members to add
+		return nil
 	}
 	return r.client.ZAdd(ctx, key, zs...).Err()
 }
@@ -57,7 +65,64 @@ func (r *RedisAdapter) ZRevRangeWithScores(ctx context.Context, key string, star
 	if err != nil {
 		return nil, err
 	}
+	return toZScores(zs), nil
+}
 
+func (r *RedisAdapter) ZRevRangeWithScoresBatch(ctx context.Context, requests []ZRevRangeRequest) []ZRevRangeResult {
+	results := make([]ZRevRangeResult, len(requests))
+	if len(requests) == 0 {
+		return results
+	}
+
+	pipe := r.client.Pipeline()
+	commands := make([]*redis.ZSliceCmd, len(requests))
+	for i, request := range requests {
+		commands[i] = pipe.ZRevRangeWithScores(ctx, request.Key, request.Start, request.Stop)
+	}
+	_, _ = pipe.Exec(ctx)
+
+	for i, command := range commands {
+		zs, err := command.Result()
+		results[i] = ZRevRangeResult{
+			Scores: toZScores(zs),
+			Err:    err,
+		}
+	}
+	return results
+}
+
+func (r *RedisAdapter) ZRevRangeByScoreWithScoresBatch(
+	ctx context.Context,
+	requests []ZRevRangeByScoreRequest,
+) []ZRevRangeResult {
+	results := make([]ZRevRangeResult, len(requests))
+	if len(requests) == 0 {
+		return results
+	}
+
+	pipe := r.client.Pipeline()
+	commands := make([]*redis.ZSliceCmd, len(requests))
+	for i, request := range requests {
+		commands[i] = pipe.ZRevRangeByScoreWithScores(ctx, request.Key, &redis.ZRangeBy{
+			Min:    request.Min,
+			Max:    request.Max,
+			Offset: request.Offset,
+			Count:  request.Count,
+		})
+	}
+	_, _ = pipe.Exec(ctx)
+
+	for i, command := range commands {
+		zs, err := command.Result()
+		results[i] = ZRevRangeResult{
+			Scores: toZScores(zs),
+			Err:    err,
+		}
+	}
+	return results
+}
+
+func toZScores(zs []redis.Z) []ZScore {
 	result := make([]ZScore, len(zs))
 	for i, z := range zs {
 		memberID, ok := z.Member.(string)
@@ -73,7 +138,7 @@ func (r *RedisAdapter) ZRevRangeWithScores(ctx context.Context, key string, star
 			Score:  z.Score,
 		}
 	}
-	return result, nil
+	return result
 }
 
 func (r *RedisAdapter) SCard(ctx context.Context, key string) (int64, error) {

@@ -18,9 +18,18 @@ type FeedEvent struct {
 
 // FeedWriter 负责发帖时的推送逻辑
 type FeedWriter struct {
-	redis  RedisClient
-	kafka  KafkaProducer
-	logger logx.Logger
+	redis        RedisClient
+	kafka        KafkaProducer
+	logger       logx.Logger
+	strategy     Strategy
+	tierMode     AuthorTierMode
+	tierResolver *AuthorTierResolver
+}
+
+type FeedWriterOptions struct {
+	Strategy     Strategy
+	TierMode     AuthorTierMode
+	TierResolver *AuthorTierResolver
 }
 
 // RedisClient Redis客户端接口（方便测试）
@@ -40,21 +49,68 @@ type ZScore struct {
 	Score  float64
 }
 
+// ZRevRangeRequest 描述一个可被 Pipeline 批量提交的 ZREVRANGE 请求。
+type ZRevRangeRequest struct {
+	Key         string
+	Start, Stop int64
+}
+
+// ZRevRangeByScoreRequest 描述一个可被 Pipeline 批量提交的 ZREVRANGEBYSCORE 请求。
+type ZRevRangeByScoreRequest struct {
+	Key           string
+	Min, Max      string
+	Offset, Count int64
+}
+
+// ZRevRangeResult 与 ZRevRangeRequest 按下标一一对应，允许单个范围独立失败。
+type ZRevRangeResult struct {
+	Scores []ZScore
+	Err    error
+}
+
 // KafkaProducer Kafka生产者接口
 type KafkaProducer interface {
 	SendMessage(ctx context.Context, topic string, key string, value []byte) error
 }
 
 func NewFeedWriter(redis RedisClient, kafka KafkaProducer, logger logx.Logger) *FeedWriter {
+	return NewFeedWriterWithStrategy(redis, kafka, logger, StrategyHybrid)
+}
+
+func NewFeedWriterWithStrategy(redis RedisClient, kafka KafkaProducer, logger logx.Logger, strategy Strategy) *FeedWriter {
+	return NewFeedWriterWithOptions(redis, kafka, logger, FeedWriterOptions{Strategy: strategy})
+}
+
+func NewFeedWriterWithOptions(
+	redis RedisClient,
+	kafka KafkaProducer,
+	logger logx.Logger,
+	options FeedWriterOptions,
+) *FeedWriter {
+	strategy := options.Strategy
+	if strategy == "" {
+		strategy = StrategyHybrid
+	}
+	tierMode := options.TierMode
+	if tierMode == "" {
+		tierMode = AuthorTierModeOff
+	}
 	return &FeedWriter{
-		redis:  redis,
-		kafka:  kafka,
-		logger: logger,
+		redis:        redis,
+		kafka:        kafka,
+		logger:       logger,
+		strategy:     strategy,
+		tierMode:     tierMode,
+		tierResolver: options.TierResolver,
 	}
 }
 
 // OnPostPublished 发帖时调用：根据粉丝数决定推模式或拉模式
 func (w *FeedWriter) OnPostPublished(ctx context.Context, postID, creatorID int64, followerCount int64) error {
+	usePush, err := w.resolvePushRoute(ctx, creatorID, followerCount)
+	if err != nil {
+		return err
+	}
 	now := time.Now().Unix()
 
 	// 1. 写入自己的收件箱（同步，保证自己能立刻看到）
@@ -63,8 +119,7 @@ func (w *FeedWriter) OnPostPublished(ctx context.Context, postID, creatorID int6
 		// 不返回错误，不影响发帖成功
 	}
 
-	// 2. 判断是否大V
-	if followerCount <= BIGV_THRESHOLD {
+	if usePush {
 		// 推模式：发送Kafka消息，由Worker异步推送给粉丝
 		w.logger.Infof("post %d: push mode (followers=%d)", postID, followerCount)
 		return w.sendFanoutEvent(ctx, postID, creatorID, now)
@@ -73,6 +128,65 @@ func (w *FeedWriter) OnPostPublished(ctx context.Context, postID, creatorID int6
 		w.logger.Infof("post %d: pull mode (followers=%d, bigv)", postID, followerCount)
 		return w.pushToBigVOutbox(ctx, creatorID, postID, now)
 	}
+}
+
+func (w *FeedWriter) resolvePushRoute(ctx context.Context, creatorID, legacyFollowerCount int64) (bool, error) {
+	switch w.strategy {
+	case StrategyPush:
+		return true, nil
+	case StrategyPull:
+		return false, nil
+	}
+
+	legacyPush := legacyFollowerCount <= BIGV_THRESHOLD
+	if w.tierMode == AuthorTierModeOff {
+		return legacyPush, nil
+	}
+	if w.tierResolver == nil {
+		if w.tierMode == AuthorTierModeShadow {
+			return legacyPush, nil
+		}
+		return false, newTierResolutionError("configuration", fmt.Errorf("author tier resolver is not configured"))
+	}
+
+	resolution, err := w.tierResolver.Resolve(ctx, creatorID)
+	if w.tierMode == AuthorTierModeShadow {
+		if err != nil {
+			RecordTierResolution(w.tierResolver.observer, TierEvidenceUnknown, OutcomeFromError(err), true, false)
+			w.logger.Errorf("author tier shadow resolution failed: %v", err)
+			return legacyPush, nil
+		}
+		resolvedPush := !resolution.BigV
+		RecordTierResolution(
+			w.tierResolver.observer,
+			resolution.Evidence,
+			OutcomeSuccess,
+			resolution.Fallback,
+			resolvedPush != legacyPush,
+		)
+		if resolvedPush != legacyPush {
+			w.logger.Infof(
+				"author tier shadow mismatch: source=%s fallback=%t legacy_push=%t resolved_push=%t",
+				resolution.Evidence,
+				resolution.Fallback,
+				legacyPush,
+				resolvedPush,
+			)
+		}
+		return legacyPush, nil
+	}
+	if err != nil {
+		RecordTierResolution(w.tierResolver.observer, TierEvidenceUnknown, OutcomeFromError(err), true, false)
+		return false, err
+	}
+	RecordTierResolution(
+		w.tierResolver.observer,
+		resolution.Evidence,
+		OutcomeSuccess,
+		resolution.Fallback,
+		false,
+	)
+	return !resolution.BigV, nil
 }
 
 // pushToInbox 推送到用户收件箱

@@ -2,7 +2,9 @@ package feed
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zhiguang/zhiguang-go/pkg/cachex"
 )
 
 type concurrencyTrackingRedis struct {
@@ -20,6 +23,184 @@ type concurrencyTrackingRedis struct {
 	maxActive int32
 	started   chan<- struct{}
 	release   <-chan struct{}
+}
+
+type batchTrackingRedis struct {
+	*MockRedisClient
+	batchCalls    int
+	requests      []ZRevRangeRequest
+	batches       [][]ZRevRangeRequest
+	results       []ZRevRangeResult
+	resultBatches [][]ZRevRangeResult
+	singleResults map[string][]ZScore
+	singleCalls   []string
+}
+
+type scriptedSingleRedis struct {
+	*MockRedisClient
+	results map[string][]ZScore
+	calls   []string
+}
+
+type cancelingBatchRedis struct {
+	*MockRedisClient
+	batchCalls int
+	cancel     context.CancelFunc
+}
+
+type lockedRouteCache struct {
+	mu     sync.RWMutex
+	values map[string]any
+}
+
+type scriptedCounterResult struct {
+	counts map[int64]int64
+	err    error
+}
+
+type scriptedCounterClient struct {
+	mu      sync.Mutex
+	results []scriptedCounterResult
+	calls   int
+}
+
+type blockingCounterClient struct {
+	calls   int32
+	started chan<- struct{}
+	release <-chan struct{}
+	counts  map[int64]int64
+}
+
+type contextAwareBlockingCounterClient struct {
+	calls    int32
+	started  chan<- struct{}
+	release  <-chan struct{}
+	canceled chan<- struct{}
+	counts   map[int64]int64
+}
+
+type logLevelTrackingLogger struct {
+	logx.Logger
+	infoCalls  int
+	debugCalls int
+}
+
+func (l *logLevelTrackingLogger) Infof(string, ...interface{}) {
+	l.infoCalls++
+}
+
+func (l *logLevelTrackingLogger) Debugf(string, ...interface{}) {
+	l.debugCalls++
+}
+
+func (m *batchTrackingRedis) ZRevRangeWithScoresBatch(_ context.Context, requests []ZRevRangeRequest) []ZRevRangeResult {
+	m.batchCalls++
+	m.requests = append([]ZRevRangeRequest(nil), requests...)
+	m.batches = append(m.batches, append([]ZRevRangeRequest(nil), requests...))
+	if index := m.batchCalls - 1; index < len(m.resultBatches) {
+		return append([]ZRevRangeResult(nil), m.resultBatches[index]...)
+	}
+	if m.results == nil {
+		return make([]ZRevRangeResult, len(requests))
+	}
+	return append([]ZRevRangeResult(nil), m.results...)
+}
+
+func (m *batchTrackingRedis) ZRevRangeWithScores(
+	_ context.Context,
+	key string,
+	_, _ int64,
+) ([]ZScore, error) {
+	m.singleCalls = append(m.singleCalls, key)
+	return append([]ZScore(nil), m.singleResults[key]...), nil
+}
+
+func (m *scriptedSingleRedis) ZRevRangeWithScores(
+	_ context.Context,
+	key string,
+	_, _ int64,
+) ([]ZScore, error) {
+	m.calls = append(m.calls, key)
+	return append([]ZScore(nil), m.results[key]...), nil
+}
+
+func (m *cancelingBatchRedis) ZRevRangeWithScoresBatch(
+	_ context.Context,
+	requests []ZRevRangeRequest,
+) []ZRevRangeResult {
+	m.batchCalls++
+	if m.batchCalls == 1 {
+		m.cancel()
+	}
+	results := make([]ZRevRangeResult, len(requests))
+	for i := range results {
+		results[i].Err = context.Canceled
+	}
+	return results
+}
+
+func newCombinedPipelineTestReader(redis RedisClient, observer FeedObserver) *FeedReader {
+	return NewFeedReaderWithOptions(
+		redis,
+		NewMockRelationClient(),
+		NewMockCounterClient(),
+		logx.WithContext(context.Background()),
+		FeedReaderOptions{
+			Strategy:                  StrategyHybrid,
+			CombinedPipelineEnabled:   true,
+			CombinedPipelineBatchSize: maxBigVOutboxPipelineSize,
+			Observer:                  observer,
+		},
+	)
+}
+
+func newLockedRouteCache() *lockedRouteCache {
+	return &lockedRouteCache{values: make(map[string]any)}
+}
+
+func (c *lockedRouteCache) Get(key string) (any, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	value, ok := c.values[key]
+	return value, ok
+}
+
+func (c *lockedRouteCache) SetWithTTL(key string, value any, _ int64, _ time.Duration) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.values[key] = value
+	return true
+}
+
+func (c *scriptedCounterClient) BatchGetFollowerCounts(_ context.Context, _ []int64) (map[int64]int64, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.calls++
+	index := c.calls - 1
+	if index >= len(c.results) {
+		index = len(c.results) - 1
+	}
+	result := c.results[index]
+	return result.counts, result.err
+}
+
+func (c *blockingCounterClient) BatchGetFollowerCounts(_ context.Context, _ []int64) (map[int64]int64, error) {
+	atomic.AddInt32(&c.calls, 1)
+	c.started <- struct{}{}
+	<-c.release
+	return c.counts, nil
+}
+
+func (c *contextAwareBlockingCounterClient) BatchGetFollowerCounts(ctx context.Context, _ []int64) (map[int64]int64, error) {
+	atomic.AddInt32(&c.calls, 1)
+	c.started <- struct{}{}
+	select {
+	case <-c.release:
+		return c.counts, nil
+	case <-ctx.Done():
+		c.canceled <- struct{}{}
+		return nil, ctx.Err()
+	}
 }
 
 func (m *concurrencyTrackingRedis) ZRevRangeWithScores(context.Context, string, int64, int64) ([]ZScore, error) {
@@ -196,6 +377,20 @@ func TestFeedReader_NoFollowings(t *testing.T) {
 	assert.False(t, hasMore)
 }
 
+func TestFeedReaderPrepareDoesNotLogSuccessfulClassificationPerRequest(t *testing.T) {
+	ctx := context.Background()
+	logger := &logLevelTrackingLogger{Logger: logx.WithContext(ctx)}
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	reader := NewFeedReader(NewMockRedisClient(), relation, NewMockCounterClient(), logger)
+
+	_, err := reader.Prepare(ctx, 123)
+
+	require.NoError(t, err)
+	require.Zero(t, logger.infoCalls)
+	require.Zero(t, logger.debugCalls)
+}
+
 func TestFeedReader_NoFollowingsStillReadsOwnInbox(t *testing.T) {
 	mr := miniredis.RunT(t)
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
@@ -246,6 +441,268 @@ func TestFeedReader_WithFollowings(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.False(t, hasMore)
+}
+
+func TestFeedReaderRouteCacheReusesClassificationForUnchangedFollowings(t *testing.T) {
+	ctx := context.Background()
+	routeCache, err := cachex.NewL1(cachex.L1Config{
+		NumCounters: 100,
+		MaxCost:     1 << 20,
+	})
+	require.NoError(t, err)
+
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201, 202})
+	counter := NewMockCounterClient()
+	counter.SetFollowerCount(201, BIGV_THRESHOLD+1)
+	counter.SetFollowerCount(202, 10)
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		routeCache,
+		time.Minute,
+	)
+
+	first, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+	routeCache.Wait()
+	second, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+
+	require.Equal(t, []int64{201}, first.bigVs)
+	require.Equal(t, []int64{201}, second.bigVs)
+	require.Equal(t, 1, counter.batchCalls)
+}
+
+func TestFeedReaderRouteCacheReclassifiesChangedFollowings(t *testing.T) {
+	ctx := context.Background()
+	routeCache, err := cachex.NewL1(cachex.L1Config{
+		NumCounters: 100,
+		MaxCost:     1 << 20,
+	})
+	require.NoError(t, err)
+
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	counter := NewMockCounterClient()
+	counter.SetFollowerCount(201, BIGV_THRESHOLD+1)
+	counter.SetFollowerCount(202, BIGV_THRESHOLD+1)
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		routeCache,
+		time.Minute,
+	)
+
+	_, err = reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+	routeCache.Wait()
+	relation.SetFollowings(123, []int64{202})
+	second, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+
+	require.Equal(t, []int64{202}, second.bigVs)
+	require.False(t, second.AllowsCreator(201))
+	require.True(t, second.AllowsCreator(202))
+	require.Equal(t, 2, counter.batchCalls)
+}
+
+func TestFeedReaderRouteCacheReclassifiesThresholdTransitionAfterTTL(t *testing.T) {
+	ctx := context.Background()
+	routeCache, err := cachex.NewL1(cachex.L1Config{
+		NumCounters: 100,
+		MaxCost:     1 << 20,
+	})
+	require.NoError(t, err)
+
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	counter := NewMockCounterClient()
+	counter.SetFollowerCount(201, BIGV_THRESHOLD)
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		routeCache,
+		20*time.Millisecond,
+	)
+
+	first, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+	routeCache.Wait()
+	counter.SetFollowerCount(201, BIGV_THRESHOLD+1)
+	withinTTL, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+	time.Sleep(30 * time.Millisecond)
+	afterTTL, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+
+	require.Empty(t, first.bigVs)
+	require.Empty(t, withinTTL.bigVs, "阈值切换在 TTL 内按最终一致性处理")
+	require.Equal(t, []int64{201}, afterTTL.bigVs)
+	require.Equal(t, 2, counter.batchCalls)
+}
+
+func TestFeedReaderRouteCacheDoesNotCacheCounterFailureFallback(t *testing.T) {
+	ctx := context.Background()
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	counter := &scriptedCounterClient{results: []scriptedCounterResult{
+		{err: errors.New("counter unavailable")},
+		{counts: map[int64]int64{201: BIGV_THRESHOLD + 1}},
+	}}
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		newLockedRouteCache(),
+		time.Minute,
+	)
+
+	first, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+	second, err := reader.Prepare(ctx, 123)
+	require.NoError(t, err)
+
+	require.Empty(t, first.bigVs, "Counter 失败时应保持原有的全普通用户降级")
+	require.Equal(t, []int64{201}, second.bigVs, "Counter 恢复后必须重新分类")
+	require.Equal(t, 2, counter.calls)
+}
+
+func TestFeedReaderRouteCacheCoalescesConcurrentColdMisses(t *testing.T) {
+	const requestCount = 32
+	ctx := context.Background()
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	started := make(chan struct{}, requestCount)
+	release := make(chan struct{})
+	counter := &blockingCounterClient{
+		started: started,
+		release: release,
+		counts:  map[int64]int64{201: BIGV_THRESHOLD + 1},
+	}
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		newLockedRouteCache(),
+		time.Minute,
+	)
+
+	var wg sync.WaitGroup
+	type prepareResult struct {
+		bigVs []int64
+		err   error
+	}
+	results := make(chan prepareResult, requestCount)
+	wg.Add(requestCount)
+	for i := 0; i < requestCount; i++ {
+		go func() {
+			defer wg.Done()
+			snapshot, err := reader.Prepare(ctx, 123)
+			if err != nil {
+				results <- prepareResult{err: err}
+				return
+			}
+			results <- prepareResult{bigVs: snapshot.bigVs}
+		}()
+	}
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("Counter RPC did not start")
+	}
+	time.Sleep(50 * time.Millisecond)
+	require.Equal(t, int32(1), atomic.LoadInt32(&counter.calls), "同一用户的冷缓存请求应合并为一次 Counter RPC")
+	close(release)
+	wg.Wait()
+	close(results)
+	for result := range results {
+		require.NoError(t, result.err)
+		require.Equal(t, []int64{201}, result.bigVs)
+	}
+}
+
+func TestFeedReaderRouteCacheDoesNotBindSharedLookupToFirstCallerContext(t *testing.T) {
+	ctx := context.Background()
+	firstCtx, cancelFirst := context.WithCancel(ctx)
+	relation := NewMockRelationClient()
+	relation.SetFollowings(123, []int64{201})
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	canceled := make(chan struct{}, 1)
+	counter := &contextAwareBlockingCounterClient{
+		started:  started,
+		release:  release,
+		canceled: canceled,
+		counts:   map[int64]int64{201: BIGV_THRESHOLD + 1},
+	}
+	reader := NewFeedReaderWithStrategyAndRouteCache(
+		NewMockRedisClient(),
+		relation,
+		counter,
+		logx.WithContext(ctx),
+		StrategyHybrid,
+		newLockedRouteCache(),
+		time.Minute,
+	)
+
+	type prepareResult struct {
+		snapshot *FeedReadSnapshot
+		err      error
+	}
+	firstDone := make(chan prepareResult, 1)
+	secondDone := make(chan prepareResult, 1)
+	go func() {
+		snapshot, err := reader.Prepare(firstCtx, 123)
+		firstDone <- prepareResult{snapshot: snapshot, err: err}
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("shared Counter lookup did not start")
+	}
+	go func() {
+		snapshot, err := reader.Prepare(ctx, 123)
+		secondDone <- prepareResult{snapshot: snapshot, err: err}
+	}()
+
+	cancelFirst()
+	select {
+	case result := <-firstDone:
+		require.NoError(t, result.err)
+		require.Empty(t, result.snapshot.bigVs)
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("canceled waiter did not exit promptly")
+	}
+	select {
+	case <-canceled:
+		t.Fatal("first caller cancellation propagated into shared Counter lookup")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case result := <-secondDone:
+		require.NoError(t, result.err)
+		require.Equal(t, []int64{201}, result.snapshot.bigVs)
+	case <-time.After(time.Second):
+		t.Fatal("valid waiter did not receive shared classification")
+	}
+	require.Equal(t, int32(1), atomic.LoadInt32(&counter.calls))
 }
 
 func TestFeedReader_Pagination(t *testing.T) {
@@ -401,6 +858,344 @@ func TestFeedReader_PullFromBigVsBoundsConcurrency(t *testing.T) {
 
 	require.False(t, overflowed, "more than %d Redis pulls ran concurrently", maxConcurrency)
 	require.LessOrEqual(t, atomic.LoadInt32(&redis.maxActive), int32(maxConcurrency))
+}
+
+func TestFeedReaderPullFromBigVsUsesBatchReader(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Scores: []ZScore{{Member: 101, Score: 1000}}},
+			{Scores: []ZScore{{Member: 202, Score: 1100}}},
+		},
+	}
+	reader := NewFeedReader(redis, NewMockRelationClient(), NewMockCounterClient(), logx.WithContext(context.Background()))
+
+	posts := reader.pullFromBigVs(context.Background(), []int64{1, 2}, 20)
+
+	require.Equal(t, 1, redis.batchCalls)
+	require.Equal(t, []ZRevRangeRequest{
+		{Key: fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 1), Start: 0, Stop: 19},
+		{Key: fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 2), Start: 0, Stop: 19},
+	}, redis.requests)
+	require.Equal(t, []Post{
+		{ID: 202, CreatorID: 2, CreateTime: 1100},
+		{ID: 101, CreatorID: 1, CreateTime: 1000},
+	}, posts)
+}
+
+func TestFeedReadSnapshotCombinesInboxAndFirstBigVBatch(t *testing.T) {
+	const userID int64 = 99
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Scores: []ZScore{{Member: 100, Score: 1200}}},
+			{Scores: []ZScore{{Member: 201, Score: 1100}}},
+			{Scores: []ZScore{{Member: 301, Score: 1000}}},
+		},
+	}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	snapshot := &FeedReadSnapshot{
+		reader: reader,
+		userID: userID,
+		bigVs:  []int64{2, 3},
+	}
+
+	ids, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, []int64{100, 201, 301}, ids)
+	require.Equal(t, 1, redis.batchCalls)
+	require.Equal(t, []ZRevRangeRequest{
+		{Key: fmt.Sprintf(FEED_INBOX_KEY, userID), Start: 0, Stop: 20},
+		{Key: fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 2), Start: 0, Stop: 20},
+		{Key: fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 3), Start: 0, Stop: 20},
+	}, redis.batches[0])
+}
+
+func TestFeedReadSnapshotCombinedPipelineRemainsDisabledByDefault(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results:         []ZRevRangeResult{{Scores: []ZScore{{Member: 201, Score: 1100}}}},
+	}
+	reader := NewFeedReader(redis, NewMockRelationClient(), NewMockCounterClient(), logx.WithContext(context.Background()))
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: []int64{2}}
+
+	_, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, redis.batchCalls)
+	require.Equal(t, []ZRevRangeRequest{
+		{Key: fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 2), Start: 0, Stop: 20},
+	}, redis.batches[0])
+}
+
+func TestFeedReadSnapshotCombinedPipelineWorksWithRedisAdapter(t *testing.T) {
+	mr := miniredis.RunT(t)
+	client := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
+	t.Cleanup(func() { _ = client.Close() })
+	ctx := context.Background()
+	const userID int64 = 99
+	require.NoError(t, client.ZAdd(ctx, fmt.Sprintf(FEED_INBOX_KEY, userID),
+		goredis.Z{Score: 1200, Member: 100},
+	).Err())
+	require.NoError(t, client.ZAdd(ctx, fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 2),
+		goredis.Z{Score: 1100, Member: 201},
+	).Err())
+
+	reader := newCombinedPipelineTestReader(NewRedisAdapter(client), nil)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: userID, bigVs: []int64{2}}
+
+	ids, hasMore, err := snapshot.GetFeed(ctx, 1, 20)
+
+	require.NoError(t, err)
+	require.False(t, hasMore)
+	require.Equal(t, []int64{100, 201}, ids)
+}
+
+func TestFeedReadSnapshotFirstPipelineCountsInboxAgainstBatchLimit(t *testing.T) {
+	const userID int64 = 99
+	redis := &batchTrackingRedis{MockRedisClient: NewMockRedisClient()}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	bigVs := make([]int64, maxBigVOutboxPipelineSize)
+	for i := range bigVs {
+		bigVs[i] = int64(i + 1)
+	}
+	snapshot := &FeedReadSnapshot{reader: reader, userID: userID, bigVs: bigVs}
+
+	_, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, 2, redis.batchCalls)
+	require.Len(t, redis.batches[0], maxBigVOutboxPipelineSize)
+	require.Equal(t, fmt.Sprintf(FEED_INBOX_KEY, userID), redis.batches[0][0].Key)
+	require.Len(t, redis.batches[1], 1)
+	for _, batch := range redis.batches {
+		require.LessOrEqual(t, len(batch), maxBigVOutboxPipelineSize)
+	}
+}
+
+func TestFeedReadSnapshotCombinedPipelineHonorsConfiguredBatchSize(t *testing.T) {
+	redis := &batchTrackingRedis{MockRedisClient: NewMockRedisClient()}
+	reader := NewFeedReaderWithOptions(
+		redis,
+		NewMockRelationClient(),
+		NewMockCounterClient(),
+		logx.WithContext(context.Background()),
+		FeedReaderOptions{
+			Strategy:                  StrategyHybrid,
+			CombinedPipelineEnabled:   true,
+			CombinedPipelineBatchSize: 4,
+		},
+	)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: []int64{1, 2, 3, 4}}
+
+	_, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, 2, redis.batchCalls)
+	require.Len(t, redis.batches[0], 4, "Inbox plus three BigV commands")
+	require.Len(t, redis.batches[1], 1)
+}
+
+func TestFeedReadSnapshotCombinedPipelineMultiBatchMatchesLegacyTopN(t *testing.T) {
+	const (
+		userID    int64 = 99
+		bigVCount       = maxBigVOutboxPipelineSize + 1
+	)
+	bigVs := make([]int64, bigVCount)
+	creatorResult := func(creatorID int64) ZRevRangeResult {
+		return ZRevRangeResult{Scores: []ZScore{{
+			Member: 1_000 + creatorID,
+			Score:  float64(1_000 + creatorID),
+		}}}
+	}
+	combinedFirst := make([]ZRevRangeResult, maxBigVOutboxPipelineSize)
+	combinedFirst[0] = ZRevRangeResult{Scores: []ZScore{
+		{Member: 9_001, Score: 1_200},
+		{Member: 9_002, Score: 800},
+	}}
+	legacyFirst := make([]ZRevRangeResult, maxBigVOutboxPipelineSize)
+	for i := range bigVs {
+		creatorID := int64(i + 1)
+		bigVs[i] = creatorID
+		if i < maxBigVOutboxPipelineSize-1 {
+			combinedFirst[i+1] = creatorResult(creatorID)
+		}
+		if i < maxBigVOutboxPipelineSize {
+			legacyFirst[i] = creatorResult(creatorID)
+		}
+	}
+	combinedSecond := []ZRevRangeResult{
+		creatorResult(bigVs[maxBigVOutboxPipelineSize-1]),
+		creatorResult(bigVs[maxBigVOutboxPipelineSize]),
+	}
+	legacySecond := []ZRevRangeResult{creatorResult(bigVs[maxBigVOutboxPipelineSize])}
+	// The newest creators cross the batch boundary and share a timestamp, so
+	// ID descending remains the deterministic tie-break after heap eviction.
+	combinedSecond[0].Scores[0].Score = combinedSecond[1].Scores[0].Score
+	legacyFirst[maxBigVOutboxPipelineSize-1].Scores[0].Score = combinedSecond[1].Scores[0].Score
+	inboxKey := fmt.Sprintf(FEED_INBOX_KEY, userID)
+
+	combinedRedis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		resultBatches:   [][]ZRevRangeResult{combinedFirst, combinedSecond},
+	}
+	observer := &recordingFeedObserver{}
+	combinedReader := newCombinedPipelineTestReader(combinedRedis, observer)
+	combinedSnapshot := &FeedReadSnapshot{reader: combinedReader, userID: userID, bigVs: bigVs}
+
+	legacyRedis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		resultBatches:   [][]ZRevRangeResult{legacyFirst, legacySecond},
+		singleResults: map[string][]ZScore{
+			inboxKey: combinedFirst[0].Scores,
+		},
+	}
+	legacyReader := NewFeedReader(legacyRedis, NewMockRelationClient(), NewMockCounterClient(), logx.WithContext(context.Background()))
+	legacySnapshot := &FeedReadSnapshot{reader: legacyReader, userID: userID, bigVs: bigVs}
+
+	combinedIDs, combinedHasMore, err := combinedSnapshot.GetFeed(context.Background(), 1, 5)
+	require.NoError(t, err)
+	legacyIDs, legacyHasMore, err := legacySnapshot.GetFeed(context.Background(), 1, 5)
+	require.NoError(t, err)
+
+	require.Equal(t, legacyIDs, combinedIDs)
+	require.Equal(t, []int64{9_001, 1_129, 1_128, 1_127, 1_126}, combinedIDs)
+	require.True(t, combinedHasMore)
+	require.Equal(t, legacyHasMore, combinedHasMore)
+	require.Equal(t, 2, combinedRedis.batchCalls)
+	require.Equal(t, 2, legacyRedis.batchCalls)
+	require.Equal(t, []string{inboxKey}, legacyRedis.singleCalls)
+
+	dependencyCounts := make(map[FeedOperation]int)
+	for _, call := range observer.calls {
+		if call.kind == "dependency" && call.dependency == DependencyRedis {
+			dependencyCounts[call.operation]++
+		}
+	}
+	require.Equal(t, 1, dependencyCounts[OperationInboxBigVPipeline])
+	require.Equal(t, 1, dependencyCounts[OperationBigVPipeline])
+	require.Zero(t, dependencyCounts[OperationInboxRead])
+}
+
+func TestFeedReadSnapshotCombinedPipelineFallsBackWithoutBatchReader(t *testing.T) {
+	const userID int64 = 99
+	inboxKey := fmt.Sprintf(FEED_INBOX_KEY, userID)
+	bigVKey := fmt.Sprintf(FEED_BIGV_OUTBOX_KEY, 2)
+	redis := &scriptedSingleRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: map[string][]ZScore{
+			inboxKey: {{Member: 100, Score: 1200}},
+			bigVKey:  {{Member: 201, Score: 1100}},
+		},
+	}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: userID, bigVs: []int64{2}}
+
+	ids, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, []int64{100, 201}, ids)
+	require.ElementsMatch(t, []string{inboxKey, bigVKey}, redis.calls)
+}
+
+func TestFeedReadSnapshotCombinedPipelineKeepsBigVWhenInboxFails(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Err: errors.New("inbox wrong type")},
+			{Scores: []ZScore{{Member: 201, Score: 1100}}},
+		},
+	}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: []int64{2}}
+
+	ids, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, []int64{201}, ids)
+}
+
+func TestFeedReadSnapshotCombinedPipelineKeepsInboxWhenBigVFails(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Scores: []ZScore{{Member: 100, Score: 1200}}},
+			{Err: errors.New("bigv wrong type")},
+		},
+	}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: []int64{2}}
+
+	ids, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, []int64{100}, ids)
+}
+
+func TestFeedReadSnapshotCombinedPipelineKeepsLaterBigVAfterMiddleFailure(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Scores: []ZScore{{Member: 100, Score: 1200}}},
+			{Err: errors.New("first bigv wrong type")},
+			{Scores: []ZScore{{Member: 301, Score: 1000}}},
+		},
+	}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: []int64{2, 3}}
+
+	ids, _, err := snapshot.GetFeed(context.Background(), 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, []int64{100, 301}, ids)
+}
+
+func TestFeedReadSnapshotCombinedPipelineStopsAfterContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	redis := &cancelingBatchRedis{MockRedisClient: NewMockRedisClient(), cancel: cancel}
+	reader := newCombinedPipelineTestReader(redis, nil)
+	bigVs := make([]int64, maxBigVOutboxPipelineSize+1)
+	for i := range bigVs {
+		bigVs[i] = int64(i + 1)
+	}
+	snapshot := &FeedReadSnapshot{reader: reader, userID: 99, bigVs: bigVs}
+
+	_, _, err := snapshot.GetFeed(ctx, 1, 20)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, redis.batchCalls)
+}
+
+func TestFeedReaderPullFromBigVsBoundsPipelineBatchSize(t *testing.T) {
+	redis := &batchTrackingRedis{MockRedisClient: NewMockRedisClient()}
+	reader := NewFeedReader(redis, NewMockRelationClient(), NewMockCounterClient(), logx.WithContext(context.Background()))
+	bigVs := make([]int64, maxBigVOutboxPipelineSize+1)
+	for i := range bigVs {
+		bigVs[i] = int64(i + 1)
+	}
+
+	reader.pullFromBigVs(context.Background(), bigVs, 20)
+
+	require.Equal(t, 2, redis.batchCalls)
+	for _, batch := range redis.batches {
+		require.LessOrEqual(t, len(batch), maxBigVOutboxPipelineSize)
+	}
+}
+
+func TestFeedReaderPullFromBigVsBatchKeepsSuccessfulOutboxOnPartialFailure(t *testing.T) {
+	redis := &batchTrackingRedis{
+		MockRedisClient: NewMockRedisClient(),
+		results: []ZRevRangeResult{
+			{Err: errors.New("wrong type")},
+			{Scores: []ZScore{{Member: 202, Score: 1100}}},
+		},
+	}
+	reader := NewFeedReader(redis, NewMockRelationClient(), NewMockCounterClient(), logx.WithContext(context.Background()))
+
+	posts := reader.pullFromBigVs(context.Background(), []int64{1, 2}, 20)
+
+	require.Equal(t, []Post{{ID: 202, CreatorID: 2, CreateTime: 1100}}, posts)
 }
 
 func TestFeedReader_PullFromBigVsKeepsOnlyGlobalTopN(t *testing.T) {
