@@ -1,36 +1,140 @@
-version: "3.9"
+# 知光本地开发栈
+# MySQL、Redis、etcd 由宿主机提供；其余依赖与核心应用由 Compose 管理。
+# 启动：
+# docker compose -f deploy/compose/docker-compose.dev.yml up -d --build --wait --wait-timeout 180
 
-# 知光本地开发依赖一键启动
-# 用法：docker compose -f deploy/compose/docker-compose.dev.yml up -d
-# 说明：MySQL(3306) 与 Redis(6379) 由宿主机本地进程提供，不在此 compose 中启动
-#
-# 端口约定（与 services/*/etc/*.yaml 默认值匹配）：
-#   Kafka     9092 (PLAINTEXT for host) / 29092 (PLAINTEXT_INTERNAL for containers)
-#   ZooKeeper 2181
-#   Canal     11111
-#   Adminer   8080  (DB Web UI)
+x-host-infra: &host-infra
+  - "mysql=host-gateway"
+  - "redis=host-gateway"
+
+x-core-build: &core-build
+  context: ../..
+  dockerfile: Dockerfile.core
+
+x-core-service: &core-service
+  image: zhiguang-go-core:dev
+  build: *core-build
+  restart: unless-stopped
+  init: true
+  extra_hosts: *host-infra
+  environment:
+    TZ: Asia/Shanghai
+    POD_IP: 127.0.0.1
+
+x-rpc-healthcheck: &rpc-healthcheck
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 10s
 
 services:
+  host-infra-check:
+    image: alpine:3.22
+    container_name: zg-host-infra-check
+    restart: "no"
+    extra_hosts: *host-infra
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        for endpoint in mysql:3306 redis:6379; do
+          host="$${endpoint%:*}"
+          port="$${endpoint#*:}"
+          ready=0
+          for attempt in $$(seq 1 30); do
+            if nc -z "$$host" "$$port"; then
+              echo "$$endpoint reachable"
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$$ready" -ne 1 ]; then
+            echo "$$endpoint unreachable after 60s" >&2
+            exit 1
+          fi
+        done
+
+  jwt-cert-init:
+    image: zhiguang-go-core:dev
+    build: *core-build
+    container_name: zg-jwt-cert-init
+    restart: "no"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        trap 'rm -f /app/certs/jwt_private.pem.tmp /app/certs/jwt_public.pem.tmp' EXIT
+        if ! openssl pkey -in /app/certs/jwt_private.pem -check -noout >/dev/null 2>&1; then
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+            -out /app/certs/jwt_private.pem.tmp
+          mv /app/certs/jwt_private.pem.tmp /app/certs/jwt_private.pem
+        fi
+        openssl pkey -in /app/certs/jwt_private.pem -pubout \
+          -out /app/certs/jwt_public.pem.tmp
+        chmod 600 /app/certs/jwt_private.pem
+        chmod 644 /app/certs/jwt_public.pem.tmp
+        mv /app/certs/jwt_public.pem.tmp /app/certs/jwt_public.pem
+        openssl pkey -pubin -in /app/certs/jwt_public.pem -pubcheck -noout >/dev/null
+    volumes:
+      - zg_dev_jwt_certs:/app/certs
+
+  etcd:
+    image: bitnamilegacy/etcd:3.5.21-debian-12-r6
+    container_name: zg-etcd
+    restart: unless-stopped
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_NAME: zg-dev
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379,http://127.0.0.1:12379
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+      ETCD_INITIAL_CLUSTER: zg-dev=http://etcd:2380
+      ETCD_INITIAL_CLUSTER_TOKEN: zhiguang-dev-etcd
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:12379:2379"
+    volumes:
+      - zg_etcd_data:/bitnami/etcd
+    healthcheck:
+      test:
+        - CMD
+        - etcdctl
+        - --endpoints=http://127.0.0.1:2379
+        - endpoint
+        - health
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
   zookeeper:
-    # Kafka 3.7 在 ZooKeeper 模式下优先使用 3.8.x 稳定分支
     image: bitnamilegacy/zookeeper:3.8.4
     container_name: zg-zk
     restart: unless-stopped
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
     ports:
-      - "2181:2181"
+      - "127.0.0.1:2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/zookeeper/bin/zkServer.sh status >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
 
   kafka:
-    # bitnami/kafka:3.7 标签已下线，改用 bitnamilegacy 可用标签
     image: bitnamilegacy/kafka:3.7.0
     container_name: zg-kafka
     restart: unless-stopped
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      # 双 listener：host 通过 9092 访问；容器内服务通过 29092 走 kafka:29092
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,INTERNAL://:29092
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
@@ -38,64 +142,234 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list >/dev/null 2>&1
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
 
   canal-server:
     image: canal/canal-server:v1.1.7
     container_name: zg-canal
     restart: unless-stopped
+    extra_hosts: *host-infra
     depends_on:
-      - kafka
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
     ports:
-      - "11111:11111"
+      - "127.0.0.1:11111:11111"
     volumes:
-      # 自定义 canal.properties 与 instance.properties；只读挂载防意外写入
       - ./canal-conf/canal.properties:/home/admin/canal-server/conf/canal.properties:ro
       - ./canal-conf/instance.properties:/home/admin/canal-server/conf/example/instance.properties:ro
       - zg_canal_logs:/home/admin/canal-server/logs
-
-  adminer:
-    image: adminer:4.8.1
-    container_name: zg-adminer
-    restart: unless-stopped
-    ports:
-      - "8090:8080"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          test -s /home/admin/canal-server/bin/canal.pid &&
+          kill -0 "$$(cat /home/admin/canal-server/bin/canal.pid)" &&
+          grep -q 'the canal server is running now' /home/admin/canal-server/logs/canal/canal.log &&
+          grep -q 'start successful' /home/admin/canal-server/logs/example/example.log
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
 
   elasticsearch:
     image: elasticsearch:9.0.3
     container_name: zg-es
     restart: unless-stopped
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
     ulimits:
       memlock:
         soft: -1
         hard: -1
     volumes:
       - zg_es_data:/usr/share/elasticsearch/data
-      # 把宿主 ./es-plugins/analysis-ik 挂为 IK 插件目录（需自行解压对应版本插件）
       - ./es-plugins/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik:ro
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:9200 >/dev/null"]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:9200 >/dev/null"]
+      interval: 10s
+      timeout: 5s
       retries: 30
+      start_period: 20s
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: zg-adminer
+    restart: unless-stopped
+    profiles: ["tools"]
+    extra_hosts:
+      - "mysql=host-gateway"
+    ports:
+      - "127.0.0.1:8090:8080"
 
   kibana:
     image: kibana:9.0.3
     container_name: zg-kibana
+    restart: unless-stopped
     profiles: ["tools"]
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     ports:
-      - "5601:5601"
+      - "127.0.0.1:5601:5601"
+
+  user-storage:
+    <<: *core-service
+    container_name: zg-user-storage
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      jwt-cert-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:9002:9002"
+      - "127.0.0.1:9013:9013"
+    volumes:
+      - zg_dev_jwt_certs:/app/certs:ro
+    command: ["./bin/storage-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9002 && nc -z 127.0.0.1 9013"]
+
+  counter:
+    <<: *core-service
+    container_name: zg-counter
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9003:9003"
+    command: ["./bin/counter-merged", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9003"]
+
+  knowpost:
+    <<: *core-service
+    container_name: zg-knowpost
+    environment:
+      POD_IP: 127.0.0.1
+      FEED_STRATEGY: ${FEED_STRATEGY:-hybrid}
+      FEED_AUTHOR_TIER_MODE: ${FEED_AUTHOR_TIER_MODE:-off}
+      FEED_OBSERVABILITY: ${FEED_OBSERVABILITY:-false}
+      FEED_RELATION_EPOCH_ENABLED: ${FEED_RELATION_EPOCH_ENABLED:-false}
+      FEED_CONTENT_SAFETY_EPOCH_ENABLED: ${FEED_CONTENT_SAFETY_EPOCH_ENABLED:-false}
+      FEED_ROUTE_SNAPSHOT_ENABLED: ${FEED_ROUTE_SNAPSHOT_ENABLED:-false}
+      FEED_COMBINED_PIPELINE_ENABLED: ${FEED_COMBINED_PIPELINE_ENABLED:-false}
+      FEED_CURSOR_PAGINATION_ENABLED: ${FEED_CURSOR_PAGINATION_ENABLED:-false}
+      FEED_PAGE_CACHE_MODE: ${FEED_PAGE_CACHE_MODE:-off}
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      counter:
+        condition: service_healthy
+      relation:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9004:9004"
+      - "127.0.0.1:16064:6064"
+    command: ["./bin/knowpost-merged", "-f", "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9004"]
+
+  relation:
+    <<: *core-service
+    container_name: zg-relation
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      user-storage:
+        condition: service_healthy
+      counter:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9006:9006"
+      - "127.0.0.1:16066:6066"
+    command: ["./bin/relation-merged", "-f", "services/relation/cmd/relation/etc/relation-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9006"]
+
+  search:
+    <<: *core-service
+    container_name: zg-search
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      counter:
+        condition: service_healthy
+      knowpost:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9017:9017"
+    command: ["./bin/search-merged", "-f", "services/search/cmd/search/etc/search-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9017"]
+
+  gateway:
+    <<: *core-service
+    container_name: zg-gateway
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+      user-storage:
+        condition: service_healthy
+      counter:
+        condition: service_healthy
+      knowpost:
+        condition: service_healthy
+      relation:
+        condition: service_healthy
+      search:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: ["./bin/gateway", "-f", "services/gateway/etc/gateway-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
 
 volumes:
   zg_canal_logs:
+  zg_etcd_data:
   zg_es_data:
+  zg_dev_jwt_certs:

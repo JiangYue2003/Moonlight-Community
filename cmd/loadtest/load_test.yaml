@@ -1,0 +1,94 @@
+# Feed push/pull/hybrid benchmark defaults for deploy/compose/docker-compose.dev.yml.
+# The password is only used for disposable development users. Override with
+# FEED_LOADTEST_PASSWORD when desired.
+
+RunID: ""
+ReaderCardinality: hot
+Password: "${FEED_LOADTEST_PASSWORD}"
+GatewayURL: http://127.0.0.1:8080
+ReportDir: results/feed-loadtest
+ManifestDir: results/feed-loadtest/manifests
+RedisAddr: 127.0.0.1:6379
+
+Execution:
+  Topology: compose-full
+  LocalStateFile: .tmp/feed-local/state.json
+  FeaturePreset: treatment
+  CacheState: natural
+  CacheWarmConcurrency: 64
+  ClientCPULimitPercent: 90
+  PprofDir: ""
+
+Topology:
+  FollowerUsers: 1200
+  NormalAuthors: 20
+  BigVAuthors: 5
+  Readers: 20
+  NormalFollowerCount: 100
+  BigVFollowerCount: 1100
+  Seed: 42
+
+Setup:
+  UserConcurrency: 16
+  CursorSeedConcurrency: 4
+  RelationConcurrency: 32
+  WarmupConcurrency: 1
+  StrategySeedPosts: 5
+  CounterSyncTimeout: 180s
+  CounterPollInterval: 500ms
+  WarmupPosts: 2
+
+Load:
+  Requests: 2000
+  Duration: 0s
+  RequestTimeout: 5s
+  Page: 1
+  Size: 20
+  ConcurrencySteps: [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+Monitor:
+  Enabled: true
+  Interval: 1s
+  DockerContainers: [zg-gateway, zg-knowpost, zg-relation, zg-counter]
+  StrategyContainer: zg-knowpost
+  MySQLDSN: "root:Zz123456@tcp(127.0.0.1:3306)/zhiguang?timeout=2s&readTimeout=2s"
+  KafkaContainer: zg-kafka
+  KafkaBootstrap: kafka:29092
+  KafkaGroup: feed-fanout-group
+  PrometheusContainer: zg-knowpost
+  PrometheusURL: http://127.0.0.1:9104/metrics
+
+KnowPostRpc:
+  Etcd:
+    Hosts: [127.0.0.1:12379]
+    Key: knowpost.rpc
+  NonBlock: true
+  Timeout: 5000
+
+RelationRpc:
+  Etcd:
+    Hosts: [127.0.0.1:12379]
+    Key: relation.rpc
+  NonBlock: true
+  Timeout: 5000
+
+CounterRpc:
+  Etcd:
+    Hosts: [127.0.0.1:12379]
+    Key: counter.rpc
+  NonBlock: true
+  Timeout: 5000
+
+UserRpc:
+  Etcd:
+    Hosts: [127.0.0.1:12379]
+    Key: user.rpc
+  NonBlock: true
+  Timeout: 5000
+
+AuthRpc:
+  Etcd:
+    Hosts: [127.0.0.1:12379]
+    Key: user.rpc
+  NonBlock: true
+  Timeout: 5000
