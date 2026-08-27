@@ -49,8 +49,9 @@ func (l *L1) Get(key string) (any, bool) {
 }
 
 // SetWithTTL 写入并指定 TTL。cost 应为该项的字节大小估算。
-// 注意：ristretto 写入是异步的，调用后立即 Get 不一定命中；本项目读路径
-// 总是先经 L1 不命中再查 L2，对 Set→Get 的瞬时一致性不敏感。
+// 注意：ristretto 写入是异步的，调用后立即 Get 不一定命中。通用多级缓存
+// 会在 L1 miss 后查 L2；只有需要在冷填充返回前建立可见性边界的独立缓存
+// （如 RouteSnapshot）才应在 Set 后调用 Wait。
 func (l *L1) SetWithTTL(key string, val any, cost int64, ttl time.Duration) bool {
 	if l == nil {
 		return false
@@ -66,7 +67,8 @@ func (l *L1) Del(key string) {
 	l.c.Del(key)
 }
 
-// Wait 等待异步写入对外可见（仅测试用）。
+// Wait 等待异步写入对外可见。普通热路径不应调用；需要在返回前建立
+// 冷填充可见性边界的独立缓存可以有界使用。
 func (l *L1) Wait() {
 	if l == nil {
 		return

@@ -14,6 +14,19 @@ import (
 // HandlerFunc 处理一条消息；返回 nil 视为成功并提交 offset。
 type HandlerFunc func(ctx context.Context, m kafka.Message) error
 
+type consumerReader interface {
+	FetchMessage(context.Context) (kafka.Message, error)
+	CommitMessages(context.Context, ...kafka.Message) error
+	Close() error
+}
+
+type messageWriter interface {
+	WriteMessages(context.Context, ...kafka.Message) error
+	Close() error
+}
+
+type backoffWaiter func(context.Context, time.Duration) error
+
 // ConsumerConfig consumer group 参数。
 type ConsumerConfig struct {
 	Brokers  []string
@@ -58,7 +71,7 @@ func RunConsumer(ctx context.Context, cfg ConsumerConfig, h HandlerFunc) error {
 	})
 	defer r.Close()
 
-	var dlqWriter *kafka.Writer
+	var dlqWriter messageWriter
 	if cfg.DlqTopic != "" {
 		dlqWriter = &kafka.Writer{
 			Addr:     kafka.TCP(cfg.Brokers...),
@@ -67,10 +80,19 @@ func RunConsumer(ctx context.Context, cfg ConsumerConfig, h HandlerFunc) error {
 		}
 		defer dlqWriter.Close()
 	}
+	return consumeMessages(ctx, cfg, r, dlqWriter, h, waitForBackoff)
+}
 
-	var retries int
+func consumeMessages(
+	ctx context.Context,
+	cfg ConsumerConfig,
+	reader consumerReader,
+	dlqWriter messageWriter,
+	h HandlerFunc,
+	wait backoffWaiter,
+) error {
 	for {
-		m, err := r.FetchMessage(ctx)
+		m, err := reader.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
 				return nil
@@ -78,56 +100,80 @@ func RunConsumer(ctx context.Context, cfg ConsumerConfig, h HandlerFunc) error {
 			return err
 		}
 
-		if err := h(ctx, m); err != nil {
-			retries++
+		for retries := 0; ; {
+			if err := h(ctx, m); err != nil {
+				retries++
 
-			if cfg.MaxRetries > 0 && retries >= cfg.MaxRetries {
-				logx.Errorf("kafkax: message exceeded MaxRetries=%d, sending to DLQ. topic=%s partition=%d offset=%d err=%v",
-					cfg.MaxRetries, m.Topic, m.Partition, m.Offset, err)
-				if dlqWriter != nil {
-					dlqMsg := kafka.Message{
-						Key:   m.Key,
-						Value: m.Value,
-						Headers: append(m.Headers,
-							kafka.Header{Key: "X-Retry-Count", Value: []byte(fmt.Sprintf("%d", retries))},
-							kafka.Header{Key: "X-Original-Topic", Value: []byte(m.Topic)},
-						),
+				if cfg.MaxRetries > 0 && retries >= cfg.MaxRetries {
+					logx.Errorf("kafkax: message exceeded MaxRetries=%d, sending to DLQ. topic=%s partition=%d offset=%d err=%v",
+						cfg.MaxRetries, m.Topic, m.Partition, m.Offset, err)
+					if dlqWriter != nil {
+						dlqMsg := kafka.Message{
+							Key:   m.Key,
+							Value: m.Value,
+							Headers: append(m.Headers,
+								kafka.Header{Key: "X-Retry-Count", Value: []byte(fmt.Sprintf("%d", retries))},
+								kafka.Header{Key: "X-Original-Topic", Value: []byte(m.Topic)},
+							),
+						}
+						if writeErr := dlqWriter.WriteMessages(ctx, dlqMsg); writeErr != nil {
+							logx.Errorf("kafkax: failed to write DLQ message: %v", writeErr)
+							if waitErr := wait(ctx, retryBackoff(retries)); waitErr != nil {
+								if errors.Is(waitErr, context.Canceled) {
+									return nil
+								}
+								return waitErr
+							}
+							continue
+						}
 					}
-					if werr := dlqWriter.WriteMessages(ctx, dlqMsg); werr != nil {
-						logx.Errorf("kafkax: failed to write DLQ message: %v", werr)
+					if commitErr := reader.CommitMessages(ctx, m); commitErr != nil {
+						if errors.Is(commitErr, context.Canceled) {
+							return nil
+						}
+						return commitErr
 					}
+					break
 				}
-				// 提交 offset，跳过毒丸消息
-				retries = 0
-				if cerr := r.CommitMessages(ctx, m); cerr != nil {
-					if errors.Is(cerr, context.Canceled) {
+
+				delay := retryBackoff(retries)
+				logx.Errorf("kafkax handler error (retry=%d, backoff=%s): %v", retries, delay, err)
+				if waitErr := wait(ctx, delay); waitErr != nil {
+					if errors.Is(waitErr, context.Canceled) {
 						return nil
 					}
-					return cerr
+					return waitErr
 				}
 				continue
 			}
 
-			delay := backoffBase * (1 << min(retries-1, 8)) // 最多左移 8 位 = 25.6s
-			if delay > backoffMax {
-				delay = backoffMax
+			if err := reader.CommitMessages(ctx, m); err != nil {
+				if errors.Is(err, context.Canceled) {
+					return nil
+				}
+				return err
 			}
-			logx.Errorf("kafkax handler error (retry=%d, backoff=%s): %v", retries, delay, err)
-			select {
-			case <-time.After(delay):
-			case <-ctx.Done():
-				return nil
-			}
-			continue
+			break
 		}
+	}
+}
 
-		retries = 0 // 成功后重置退避计数
-		if err := r.CommitMessages(ctx, m); err != nil {
-			if errors.Is(err, context.Canceled) {
-				return nil
-			}
-			return err
-		}
+func retryBackoff(retries int) time.Duration {
+	delay := backoffBase * (1 << min(retries-1, 8)) // 最多左移 8 位 = 25.6s
+	if delay > backoffMax {
+		return backoffMax
+	}
+	return delay
+}
+
+func waitForBackoff(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
