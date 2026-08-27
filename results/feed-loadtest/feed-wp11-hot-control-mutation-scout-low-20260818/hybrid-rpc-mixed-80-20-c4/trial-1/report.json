@@ -1,0 +1,4066 @@
+{
+  "run_id": "feed-wp11-hot-control-mutation-scout-low-20260818",
+  "strategy": "hybrid",
+  "entry": "rpc",
+  "scenario": "mixed-80-20-c4",
+  "started_at": "2026-08-18T23:00:56.0683485+08:00",
+  "duration_ns": 15158999900,
+  "concurrency": 4,
+  "trial": 1,
+  "expected_trials": 1,
+  "complete": true,
+  "environment": {
+    "cache_state": "cold",
+    "cache_warm_duration": "0s",
+    "cache_warm_readers": "0",
+    "client_host": "DESKTOP-TGICNGQ",
+    "combined_pipeline_enabled": "false",
+    "compatibility_fingerprint": "731c9217789f9030b054983522b42424e100cbc4eeb41d62761fe6f7ef00c3e3",
+    "configured_duration": "15s",
+    "configured_requests": "0",
+    "cursor_pagination_enabled": "false",
+    "dataset_fingerprint": "cbb1beaa7234b0b17d1129e65c60981940e5007748b8b5deeedd94b4f4240cd4",
+    "dataset_run_id": "feed-wp11-hot-20260816a",
+    "dataset_seed": "42",
+    "effective_strategy": "hybrid",
+    "feature_preset": "control",
+    "feed_metrics_primed": "false",
+    "gateway_access_log": "false",
+    "gateway_auth_mode": "signed",
+    "gateway_url": "http://127.0.0.1:18080",
+    "git_commit": "d476cbec339f6485f0f7ef0408aa94d4a32d8876",
+    "git_dirty": "true",
+    "git_patch_hash": "40cf01ea65c1a7f165a332489ddc6c645eb70fb7fe3cbe44f51d3596a96858fd",
+    "git_status_hash": "4a0809b3c3c4ddca02a00ce00fefe62e3ac5fe0e01c1776cdc652717675b90f4",
+    "git_untracked_files": "261",
+    "go_version": "go1.25.8",
+    "gomaxprocs": "16",
+    "logging_level": "error",
+    "logging_persistence": "error-only-bounded",
+    "logging_preset": "benchmark-error-only",
+    "logging_stat": "false",
+    "logical_cpus": "16",
+    "measurement_boundary_duration": "3.7723ms",
+    "mutation_baseline_fingerprint": "2bdf1b5730304cd6cef84adbed8ff3e6541d89af27b522951096fda1b86cee54",
+    "mutation_checkpoint_created_at": "2026-08-18T07:15:15.962547Z",
+    "mutation_checkpoint_id": "ca37fe4c148024bb3d8cb46573e4616ebb1e93f5a6c903e67a1336f6dd31b5d7",
+    "mutation_checkpoint_tool_version": "feed-loadtest-mutation-v1",
+    "observability_enabled": "true",
+    "page": "1",
+    "page_cache_mode": "off",
+    "reader_cardinality": "hot",
+    "reader_count": "20",
+    "relation_epoch_consumer_enabled": "false",
+    "request_timeout": "5s",
+    "resource_limits": "local-processes:host;logical_cpus=16;gomaxprocs=16",
+    "route_snapshot_enabled": "false",
+    "rpc_stat_middleware": "false",
+    "safety_epoch_consumer_enabled": "false",
+    "service_addresses": "counter_etcd=127.0.0.1:12379;gateway=http://127.0.0.1:18080;kafka=zg-kafka/kafka:29092;knowpost_etcd=127.0.0.1:12379;prometheus=http://127.0.0.1:19104/metrics;redis=127.0.0.1:6379;relation_etcd=127.0.0.1:12379;user_etcd=127.0.0.1:12379",
+    "size": "20",
+    "sql_statement_info": "false",
+    "strategy_source": "local-state:F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\state.json",
+    "subject_binary_identity": "counter|sha256=2b1cc0fefe018402ce7860e7b0c087ec9fc1bb857593ef01a2686f8a873f2ef4;gateway|sha256=db1c58b722389718030fb54f3fcab77ee5b89dd9cb92878ac0fd47df2550a79b;knowpost|sha256=cdc594def0f2c268cd0e5b7e344fd3127068d39971c10d2738971bc8f194abfb;relation|sha256=8924e0f365c6c3fc5f6fba18d1ccb9cfe10252d6322090d7609482d0ce7876dd;search|sha256=f0e7adbc0c4f4388328357746ca913d01219f533e723f887d2189f92a63c9a29;user-storage|sha256=e23bcf078ece94536a0365c73605c24440b636a4bac076096c93c5a2de321883",
+    "subject_process_identity": "counter|pid=24444|start_ms=1787064665305;gateway|pid=29440|start_ms=1787064684282;knowpost|pid=9704|start_ms=1787064675235;relation|pid=26956|start_ms=1787064669914;search|pid=11296|start_ms=1787064680243;user-storage|pid=30296|start_ms=1787064660932",
+    "topology": "compose-middleware-local-services",
+    "warmup": "3s"
+  },
+  "stages": [
+    {
+      "name": "read",
+      "total": 320,
+      "success": 320,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 21.109572010749865,
+      "latency": {
+        "min": 1026800,
+        "mean": 1987540,
+        "p50": 1670400,
+        "p90": 2713500,
+        "p95": 3185900,
+        "p99": 5288200,
+        "max": 5813500
+      }
+    },
+    {
+      "name": "publish_total",
+      "total": 80,
+      "success": 80,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 5.277393002687466,
+      "latency": {
+        "min": 632630800,
+        "mean": 749865933,
+        "p50": 762875500,
+        "p90": 822491800,
+        "p95": 827234800,
+        "p99": 831684600,
+        "max": 831684600
+      }
+    },
+    {
+      "name": "publish_draft",
+      "total": 80,
+      "success": 80,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 5.277393002687466,
+      "latency": {
+        "min": 2608600,
+        "mean": 3607658,
+        "p50": 3654100,
+        "p90": 4195800,
+        "p95": 4406600,
+        "p99": 6384200,
+        "max": 6384200
+      }
+    },
+    {
+      "name": "publish_metadata",
+      "total": 80,
+      "success": 80,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 5.277393002687466,
+      "latency": {
+        "min": 198952300,
+        "mean": 251807741,
+        "p50": 242694000,
+        "p90": 302716600,
+        "p95": 319097900,
+        "p99": 354708800,
+        "max": 354708800
+      }
+    },
+    {
+      "name": "publish_confirm",
+      "total": 80,
+      "success": 80,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 5.277393002687466,
+      "latency": {
+        "min": 199143800,
+        "mean": 244588462,
+        "p50": 239394900,
+        "p90": 298836500,
+        "p95": 307638000,
+        "p99": 318392300,
+        "max": 318392300
+      }
+    },
+    {
+      "name": "publish_commit",
+      "total": 80,
+      "success": 80,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 5.277393002687466,
+      "latency": {
+        "min": 199443900,
+        "mean": 249855152,
+        "p50": 254561200,
+        "p90": 313729500,
+        "p95": 318712700,
+        "p99": 324703900,
+        "max": 324703900
+      }
+    }
+  ],
+  "feed_metrics": {
+    "stage_calls": {
+      "bigv_pipeline": 320,
+      "counter": 58,
+      "hydrate": 320,
+      "inbox": 320,
+      "merge_dedup": 320,
+      "relation": 320,
+      "route": 320,
+      "total": 320
+    },
+    "stage_mean_ms": {
+      "bigv_pipeline": 0.18550937499999803,
+      "counter": 0.5680827586206907,
+      "hydrate": 0.3350346875000085,
+      "inbox": 0.21913625000000395,
+      "merge_dedup": 0.014070312499999993,
+      "relation": 0.8935259374999873,
+      "route": 0.10476656250000023,
+      "total": 1.7700256249999995
+    },
+    "stage_calls_by_outcome": {
+      "bigv_pipeline": {
+        "success": 320
+      },
+      "counter": {
+        "success": 58
+      },
+      "hydrate": {
+        "success": 320
+      },
+      "inbox": {
+        "success": 320
+      },
+      "merge_dedup": {
+        "success": 320
+      },
+      "relation": {
+        "success": 320
+      },
+      "route": {
+        "success": 320
+      },
+      "total": {
+        "success": 320
+      }
+    },
+    "stage_mean_ms_by_outcome": {
+      "bigv_pipeline": {
+        "success": 0.18550937499999803
+      },
+      "counter": {
+        "success": 0.5680827586206907
+      },
+      "hydrate": {
+        "success": 0.3350346875000085
+      },
+      "inbox": {
+        "success": 0.21913625000000395
+      },
+      "merge_dedup": {
+        "success": 0.014070312499999993
+      },
+      "relation": {
+        "success": 0.8935259374999873
+      },
+      "route": {
+        "success": 0.10476656250000023
+      },
+      "total": {
+        "success": 1.7700256249999995
+      }
+    },
+    "dependency_calls": {
+      "counter": 58,
+      "mysql": 40,
+      "redis": 1000,
+      "relation": 320
+    },
+    "dependency_calls_per_success": {
+      "counter": 0.18125,
+      "mysql": 0.125,
+      "redis": 3.125,
+      "relation": 1
+    },
+    "dependency_calls_by_outcome": {
+      "counter": {
+        "success": 58
+      },
+      "mysql": {
+        "success": 40
+      },
+      "redis": {
+        "success": 1000
+      },
+      "relation": {
+        "success": 320
+      }
+    },
+    "dependency_operations": {
+      "counter.batch_follower_counts": 58,
+      "mysql.feed_item_db": 40,
+      "redis.bigv_pipeline": 320,
+      "redis.feed_item_cache_write": 40,
+      "redis.feed_item_mget": 320,
+      "redis.inbox_read": 320,
+      "relation.list_followings": 320
+    },
+    "dependency_operations_per_success": {
+      "counter.batch_follower_counts": 0.18125,
+      "mysql.feed_item_db": 0.125,
+      "redis.bigv_pipeline": 1,
+      "redis.feed_item_cache_write": 0.125,
+      "redis.feed_item_mget": 1,
+      "redis.inbox_read": 1,
+      "relation.list_followings": 1
+    },
+    "dependency_operations_by_outcome": {
+      "counter.batch_follower_counts": {
+        "success": 58
+      },
+      "mysql.feed_item_db": {
+        "success": 40
+      },
+      "redis.bigv_pipeline": {
+        "success": 320
+      },
+      "redis.feed_item_cache_write": {
+        "success": 40
+      },
+      "redis.feed_item_mget": {
+        "success": 320
+      },
+      "redis.inbox_read": {
+        "success": 320
+      },
+      "relation.list_followings": {
+        "success": 320
+      }
+    },
+    "cold_computes": 320,
+    "cold_computes_per_success": 1,
+    "cold_computes_by_outcome": {
+      "success": 320
+    },
+    "page_cache_sources": {
+      "bypass": 320
+    },
+    "page_cache_sources_by_outcome": {
+      "bypass": {
+        "success": 320
+      }
+    },
+    "page_cache_fresh_hit_ratio": 0,
+    "pagination_modes": {
+      "page": 320
+    },
+    "pagination_modes_by_result": {
+      "page": {
+        "success": 320
+      }
+    },
+    "pagination_mean_ms": {
+      "page": 1.7749181249999992
+    },
+    "cursor_work": {
+      "hydrate_ids": 12800,
+      "merge_candidates": 15949,
+      "redis_commands": 1920,
+      "redis_members": 15949,
+      "redis_roundtrips": 640
+    },
+    "cursor_work_per_success": {
+      "hydrate_ids": 40,
+      "merge_candidates": 49.840625,
+      "redis_commands": 6,
+      "redis_members": 49.840625,
+      "redis_roundtrips": 2
+    },
+    "refresh_queue_depth_max": 0,
+    "refresh_active_workers_max": 0,
+    "refresh_pending_keys_max": 0,
+    "degraded": false
+  },
+  "redis_metrics": {
+    "commands_delta": 253366,
+    "net_input_bytes_delta": 20124854,
+    "net_output_bytes_delta": 7161434,
+    "keyspace_hits_delta": 15852,
+    "keyspace_misses_delta": 2295,
+    "run_hit_rate": 0.8735328153413787,
+    "evicted_keys_delta": 0,
+    "rejected_connections_delta": 0,
+    "ops_per_sec_max": 17836,
+    "safety_epoch_start": 10134,
+    "safety_epoch_end": 10214
+  },
+  "resources": [
+    {
+      "timestamp": "2026-08-18T23:00:53.7932911+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:53.7932911+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:53.7932911+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:53.7932911+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:53.7932911+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:55.9606413+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:55.9606413+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:55.9606413+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:55.9606413+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:55.9606413+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_seconds_total": 14.09375,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44113920,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_seconds_total": 133.65625,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 66539520,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_seconds_total": 4.265625,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 46891008,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_seconds_total": 1.8125,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42188800,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35250176,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4072,
+        "cursor_work:hydrate_ids": 162880,
+        "cursor_work:merge_candidates": 192096,
+        "cursor_work:redis_commands": 24432,
+        "cursor_work:redis_members": 192096,
+        "cursor_work:redis_roundtrips": 8144,
+        "dependency_calls:counter:batch_follower_counts:success": 417,
+        "dependency_calls:mysql:feed_item_db:success": 209,
+        "dependency_calls:redis:bigv_pipeline:success": 4072,
+        "dependency_calls:redis:feed_item_cache_write:success": 209,
+        "dependency_calls:redis:feed_item_mget:success": 4072,
+        "dependency_calls:redis:inbox_read:success": 4072,
+        "dependency_calls:relation:list_followings:success": 4072,
+        "go_gc_duration_seconds_count": 197,
+        "go_gc_duration_seconds_sum": 0.0080312,
+        "go_memstats_alloc_bytes_total": 1954805336,
+        "go_memstats_heap_alloc_bytes": 14421968,
+        "page_cache:bypass:success": 4072,
+        "pagination:page:success": 4072,
+        "pagination_duration_count:page:success": 4072,
+        "pagination_duration_sum:page:success": 12352.793199999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4072,
+        "stage_duration_count:counter:success": 417,
+        "stage_duration_count:hydrate:success": 4072,
+        "stage_duration_count:inbox:success": 4072,
+        "stage_duration_count:merge_dedup:success": 4072,
+        "stage_duration_count:relation:success": 4072,
+        "stage_duration_count:route:success": 4072,
+        "stage_duration_count:total:success": 4072,
+        "stage_duration_sum:bigv_pipeline:success": 2080.0855000000006,
+        "stage_duration_sum:counter:success": 347.5171,
+        "stage_duration_sum:hydrate:success": 2595.458399999994,
+        "stage_duration_sum:inbox:success": 2157.5781999999986,
+        "stage_duration_sum:merge_dedup:success": 34.238099999999996,
+        "stage_duration_sum:relation:success": 5024.5806000000075,
+        "stage_duration_sum:route:success": 379.5697000000001,
+        "stage_duration_sum:total:success": 12349.891299999997,
+        "stage_total:bigv_pipeline:success": 4072,
+        "stage_total:counter:success": 417,
+        "stage_total:hydrate:success": 4072,
+        "stage_total:inbox:success": 4072,
+        "stage_total:merge_dedup:success": 4072,
+        "stage_total:relation:success": 4072,
+        "stage_total:route:success": 4072,
+        "stage_total:total:success": 4072
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:56.0645762+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24031874,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10134,
+        "hit_rate": 0.7253058476490225,
+        "keys": 592342,
+        "keyspace_hits": 881235,
+        "keyspace_misses": 333749,
+        "net_input_bytes": 1786809364,
+        "net_output_bytes": 519124824,
+        "ops_per_sec": 554,
+        "rejected_connections": 0,
+        "uptime_seconds": 45636,
+        "used_memory_bytes": 94996688
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 14.09375,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44199936,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 85.18947234169484,
+        "cpu_seconds_total": 135.328125,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 64823296,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 4.265625,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47218688,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0.7961632929130359,
+        "cpu_seconds_total": 1.828125,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42188800,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35250176,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 65758,
+        "slow_queries": 0,
+        "threads_connected": 12,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4120,
+        "cursor_work:hydrate_ids": 164800,
+        "cursor_work:merge_candidates": 194095,
+        "cursor_work:redis_commands": 24720,
+        "cursor_work:redis_members": 194095,
+        "cursor_work:redis_roundtrips": 8240,
+        "dependency_calls:counter:batch_follower_counts:success": 434,
+        "dependency_calls:mysql:feed_item_db:success": 214,
+        "dependency_calls:redis:bigv_pipeline:success": 4120,
+        "dependency_calls:redis:feed_item_cache_write:success": 214,
+        "dependency_calls:redis:feed_item_mget:success": 4120,
+        "dependency_calls:redis:inbox_read:success": 4120,
+        "dependency_calls:relation:list_followings:success": 4120,
+        "go_gc_duration_seconds_count": 199,
+        "go_gc_duration_seconds_sum": 0.0080312,
+        "go_memstats_alloc_bytes_total": 1975037080,
+        "go_memstats_heap_alloc_bytes": 13855416,
+        "page_cache:bypass:success": 4120,
+        "pagination:page:success": 4120,
+        "pagination_duration_count:page:success": 4120,
+        "pagination_duration_sum:page:success": 12440.328000000007,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4120,
+        "stage_duration_count:counter:success": 434,
+        "stage_duration_count:hydrate:success": 4120,
+        "stage_duration_count:inbox:success": 4120,
+        "stage_duration_count:merge_dedup:success": 4120,
+        "stage_duration_count:relation:success": 4120,
+        "stage_duration_count:route:success": 4120,
+        "stage_duration_count:total:success": 4120,
+        "stage_duration_sum:bigv_pipeline:success": 2086.9107,
+        "stage_duration_sum:counter:success": 361.5685000000001,
+        "stage_duration_sum:hydrate:success": 2605.095099999994,
+        "stage_duration_sum:inbox:success": 2167.759799999998,
+        "stage_duration_sum:merge_dedup:success": 35.329499999999996,
+        "stage_duration_sum:relation:success": 5070.329100000007,
+        "stage_duration_sum:route:success": 393.6211000000002,
+        "stage_duration_sum:total:success": 12437.426100000008,
+        "stage_total:bigv_pipeline:success": 4120,
+        "stage_total:counter:success": 434,
+        "stage_total:hydrate:success": 4120,
+        "stage_total:inbox:success": 4120,
+        "stage_total:merge_dedup:success": 4120,
+        "stage_total:relation:success": 4120,
+        "stage_total:route:success": 4120,
+        "stage_total:total:success": 4120
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24062921,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10146,
+        "hit_rate": 0.725584236754139,
+        "keys": 592360,
+        "keyspace_hits": 883668,
+        "keyspace_misses": 334203,
+        "net_input_bytes": 1789310460,
+        "net_output_bytes": 520101130,
+        "ops_per_sec": 16207,
+        "rejected_connections": 0,
+        "uptime_seconds": 45638,
+        "used_memory_bytes": 95284632
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6860,
+        "lag_max": 7,
+        "lag_total": 7,
+        "log_end_offset_total": 6867,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.47,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 39.98,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 4.71,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 1.61,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:00:58.0271133+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 1.17,
+        "memory_percent": 11.86,
+        "pids": 151
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 3.101708187621286,
+        "cpu_seconds_total": 14.15625,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44212224,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 63.585017846236354,
+        "cpu_seconds_total": 136.609375,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 63954944,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 1.550854093810643,
+        "cpu_seconds_total": 4.296875,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47296512,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0.7754270469053215,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42188800,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35250176,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 65988,
+        "slow_queries": 0,
+        "threads_connected": 12,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4168,
+        "cursor_work:hydrate_ids": 166720,
+        "cursor_work:merge_candidates": 196247,
+        "cursor_work:redis_commands": 25008,
+        "cursor_work:redis_members": 196247,
+        "cursor_work:redis_roundtrips": 8336,
+        "dependency_calls:counter:batch_follower_counts:success": 437,
+        "dependency_calls:mysql:feed_item_db:success": 220,
+        "dependency_calls:redis:bigv_pipeline:success": 4168,
+        "dependency_calls:redis:feed_item_cache_write:success": 220,
+        "dependency_calls:redis:feed_item_mget:success": 4168,
+        "dependency_calls:redis:inbox_read:success": 4168,
+        "dependency_calls:relation:list_followings:success": 4168,
+        "go_gc_duration_seconds_count": 201,
+        "go_gc_duration_seconds_sum": 0.0085971,
+        "go_memstats_alloc_bytes_total": 1995458224,
+        "go_memstats_heap_alloc_bytes": 16668400,
+        "page_cache:bypass:success": 4168,
+        "pagination:page:success": 4168,
+        "pagination_duration_count:page:success": 4168,
+        "pagination_duration_sum:page:success": 12519.575100000005,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4168,
+        "stage_duration_count:counter:success": 437,
+        "stage_duration_count:hydrate:success": 4168,
+        "stage_duration_count:inbox:success": 4168,
+        "stage_duration_count:merge_dedup:success": 4168,
+        "stage_duration_count:relation:success": 4168,
+        "stage_duration_count:route:success": 4168,
+        "stage_duration_count:total:success": 4168,
+        "stage_duration_sum:bigv_pipeline:success": 2096.3659000000002,
+        "stage_duration_sum:counter:success": 362.6026000000001,
+        "stage_duration_sum:hydrate:success": 2622.2158999999947,
+        "stage_duration_sum:inbox:success": 2175.322299999999,
+        "stage_duration_sum:merge_dedup:success": 35.8424,
+        "stage_duration_sum:relation:success": 5112.829600000006,
+        "stage_duration_sum:route:success": 394.6552000000002,
+        "stage_duration_sum:total:success": 12516.144100000005,
+        "stage_total:bigv_pipeline:success": 4168,
+        "stage_total:counter:success": 437,
+        "stage_total:hydrate:success": 4168,
+        "stage_total:inbox:success": 4168,
+        "stage_total:merge_dedup:success": 4168,
+        "stage_total:relation:success": 4168,
+        "stage_total:route:success": 4168,
+        "stage_total:total:success": 4168
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24095974,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10154,
+        "hit_rate": 0.7258268964313602,
+        "keys": 592391,
+        "keyspace_hits": 885826,
+        "keyspace_misses": 334611,
+        "net_input_bytes": 1791947214,
+        "net_output_bytes": 521069554,
+        "ops_per_sec": 17240,
+        "rejected_connections": 0,
+        "uptime_seconds": 45640,
+        "used_memory_bytes": 95224696
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6870,
+        "lag_max": 1,
+        "lag_total": 1,
+        "log_end_offset_total": 6871,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.58,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 19.2,
+        "memory_percent": 7.04,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 1.24,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:00.042132+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 0.89,
+        "memory_percent": 11.86,
+        "pids": 151
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 3.0987709183770353,
+        "cpu_seconds_total": 14.21875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44220416,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 69.7223456634833,
+        "cpu_seconds_total": 138.015625,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 63741952,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 4.648156377565553,
+        "cpu_seconds_total": 4.390625,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47296512,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42356736,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35250176,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 66173,
+        "slow_queries": 0,
+        "threads_connected": 12,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4200,
+        "cursor_work:hydrate_ids": 168000,
+        "cursor_work:merge_candidates": 197738,
+        "cursor_work:redis_commands": 25200,
+        "cursor_work:redis_members": 197738,
+        "cursor_work:redis_roundtrips": 8400,
+        "dependency_calls:counter:batch_follower_counts:success": 446,
+        "dependency_calls:mysql:feed_item_db:success": 225,
+        "dependency_calls:redis:bigv_pipeline:success": 4200,
+        "dependency_calls:redis:feed_item_cache_write:success": 225,
+        "dependency_calls:redis:feed_item_mget:success": 4200,
+        "dependency_calls:redis:inbox_read:success": 4200,
+        "dependency_calls:relation:list_followings:success": 4200,
+        "go_gc_duration_seconds_count": 203,
+        "go_gc_duration_seconds_sum": 0.0085971,
+        "go_memstats_alloc_bytes_total": 2014380952,
+        "go_memstats_heap_alloc_bytes": 18704760,
+        "page_cache:bypass:success": 4200,
+        "pagination:page:success": 4200,
+        "pagination_duration_count:page:success": 4200,
+        "pagination_duration_sum:page:success": 12583.582900000001,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4200,
+        "stage_duration_count:counter:success": 446,
+        "stage_duration_count:hydrate:success": 4200,
+        "stage_duration_count:inbox:success": 4200,
+        "stage_duration_count:merge_dedup:success": 4200,
+        "stage_duration_count:relation:success": 4200,
+        "stage_duration_count:route:success": 4200,
+        "stage_duration_count:total:success": 4200,
+        "stage_duration_sum:bigv_pipeline:success": 2104.9925000000007,
+        "stage_duration_sum:counter:success": 366.4314000000001,
+        "stage_duration_sum:hydrate:success": 2633.949999999995,
+        "stage_duration_sum:inbox:success": 2184.495399999999,
+        "stage_duration_sum:merge_dedup:success": 36.3694,
+        "stage_duration_sum:relation:success": 5141.914500000008,
+        "stage_duration_sum:route:success": 398.4840000000002,
+        "stage_duration_sum:total:success": 12579.631400000002,
+        "stage_total:bigv_pipeline:success": 4200,
+        "stage_total:counter:success": 446,
+        "stage_total:hydrate:success": 4200,
+        "stage_total:inbox:success": 4200,
+        "stage_total:merge_dedup:success": 4200,
+        "stage_total:relation:success": 4200,
+        "stage_total:route:success": 4200,
+        "stage_total:total:success": 4200
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24128198,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10166,
+        "hit_rate": 0.7260311738926625,
+        "keys": 592393,
+        "keyspace_hits": 887478,
+        "keyspace_misses": 334891,
+        "net_input_bytes": 1794507538,
+        "net_output_bytes": 521916243,
+        "ops_per_sec": 16398,
+        "rejected_connections": 0,
+        "uptime_seconds": 45642,
+        "used_memory_bytes": 95363560
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6876,
+        "lag_max": 5,
+        "lag_total": 5,
+        "log_end_offset_total": 6881,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.36,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 20.26,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 1.3,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:02.0590607+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 0.96,
+        "memory_percent": 11.86,
+        "pids": 151
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 3.8687040339156473,
+        "cpu_seconds_total": 14.296875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44232704,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 64.22048696299973,
+        "cpu_seconds_total": 139.3125,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 65163264,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0.7737408067831294,
+        "cpu_seconds_total": 4.40625,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47796224,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42401792,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35250176,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 66381,
+        "slow_queries": 0,
+        "threads_connected": 12,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4248,
+        "cursor_work:hydrate_ids": 169920,
+        "cursor_work:merge_candidates": 200148,
+        "cursor_work:redis_commands": 25488,
+        "cursor_work:redis_members": 200148,
+        "cursor_work:redis_roundtrips": 8496,
+        "dependency_calls:counter:batch_follower_counts:success": 454,
+        "dependency_calls:mysql:feed_item_db:success": 231,
+        "dependency_calls:redis:bigv_pipeline:success": 4248,
+        "dependency_calls:redis:feed_item_cache_write:success": 231,
+        "dependency_calls:redis:feed_item_mget:success": 4248,
+        "dependency_calls:redis:inbox_read:success": 4248,
+        "dependency_calls:relation:list_followings:success": 4248,
+        "go_gc_duration_seconds_count": 205,
+        "go_gc_duration_seconds_sum": 0.00915,
+        "go_memstats_alloc_bytes_total": 2035796808,
+        "go_memstats_heap_alloc_bytes": 18423160,
+        "page_cache:bypass:success": 4248,
+        "pagination:page:success": 4248,
+        "pagination_duration_count:page:success": 4248,
+        "pagination_duration_sum:page:success": 12664.3546,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4248,
+        "stage_duration_count:counter:success": 454,
+        "stage_duration_count:hydrate:success": 4248,
+        "stage_duration_count:inbox:success": 4248,
+        "stage_duration_count:merge_dedup:success": 4248,
+        "stage_duration_count:relation:success": 4248,
+        "stage_duration_count:route:success": 4248,
+        "stage_duration_count:total:success": 4248,
+        "stage_duration_sum:bigv_pipeline:success": 2114.1332000000007,
+        "stage_duration_sum:counter:success": 370.1102000000001,
+        "stage_duration_sum:hydrate:success": 2648.892699999994,
+        "stage_duration_sum:inbox:success": 2195.119999999999,
+        "stage_duration_sum:merge_dedup:success": 36.3694,
+        "stage_duration_sum:relation:success": 5181.174800000007,
+        "stage_duration_sum:route:success": 402.1628000000002,
+        "stage_duration_sum:total:success": 12660.403100000001,
+        "stage_total:bigv_pipeline:success": 4248,
+        "stage_total:counter:success": 454,
+        "stage_total:hydrate:success": 4248,
+        "stage_total:inbox:success": 4248,
+        "stage_total:merge_dedup:success": 4248,
+        "stage_total:relation:success": 4248,
+        "stage_total:route:success": 4248,
+        "stage_total:total:success": 4248
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24162583,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10178,
+        "hit_rate": 0.726410566185594,
+        "keys": 592422,
+        "keyspace_hits": 889882,
+        "keyspace_misses": 335158,
+        "net_input_bytes": 1797247735,
+        "net_output_bytes": 522926029,
+        "ops_per_sec": 17836,
+        "rejected_connections": 0,
+        "uptime_seconds": 45644,
+        "used_memory_bytes": 95296208
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6884,
+        "lag_max": 5,
+        "lag_total": 5,
+        "log_end_offset_total": 6889,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 4.21,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.11,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 24.36,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 1.49,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:04.0784708+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 2.94,
+        "memory_percent": 11.86,
+        "pids": 151
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 3.875529260878406,
+        "cpu_seconds_total": 14.375,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44232704,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 73.63505595668971,
+        "cpu_seconds_total": 140.796875,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 63721472,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 4.40625,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47939584,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42475520,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35229696,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 66604,
+        "slow_queries": 0,
+        "threads_connected": 12,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4296,
+        "cursor_work:hydrate_ids": 171840,
+        "cursor_work:merge_candidates": 202688,
+        "cursor_work:redis_commands": 25776,
+        "cursor_work:redis_members": 202688,
+        "cursor_work:redis_roundtrips": 8592,
+        "dependency_calls:counter:batch_follower_counts:success": 457,
+        "dependency_calls:mysql:feed_item_db:success": 238,
+        "dependency_calls:redis:bigv_pipeline:success": 4296,
+        "dependency_calls:redis:feed_item_cache_write:success": 238,
+        "dependency_calls:redis:feed_item_mget:success": 4296,
+        "dependency_calls:redis:inbox_read:success": 4296,
+        "dependency_calls:relation:list_followings:success": 4296,
+        "go_gc_duration_seconds_count": 207,
+        "go_gc_duration_seconds_sum": 0.0096651,
+        "go_memstats_alloc_bytes_total": 2056853112,
+        "go_memstats_heap_alloc_bytes": 18741296,
+        "page_cache:bypass:success": 4296,
+        "pagination:page:success": 4296,
+        "pagination_duration_count:page:success": 4296,
+        "pagination_duration_sum:page:success": 12747.122499999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4296,
+        "stage_duration_count:counter:success": 457,
+        "stage_duration_count:hydrate:success": 4296,
+        "stage_duration_count:inbox:success": 4296,
+        "stage_duration_count:merge_dedup:success": 4296,
+        "stage_duration_count:relation:success": 4296,
+        "stage_duration_count:route:success": 4296,
+        "stage_duration_count:total:success": 4296,
+        "stage_duration_sum:bigv_pipeline:success": 2120.9942000000005,
+        "stage_duration_sum:counter:success": 371.1754000000001,
+        "stage_duration_sum:hydrate:success": 2668.0042999999937,
+        "stage_duration_sum:inbox:success": 2204.1198999999997,
+        "stage_duration_sum:merge_dedup:success": 36.3694,
+        "stage_duration_sum:relation:success": 5226.805400000007,
+        "stage_duration_sum:route:success": 403.8045000000002,
+        "stage_duration_sum:total:success": 12743.170999999997,
+        "stage_total:bigv_pipeline:success": 4296,
+        "stage_total:counter:success": 457,
+        "stage_total:hydrate:success": 4296,
+        "stage_total:inbox:success": 4296,
+        "stage_total:merge_dedup:success": 4296,
+        "stage_total:relation:success": 4296,
+        "stage_total:route:success": 4296,
+        "stage_total:total:success": 4296
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24196585,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10190,
+        "hit_rate": 0.7267693014518702,
+        "keys": 592428,
+        "keyspace_hits": 892174,
+        "keyspace_misses": 335415,
+        "net_input_bytes": 1799960785,
+        "net_output_bytes": 523924412,
+        "ops_per_sec": 17480,
+        "rejected_connections": 0,
+        "uptime_seconds": 45646,
+        "used_memory_bytes": 95353984
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6893,
+        "lag_max": 3,
+        "lag_total": 3,
+        "log_end_offset_total": 6896,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.53,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 11.71,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 2.73,
+        "memory_percent": 4.66,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:06.0943245+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 1.03,
+        "memory_percent": 11.86,
+        "pids": 151
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 2.3227414999553537,
+        "cpu_seconds_total": 14.421875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44232704,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 54.19730166562492,
+        "cpu_seconds_total": 141.890625,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 64102400,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 1.5484943333035692,
+        "cpu_seconds_total": 4.4375,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47681536,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42524672,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35229696,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 66818,
+        "slow_queries": 0,
+        "threads_connected": 11,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4343,
+        "cursor_work:hydrate_ids": 173720,
+        "cursor_work:merge_candidates": 205254,
+        "cursor_work:redis_commands": 26058,
+        "cursor_work:redis_members": 205254,
+        "cursor_work:redis_roundtrips": 8686,
+        "dependency_calls:counter:batch_follower_counts:success": 467,
+        "dependency_calls:mysql:feed_item_db:success": 244,
+        "dependency_calls:redis:bigv_pipeline:success": 4343,
+        "dependency_calls:redis:feed_item_cache_write:success": 244,
+        "dependency_calls:redis:feed_item_mget:success": 4343,
+        "dependency_calls:redis:inbox_read:success": 4343,
+        "dependency_calls:relation:list_followings:success": 4344,
+        "go_gc_duration_seconds_count": 210,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2078569320,
+        "go_memstats_heap_alloc_bytes": 12893416,
+        "page_cache:bypass:success": 4343,
+        "pagination:page:success": 4343,
+        "pagination_duration_count:page:success": 4343,
+        "pagination_duration_sum:page:success": 12842.915799999995,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4343,
+        "stage_duration_count:counter:success": 467,
+        "stage_duration_count:hydrate:success": 4343,
+        "stage_duration_count:inbox:success": 4343,
+        "stage_duration_count:merge_dedup:success": 4343,
+        "stage_duration_count:relation:success": 4344,
+        "stage_duration_count:route:success": 4344,
+        "stage_duration_count:total:success": 4343,
+        "stage_duration_sum:bigv_pipeline:success": 2130.525500000001,
+        "stage_duration_sum:counter:success": 377.2566000000001,
+        "stage_duration_sum:hydrate:success": 2687.163499999995,
+        "stage_duration_sum:inbox:success": 2217.7153999999996,
+        "stage_duration_sum:merge_dedup:success": 38.214499999999994,
+        "stage_duration_sum:relation:success": 5273.428100000005,
+        "stage_duration_sum:route:success": 409.8857000000002,
+        "stage_duration_sum:total:success": 12838.964299999996,
+        "stage_total:bigv_pipeline:success": 4343,
+        "stage_total:counter:success": 467,
+        "stage_total:hydrate:success": 4343,
+        "stage_total:inbox:success": 4343,
+        "stage_total:merge_dedup:success": 4343,
+        "stage_total:relation:success": 4344,
+        "stage_total:route:success": 4344,
+        "stage_total:total:success": 4343
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24230159,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10198,
+        "hit_rate": 0.7271676544887655,
+        "keys": 592474,
+        "keyspace_hits": 894646,
+        "keyspace_misses": 335670,
+        "net_input_bytes": 1802629104,
+        "net_output_bytes": 524915757,
+        "ops_per_sec": 16971,
+        "rejected_connections": 0,
+        "uptime_seconds": 45648,
+        "used_memory_bytes": 95415736
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6903,
+        "lag_max": 3,
+        "lag_total": 3,
+        "log_end_offset_total": 6906,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.53,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 40.68,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 20.84,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 1.09,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:08.1124139+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 1.02,
+        "memory_percent": 11.86,
+        "pids": 152
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 2.3241739476735352,
+        "cpu_seconds_total": 14.46875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44232704,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 74.37356632555313,
+        "cpu_seconds_total": 143.390625,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 64565248,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0.7747246492245118,
+        "cpu_seconds_total": 4.453125,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47697920,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42565632,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35229696,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 67005,
+        "slow_queries": 0,
+        "threads_connected": 10,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4376,
+        "cursor_work:hydrate_ids": 175040,
+        "cursor_work:merge_candidates": 207117,
+        "cursor_work:redis_commands": 26256,
+        "cursor_work:redis_members": 207117,
+        "cursor_work:redis_roundtrips": 8752,
+        "dependency_calls:counter:batch_follower_counts:success": 473,
+        "dependency_calls:mysql:feed_item_db:success": 247,
+        "dependency_calls:redis:bigv_pipeline:success": 4376,
+        "dependency_calls:redis:feed_item_cache_write:success": 247,
+        "dependency_calls:redis:feed_item_mget:success": 4376,
+        "dependency_calls:redis:inbox_read:success": 4376,
+        "dependency_calls:relation:list_followings:success": 4376,
+        "go_gc_duration_seconds_count": 211,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2096657408,
+        "go_memstats_heap_alloc_bytes": 22832352,
+        "page_cache:bypass:success": 4376,
+        "pagination:page:success": 4376,
+        "pagination_duration_count:page:success": 4376,
+        "pagination_duration_sum:page:success": 12891.005699999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4376,
+        "stage_duration_count:counter:success": 473,
+        "stage_duration_count:hydrate:success": 4376,
+        "stage_duration_count:inbox:success": 4376,
+        "stage_duration_count:merge_dedup:success": 4376,
+        "stage_duration_count:relation:success": 4376,
+        "stage_duration_count:route:success": 4376,
+        "stage_duration_count:total:success": 4376,
+        "stage_duration_sum:bigv_pipeline:success": 2137.3777000000005,
+        "stage_duration_sum:counter:success": 379.4197000000001,
+        "stage_duration_sum:hydrate:success": 2696.146899999996,
+        "stage_duration_sum:inbox:success": 2221.8723999999997,
+        "stage_duration_sum:merge_dedup:success": 38.74059999999999,
+        "stage_duration_sum:relation:success": 5296.216600000003,
+        "stage_duration_sum:route:success": 412.0488000000002,
+        "stage_duration_sum:total:success": 12886.538199999997,
+        "stage_total:bigv_pipeline:success": 4376,
+        "stage_total:counter:success": 473,
+        "stage_total:hydrate:success": 4376,
+        "stage_total:inbox:success": 4376,
+        "stage_total:merge_dedup:success": 4376,
+        "stage_total:relation:success": 4376,
+        "stage_total:route:success": 4376,
+        "stage_total:total:success": 4376
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24262729,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10210,
+        "hit_rate": 0.7273968978457623,
+        "keys": 592480,
+        "keyspace_hits": 896281,
+        "keyspace_misses": 335895,
+        "net_input_bytes": 1805214810,
+        "net_output_bytes": 525770988,
+        "ops_per_sec": 16565,
+        "rejected_connections": 0,
+        "uptime_seconds": 45650,
+        "used_memory_bytes": 95392456
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6910,
+        "lag_max": 5,
+        "lag_total": 5,
+        "log_end_offset_total": 6915,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.58,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.11,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 142.27,
+        "memory_percent": 7.54,
+        "pids": 121
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 0.26,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:10.1292595+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 0.91,
+        "memory_percent": 11.86,
+        "pids": 152
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 3.8766079053128157,
+        "cpu_seconds_total": 14.546875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44244992,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 47.294616444816356,
+        "cpu_seconds_total": 144.34375,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 66220032,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 1.5506431621251264,
+        "cpu_seconds_total": 4.484375,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47759360,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42573824,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35233792,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 67118,
+        "slow_queries": 0,
+        "threads_connected": 11,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4392,
+        "cursor_work:hydrate_ids": 175680,
+        "cursor_work:merge_candidates": 208045,
+        "cursor_work:redis_commands": 26352,
+        "cursor_work:redis_members": 208045,
+        "cursor_work:redis_roundtrips": 8784,
+        "dependency_calls:counter:batch_follower_counts:success": 475,
+        "dependency_calls:mysql:feed_item_db:success": 249,
+        "dependency_calls:redis:bigv_pipeline:success": 4392,
+        "dependency_calls:redis:feed_item_cache_write:success": 249,
+        "dependency_calls:redis:feed_item_mget:success": 4392,
+        "dependency_calls:redis:inbox_read:success": 4392,
+        "dependency_calls:relation:list_followings:success": 4392,
+        "go_gc_duration_seconds_count": 212,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2108216304,
+        "go_memstats_heap_alloc_bytes": 23000032,
+        "page_cache:bypass:success": 4392,
+        "pagination:page:success": 4392,
+        "pagination_duration_count:page:success": 4392,
+        "pagination_duration_sum:page:success": 12920.766999999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4392,
+        "stage_duration_count:counter:success": 475,
+        "stage_duration_count:hydrate:success": 4392,
+        "stage_duration_count:inbox:success": 4392,
+        "stage_duration_count:merge_dedup:success": 4392,
+        "stage_duration_count:relation:success": 4392,
+        "stage_duration_count:route:success": 4392,
+        "stage_duration_count:total:success": 4392,
+        "stage_duration_sum:bigv_pipeline:success": 2139.4485,
+        "stage_duration_sum:counter:success": 380.4659000000001,
+        "stage_duration_sum:hydrate:success": 2702.669499999997,
+        "stage_duration_sum:inbox:success": 2227.7018,
+        "stage_duration_sum:merge_dedup:success": 38.74059999999999,
+        "stage_duration_sum:relation:success": 5310.508900000003,
+        "stage_duration_sum:route:success": 413.0950000000002,
+        "stage_duration_sum:total:success": 12916.299499999997,
+        "stage_total:bigv_pipeline:success": 4392,
+        "stage_total:counter:success": 475,
+        "stage_total:hydrate:success": 4392,
+        "stage_total:inbox:success": 4392,
+        "stage_total:merge_dedup:success": 4392,
+        "stage_total:relation:success": 4392,
+        "stage_total:route:success": 4392,
+        "stage_total:total:success": 4392
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24281268,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10214,
+        "hit_rate": 0.7274993552823863,
+        "keys": 592470,
+        "keyspace_hits": 897078,
+        "keyspace_misses": 336020,
+        "net_input_bytes": 1806658448,
+        "net_output_bytes": 526218490,
+        "ops_per_sec": 9120,
+        "rejected_connections": 0,
+        "uptime_seconds": 45652,
+        "used_memory_bytes": 95198384
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6919,
+        "lag_max": 4,
+        "lag_total": 4,
+        "log_end_offset_total": 6923,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.4,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.13,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 73.96,
+        "memory_percent": 7.11,
+        "pids": 97
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:12.1445523+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 0.87,
+        "memory_percent": 11.86,
+        "pids": 152
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 1.5483704231223183,
+        "cpu_seconds_total": 14.578125,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44244992,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 6.193481692489273,
+        "cpu_seconds_total": 144.46875,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 66596864,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 4.484375,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47759360,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42590208,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35233792,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 67128,
+        "slow_queries": 0,
+        "threads_connected": 11,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4392,
+        "cursor_work:hydrate_ids": 175680,
+        "cursor_work:merge_candidates": 208045,
+        "cursor_work:redis_commands": 26352,
+        "cursor_work:redis_members": 208045,
+        "cursor_work:redis_roundtrips": 8784,
+        "dependency_calls:counter:batch_follower_counts:success": 475,
+        "dependency_calls:mysql:feed_item_db:success": 249,
+        "dependency_calls:redis:bigv_pipeline:success": 4392,
+        "dependency_calls:redis:feed_item_cache_write:success": 249,
+        "dependency_calls:redis:feed_item_mget:success": 4392,
+        "dependency_calls:redis:inbox_read:success": 4392,
+        "dependency_calls:relation:list_followings:success": 4392,
+        "go_gc_duration_seconds_count": 213,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2111289248,
+        "go_memstats_heap_alloc_bytes": 15520200,
+        "page_cache:bypass:success": 4392,
+        "pagination:page:success": 4392,
+        "pagination_duration_count:page:success": 4392,
+        "pagination_duration_sum:page:success": 12920.766999999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4392,
+        "stage_duration_count:counter:success": 475,
+        "stage_duration_count:hydrate:success": 4392,
+        "stage_duration_count:inbox:success": 4392,
+        "stage_duration_count:merge_dedup:success": 4392,
+        "stage_duration_count:relation:success": 4392,
+        "stage_duration_count:route:success": 4392,
+        "stage_duration_count:total:success": 4392,
+        "stage_duration_sum:bigv_pipeline:success": 2139.4485,
+        "stage_duration_sum:counter:success": 380.4659000000001,
+        "stage_duration_sum:hydrate:success": 2702.669499999997,
+        "stage_duration_sum:inbox:success": 2227.7018,
+        "stage_duration_sum:merge_dedup:success": 38.74059999999999,
+        "stage_duration_sum:relation:success": 5310.508900000003,
+        "stage_duration_sum:route:success": 413.0950000000002,
+        "stage_duration_sum:total:success": 12916.299499999997,
+        "stage_total:bigv_pipeline:success": 4392,
+        "stage_total:counter:success": 475,
+        "stage_total:hydrate:success": 4392,
+        "stage_total:inbox:success": 4392,
+        "stage_total:merge_dedup:success": 4392,
+        "stage_total:relation:success": 4392,
+        "stage_total:route:success": 4392,
+        "stage_total:total:success": 4392
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24283396,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10214,
+        "hit_rate": 0.7274929386033558,
+        "keys": 592459,
+        "keyspace_hits": 897081,
+        "keyspace_misses": 336032,
+        "net_input_bytes": 1806800730,
+        "net_output_bytes": 526244320,
+        "ops_per_sec": 1238,
+        "rejected_connections": 0,
+        "uptime_seconds": 45654,
+        "used_memory_bytes": 94996984
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6923,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 6923,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 3.74,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 167.33,
+        "memory_percent": 7.55,
+        "pids": 127
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 0.1,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:14.1628032+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 2.83,
+        "memory_percent": 11.86,
+        "pids": 152
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 2.32578205444925,
+        "cpu_seconds_total": 14.625,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44244992,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 10.078388902613415,
+        "cpu_seconds_total": 144.671875,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 66883584,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 4.484375,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47759360,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42594304,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35233792,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 67132,
+        "slow_queries": 0,
+        "threads_connected": 11,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4392,
+        "cursor_work:hydrate_ids": 175680,
+        "cursor_work:merge_candidates": 208045,
+        "cursor_work:redis_commands": 26352,
+        "cursor_work:redis_members": 208045,
+        "cursor_work:redis_roundtrips": 8784,
+        "dependency_calls:counter:batch_follower_counts:success": 475,
+        "dependency_calls:mysql:feed_item_db:success": 249,
+        "dependency_calls:redis:bigv_pipeline:success": 4392,
+        "dependency_calls:redis:feed_item_cache_write:success": 249,
+        "dependency_calls:redis:feed_item_mget:success": 4392,
+        "dependency_calls:redis:inbox_read:success": 4392,
+        "dependency_calls:relation:list_followings:success": 4392,
+        "go_gc_duration_seconds_count": 213,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2113004416,
+        "go_memstats_heap_alloc_bytes": 17235368,
+        "page_cache:bypass:success": 4392,
+        "pagination:page:success": 4392,
+        "pagination_duration_count:page:success": 4392,
+        "pagination_duration_sum:page:success": 12920.766999999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4392,
+        "stage_duration_count:counter:success": 475,
+        "stage_duration_count:hydrate:success": 4392,
+        "stage_duration_count:inbox:success": 4392,
+        "stage_duration_count:merge_dedup:success": 4392,
+        "stage_duration_count:relation:success": 4392,
+        "stage_duration_count:route:success": 4392,
+        "stage_duration_count:total:success": 4392,
+        "stage_duration_sum:bigv_pipeline:success": 2139.4485,
+        "stage_duration_sum:counter:success": 380.4659000000001,
+        "stage_duration_sum:hydrate:success": 2702.669499999997,
+        "stage_duration_sum:inbox:success": 2227.7018,
+        "stage_duration_sum:merge_dedup:success": 38.74059999999999,
+        "stage_duration_sum:relation:success": 5310.508900000003,
+        "stage_duration_sum:route:success": 413.0950000000002,
+        "stage_duration_sum:total:success": 12916.299499999997,
+        "stage_total:bigv_pipeline:success": 4392,
+        "stage_total:counter:success": 475,
+        "stage_total:hydrate:success": 4392,
+        "stage_total:inbox:success": 4392,
+        "stage_total:merge_dedup:success": 4392,
+        "stage_total:relation:success": 4392,
+        "stage_total:route:success": 4392,
+        "stage_total:total:success": 4392
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24284318,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10214,
+        "hit_rate": 0.7274900618105913,
+        "keys": 592448,
+        "keyspace_hits": 897084,
+        "keyspace_misses": 336038,
+        "net_input_bytes": 1806867484,
+        "net_output_bytes": 526265300,
+        "ops_per_sec": 538,
+        "rejected_connections": 0,
+        "uptime_seconds": 45656,
+        "used_memory_bytes": 95079688
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:16.1782543+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6923,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 6923,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:counter",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\counter.exe|1787064665305",
+      "values": {
+        "cpu_percent": 2.792889669329013,
+        "cpu_seconds_total": 14.671875,
+        "pid": 24444,
+        "process_start_ms": 1787064665305,
+        "rss_bytes": 44244992,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:gateway",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\gateway.exe|1787064684282",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.140625,
+        "pid": 29440,
+        "process_start_ms": 1787064684282,
+        "rss_bytes": 37421056,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:knowpost",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\knowpost.exe|1787064675235",
+      "values": {
+        "cpu_percent": 2.792889669329013,
+        "cpu_seconds_total": 144.71875,
+        "pid": 9704,
+        "process_start_ms": 1787064675235,
+        "rss_bytes": 66883584,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:relation",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\relation.exe|1787064669914",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 4.484375,
+        "pid": 26956,
+        "process_start_ms": 1787064669914,
+        "rss_bytes": 47759360,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:search",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\search.exe|1787064680243",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 1.84375,
+        "pid": 11296,
+        "process_start_ms": 1787064680243,
+        "rss_bytes": 42602496,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "process:user-storage",
+      "identity": "F:\\zhiguang_be\\zhiguang-go\\.tmp\\feed-local\\bin\\user-storage.exe|1787064660932",
+      "values": {
+        "cpu_percent": 0,
+        "cpu_seconds_total": 0.203125,
+        "pid": 30296,
+        "process_start_ms": 1787064660932,
+        "rss_bytes": 35233792,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 4392,
+        "cursor_work:hydrate_ids": 175680,
+        "cursor_work:merge_candidates": 208045,
+        "cursor_work:redis_commands": 26352,
+        "cursor_work:redis_members": 208045,
+        "cursor_work:redis_roundtrips": 8784,
+        "dependency_calls:counter:batch_follower_counts:success": 475,
+        "dependency_calls:mysql:feed_item_db:success": 249,
+        "dependency_calls:redis:bigv_pipeline:success": 4392,
+        "dependency_calls:redis:feed_item_cache_write:success": 249,
+        "dependency_calls:redis:feed_item_mget:success": 4392,
+        "dependency_calls:redis:inbox_read:success": 4392,
+        "dependency_calls:relation:list_followings:success": 4392,
+        "go_gc_duration_seconds_count": 213,
+        "go_gc_duration_seconds_sum": 0.0107132,
+        "go_memstats_alloc_bytes_total": 2113339184,
+        "go_memstats_heap_alloc_bytes": 17570136,
+        "page_cache:bypass:success": 4392,
+        "pagination:page:success": 4392,
+        "pagination_duration_count:page:success": 4392,
+        "pagination_duration_sum:page:success": 12920.766999999996,
+        "process_start_time_seconds": 1787064675,
+        "refresh_active_workers": 0,
+        "refresh_pending_keys": 0,
+        "refresh_queue_depth": 0,
+        "stage_duration_count:bigv_pipeline:success": 4392,
+        "stage_duration_count:counter:success": 475,
+        "stage_duration_count:hydrate:success": 4392,
+        "stage_duration_count:inbox:success": 4392,
+        "stage_duration_count:merge_dedup:success": 4392,
+        "stage_duration_count:relation:success": 4392,
+        "stage_duration_count:route:success": 4392,
+        "stage_duration_count:total:success": 4392,
+        "stage_duration_sum:bigv_pipeline:success": 2139.4485,
+        "stage_duration_sum:counter:success": 380.4659000000001,
+        "stage_duration_sum:hydrate:success": 2702.669499999997,
+        "stage_duration_sum:inbox:success": 2227.7018,
+        "stage_duration_sum:merge_dedup:success": 38.74059999999999,
+        "stage_duration_sum:relation:success": 5310.508900000003,
+        "stage_duration_sum:route:success": 413.0950000000002,
+        "stage_duration_sum:total:success": 12916.299499999997,
+        "stage_total:bigv_pipeline:success": 4392,
+        "stage_total:counter:success": 475,
+        "stage_total:hydrate:success": 4392,
+        "stage_total:inbox:success": 4392,
+        "stage_total:merge_dedup:success": 4392,
+        "stage_total:relation:success": 4392,
+        "stage_total:route:success": 4392,
+        "stage_total:total:success": 4392
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 67136,
+        "slow_queries": 0,
+        "threads_connected": 11,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "redis",
+      "identity": "b87f399a13fd9d8ab541fbde0bcc4f2747032899",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 24285240,
+        "connected_clients": 70,
+        "evicted_keys": 0,
+        "feed_safety_epoch": 10214,
+        "hit_rate": 0.7274871850598192,
+        "keys": 592442,
+        "keyspace_hits": 897087,
+        "keyspace_misses": 336044,
+        "net_input_bytes": 1806934218,
+        "net_output_bytes": 526286258,
+        "ops_per_sec": 550,
+        "rejected_connections": 0,
+        "uptime_seconds": 45657,
+        "used_memory_bytes": 95122000
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker-state:zg-etcd",
+      "identity": "7a8f532300a41634c33edb4ee915d0169807baf3ae0023d6a9cce3d5e92975dd",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker-state:zg-zk",
+      "identity": "2e980b321c37c80c81d6e23051e30f90a21008a1004d7bba9f8132e59bf00437",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker-state:zg-kafka",
+      "identity": "813d727cd3d0f476fc129a1a7c3f49afa4ce718e4daede5038c2f031fc031535",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker-state:zg-canal",
+      "identity": "ab5c9de3a066d4e0ce29bfbdfd6e693342ba60c7edf1715ee7ec90d26ce2aee1",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker-state:zg-es",
+      "identity": "688f4ca715a521fd42ce642f8a2752f240f32990b1601f9491eeca3187988484",
+      "values": {
+        "health_configured": 1,
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 6923,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 6923,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker:zg-etcd",
+      "values": {
+        "cpu_percent": 0.46,
+        "memory_percent": 0.27,
+        "pids": 14
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker:zg-zk",
+      "values": {
+        "cpu_percent": 0.14,
+        "memory_percent": 1.29,
+        "pids": 82
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker:zg-kafka",
+      "values": {
+        "cpu_percent": 129.74,
+        "memory_percent": 7.03,
+        "pids": 94
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker:zg-canal",
+      "values": {
+        "cpu_percent": 0.11,
+        "memory_percent": 4.65,
+        "pids": 78
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:17.8566235+08:00",
+      "source": "docker:zg-es",
+      "values": {
+        "cpu_percent": 0.84,
+        "memory_percent": 11.86,
+        "pids": 152
+      }
+    },
+    {
+      "timestamp": "2026-08-18T23:01:11.2273484+08:00",
+      "source": "client:loadtest",
+      "identity": "pid:31044",
+      "values": {
+        "cpu_percent_normalized": 0.14172686286514194,
+        "cpu_percent_total": 2.267629805842271,
+        "logical_cpus": 16
+      }
+    }
+  ],
+  "recovery": {
+    "kafka_drain_ns": 6626124900,
+    "final_metrics": {
+      "current_offset_total": 6923,
+      "lag_max": 0,
+      "lag_total": 0,
+      "log_end_offset_total": 6923,
+      "partitions": 1
+    },
+    "complete": true
+  },
+  "mutation": {
+    "checkpoint_id": "ca37fe4c148024bb3d8cb46573e4616ebb1e93f5a6c903e67a1336f6dd31b5d7",
+    "baseline_fingerprint": "2bdf1b5730304cd6cef84adbed8ff3e6541d89af27b522951096fda1b86cee54",
+    "checkpoint_created_at": "2026-08-18T07:15:15.962547Z",
+    "tool_version": "feed-loadtest-mutation-v1",
+    "subject_binary_identity": "counter|sha256=2b1cc0fefe018402ce7860e7b0c087ec9fc1bb857593ef01a2686f8a873f2ef4;gateway|sha256=db1c58b722389718030fb54f3fcab77ee5b89dd9cb92878ac0fd47df2550a79b;knowpost|sha256=cdc594def0f2c268cd0e5b7e344fd3127068d39971c10d2738971bc8f194abfb;relation|sha256=8924e0f365c6c3fc5f6fba18d1ccb9cfe10252d6322090d7609482d0ce7876dd;search|sha256=f0e7adbc0c4f4388328357746ca913d01219f533e723f887d2189f92a63c9a29;user-storage|sha256=e23bcf078ece94536a0365c73605c24440b636a4bac076096c93c5a2de321883",
+    "published_post_ids": [
+      348119078579474432,
+      348119078587863040,
+      348119078608834560,
+      348119078654971904,
+      348119082085912576,
+      348119082090106880,
+      348119082111078400,
+      348119082140438528,
+      348119084803821568,
+      348119084812210176,
+      348119084820598784,
+      348119084854153216,
+      348119087991492608,
+      348119088004075520,
+      348119088020852736,
+      348119088062795776,
+      348119091426627584,
+      348119091489542144,
+      348119091502125056,
+      348119091535679488,
+      348119094438137856,
+      348119094505246720,
+      348119094530412544,
+      348119094555578368,
+      348119097663557632,
+      348119097776803840,
+      348119097818746880,
+      348119097869078528,
+      348119100805091328,
+      348119100826062848,
+      348119100851228672,
+      348119100888977408,
+      348119104147951616,
+      348119104168923136,
+      348119104206671872,
+      348119104248614912,
+      348119107394342912,
+      348119107415314432,
+      348119107432091648,
+      348119107461451776,
+      348119110082891776,
+      348119110099668992,
+      348119110133223424,
+      348119110162583552,
+      348119113283145728,
+      348119113312505856,
+      348119113333477376,
+      348119113371226112,
+      348119116579868672,
+      348119116592451584,
+      348119116609228800,
+      348119116642783232,
+      348119119532658688,
+      348119119541047296,
+      348119119553630208,
+      348119119595573248,
+      348119122804215808,
+      348119122837770240,
+      348119122867130368,
+      348119122930044928,
+      348119126113521664,
+      348119126121910272,
+      348119126142881792,
+      348119126176436224,
+      348119128990814208,
+      348119129011785728,
+      348119129028562944,
+      348119129078894592,
+      348119132480475136,
+      348119132488863744,
+      348119132501446656,
+      348119132530806784,
+      348119135236132864,
+      348119135252910080,
+      348119135282270208,
+      348119135328407552,
+      348119138671267840,
+      348119138688045056,
+      348119138721599488,
+      348119138788708352
+    ],
+    "initial_restore": {
+      "checkpoint_id": "ca37fe4c148024bb3d8cb46573e4616ebb1e93f5a6c903e67a1336f6dd31b5d7",
+      "duration_ns": 4945153200,
+      "removed_posts": 0,
+      "removed_outbox": 0,
+      "safety_epoch": 10112,
+      "complete": true
+    },
+    "after_warmup_restore": {
+      "checkpoint_id": "ca37fe4c148024bb3d8cb46573e4616ebb1e93f5a6c903e67a1336f6dd31b5d7",
+      "duration_ns": 7609141900,
+      "removed_posts": 20,
+      "removed_outbox": 40,
+      "removed_post_ids": [
+        348119019372679168,
+        348119019381067776,
+        348119019402039296,
+        348119019448176640,
+        348119022233194496,
+        348119022249971712,
+        348119022304497664,
+        348119022338052096,
+        348119025060155392,
+        348119025085321216,
+        348119025114681344,
+        348119025152430080,
+        348119028004556800,
+        348119028021334016,
+        348119028033916928,
+        348119028059082752,
+        348119030969929728,
+        348119030982512640,
+        348119031003484160,
+        348119031045427200
+      ],
+      "removed_outbox_ids": [
+        348119019901161472,
+        348119019913744384,
+        348119019922132992,
+        348119019968270336,
+        348119021746655232,
+        348119021750849536,
+        348119021767626752,
+        348119021805375488,
+        348119022749093888,
+        348119022749093889,
+        348119022812008448,
+        348119022832979968,
+        348119024552644608,
+        348119024577810432,
+        348119024607170560,
+        348119024636530688,
+        348119025550888960,
+        348119025571860480,
+        348119025601220608,
+        348119025634775040,
+        348119027526406144,
+        348119027526406145,
+        348119027534794752,
+        348119027568349184,
+        348119028432375808,
+        348119028470124544,
+        348119028470124545,
+        348119028478513152,
+        348119030235926528,
+        348119030244315136,
+        348119030265286656,
+        348119030273675264,
+        348119031624241152,
+        348119031628435456,
+        348119031641018368,
+        348119031653601280,
+        348119033486512128,
+        348119033490706432,
+        348119033490706433,
+        348119033490706434
+      ],
+      "safety_epoch": 10133,
+      "complete": true
+    },
+    "after_trial_restore": {
+      "checkpoint_id": "ca37fe4c148024bb3d8cb46573e4616ebb1e93f5a6c903e67a1336f6dd31b5d7",
+      "duration_ns": 4849594600,
+      "removed_posts": 80,
+      "removed_outbox": 160,
+      "removed_post_ids": [
+        348119078579474432,
+        348119078587863040,
+        348119078608834560,
+        348119078654971904,
+        348119082085912576,
+        348119082090106880,
+        348119082111078400,
+        348119082140438528,
+        348119084803821568,
+        348119084812210176,
+        348119084820598784,
+        348119084854153216,
+        348119087991492608,
+        348119088004075520,
+        348119088020852736,
+        348119088062795776,
+        348119091426627584,
+        348119091489542144,
+        348119091502125056,
+        348119091535679488,
+        348119094438137856,
+        348119094505246720,
+        348119094530412544,
+        348119094555578368,
+        348119097663557632,
+        348119097776803840,
+        348119097818746880,
+        348119097869078528,
+        348119100805091328,
+        348119100826062848,
+        348119100851228672,
+        348119100888977408,
+        348119104147951616,
+        348119104168923136,
+        348119104206671872,
+        348119104248614912,
+        348119107394342912,
+        348119107415314432,
+        348119107432091648,
+        348119107461451776,
+        348119110082891776,
+        348119110099668992,
+        348119110133223424,
+        348119110162583552,
+        348119113283145728,
+        348119113312505856,
+        348119113333477376,
+        348119113371226112,
+        348119116579868672,
+        348119116592451584,
+        348119116609228800,
+        348119116642783232,
+        348119119532658688,
+        348119119541047296,
+        348119119553630208,
+        348119119595573248,
+        348119122804215808,
+        348119122837770240,
+        348119122867130368,
+        348119122930044928,
+        348119126113521664,
+        348119126121910272,
+        348119126142881792,
+        348119126176436224,
+        348119128990814208,
+        348119129011785728,
+        348119129028562944,
+        348119129078894592,
+        348119132480475136,
+        348119132488863744,
+        348119132501446656,
+        348119132530806784,
+        348119135236132864,
+        348119135252910080,
+        348119135282270208,
+        348119135328407552,
+        348119138671267840,
+        348119138688045056,
+        348119138721599488,
+        348119138788708352
+      ],
+      "removed_outbox_ids": [
+        348119079154094080,
+        348119079175065600,
+        348119079179259904,
+        348119079225397248,
+        348119081586790400,
+        348119081603567616,
+        348119081607761920,
+        348119081607761921,
+        348119082551480320,
+        348119082559868928,
+        348119082564063232,
+        348119082589229056,
+        348119084355031040,
+        348119084359225344,
+        348119084359225345,
+        348119084363419648,
+        348119085315526656,
+        348119085328109568,
+        348119085328109569,
+        348119085353275392,
+        348119087391707136,
+        348119087400095744,
+        348119087408484352,
+        348119087412678656,
+        348119088578695168,
+        348119088595472384,
+        348119088620638208,
+        348119088658386944,
+        348119090948476928,
+        348119091040751616,
+        348119091040751617,
+        348119091040751618,
+        348119091841863680,
+        348119091942526976,
+        348119091942526977,
+        348119091984470016,
+        348119093884489728,
+        348119094035484672,
+        348119094048067584,
+        348119094106787840,
+        348119094861762560,
+        348119094949842944,
+        348119094983397376,
+        348119094983397377,
+        348119097000857600,
+        348119097130881024,
+        348119097189601280,
+        348119097214767104,
+        348119098456281088,
+        348119098561138688,
+        348119098582110208,
+        348119098611470336,
+        348119100335329280,
+        348119100356300800,
+        348119100368883712,
+        348119100385660928,
+        348119101258076160,
+        348119101258076161,
+        348119101291630592,
+        348119101329379328,
+        348119103443308544,
+        348119103443308545,
+        348119103451697152,
+        348119103523000320,
+        348119104684822528,
+        348119104689016832,
+        348119104722571264,
+        348119104768708608,
+        348119106924580864,
+        348119106932969472,
+        348119106953940992,
+        348119107008466944,
+        348119107838939136,
+        348119107855716352,
+        348119107868299264,
+        348119107927019520,
+        348119109617324032,
+        348119109621518336,
+        348119109655072768,
+        348119109726375936,
+        348119110619762688,
+        348119110644928512,
+        348119110703648768,
+        348119110745591808,
+        348119112737886208,
+        348119112754663424,
+        348119112792412160,
+        348119112830160896,
+        348119113811628032,
+        348119113836793856,
+        348119113861959680,
+        348119113891319808,
+        348119116076552192,
+        348119116080746496,
+        348119116093329408,
+        348119116131078144,
+        348119117066407936,
+        348119117070602240,
+        348119117070602241,
+        348119117104156672,
+        348119118924484608,
+        348119118949650432,
+        348119118953844736,
+        348119118970621952,
+        348119120010809344,
+        348119120015003648,
+        348119120019197952,
+        348119120040169472,
+        348119122015686656,
+        348119122061824000,
+        348119122078601216,
+        348119122099572736,
+        348119123672436736,
+        348119123676631040,
+        348119123714379776,
+        348119123756322816,
+        348119125639565312,
+        348119125639565313,
+        348119125643759616,
+        348119125647953920,
+        348119126604255232,
+        348119126616838144,
+        348119126621032448,
+        348119126654586880,
+        348119128542023680,
+        348119128558800896,
+        348119128562995200,
+        348119128567189504,
+        348119129569628160,
+        348119129590599680,
+        348119129598988288,
+        348119129640931328,
+        348119131800997888,
+        348119131834552320,
+        348119131838746624,
+        348119131851329536,
+        348119132996374528,
+        348119133013151744,
+        348119133025734656,
+        348119133042511872,
+        348119134783148032,
+        348119134787342336,
+        348119134804119552,
+        348119134879617024,
+        348119135781392384,
+        348119135827529728,
+        348119135886249984,
+        348119135999496192,
+        348119138172145664,
+        348119138172145665,
+        348119138184728576,
+        348119138260226048,
+        348119139229110272,
+        348119139233304576,
+        348119139245887488,
+        348119139292024832,
+        348119141666000896,
+        348119141670195200,
+        348119141678583808,
+        348119141691166720
+      ],
+      "safety_epoch": 10215,
+      "complete": true
+    }
+  },
+  "notes": [
+    "SLA values are reference lines, not pass/fail gates."
+  ]
+}

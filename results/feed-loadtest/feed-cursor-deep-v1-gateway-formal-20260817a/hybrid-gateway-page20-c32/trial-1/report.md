@@ -1,0 +1,172 @@
+# Feed 压测报告：hybrid / gateway / page20-c32
+
+- Run ID：`feed-cursor-deep-v1-gateway-formal-20260817a`
+- 开始时间：2026-08-17T18:00:16+08:00
+- 采样时长：1m0.0211434s
+- 并发：32
+- 重复轮次：1 / 3
+- 报告完整：true
+
+| stage | total | success | failed | timeout | QPS | P50(ms) | P90(ms) | P95(ms) | P99(ms) | Max(ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| read | 57969 | 57969 | 0 | 0 | 965.87 | 31.053 | 46.267 | 54.638 | 73.449 | 129.102 |
+
+## 分页正确性与准备成本
+
+- 模式：`page`；目标页：20
+- 准备请求：0；准备耗时：0s（不计目标页 stage 延迟）
+- 完成序列/读取页：0/0
+- 重复/Oracle不匹配/游标循环/提前结束：0/0/0/0
+
+## Feed 冷路径指标（本次运行增量）
+
+| dependency | calls | calls / successful read |
+|---|---:|---:|
+| counter | 240 | 0.004 |
+| mysql | 3955 | 0.068 |
+| redis | 119893 | 2.068 |
+| relation | 240 | 0.004 |
+
+- Cold compute：57969（1.000 / successful read）
+
+### 分页工作量
+
+| pagination work | total | per successful read |
+|---|---:|---:|
+| hydrate_ids | 24346980 | 420.000 |
+| merge_candidates | 48751929 | 841.000 |
+| redis_commands | 347814 | 6.000 |
+| redis_members | 53389449 | 921.000 |
+| redis_roundtrips | 57969 | 1.000 |
+| tie_members | 0 | 0.000 |
+
+| page cache source | requests |
+|---|---:|
+| bypass | 57969 |
+
+- L1+L2 Fresh ratio：0.00%
+- Refresh max：queue=0 active=0 pending=0
+
+| feed stage | calls(all outcomes) | success mean(ms) |
+|---|---:|---:|
+| bigv_pipeline | 57969 | 15.631 |
+| counter | 240 | 13.028 |
+| hydrate | 57969 | 15.808 |
+| inbox | 57969 | 15.629 |
+| merge_dedup | 57969 | 0.081 |
+| relation | 240 | 13.274 |
+| route | 57969 | 0.610 |
+| total | 57969 | 32.249 |
+
+## Redis 本轮边界增量
+
+- Commands：422098；input：880147844 bytes；output：6237393883 bytes
+- Hits/Misses：24697624/4617；run hit rate：99.98%
+- Evicted/Rejected：0/0；ops/s max：8038；safety epoch：3684 -> 3684
+
+## 资源采样峰值
+
+| source | metric | max |
+|---|---|---:|
+| client:loadtest | cpu_percent_normalized | 1.448 |
+| client:loadtest | cpu_percent_total | 23.169 |
+| client:loadtest | logical_cpus | 16.000 |
+| docker-state:zg-canal | health_configured | 1.000 |
+| docker-state:zg-canal | healthy | 1.000 |
+| docker-state:zg-canal | restart_count | 0.000 |
+| docker-state:zg-canal | running | 1.000 |
+| docker-state:zg-es | health_configured | 1.000 |
+| docker-state:zg-es | healthy | 1.000 |
+| docker-state:zg-es | restart_count | 0.000 |
+| docker-state:zg-es | running | 1.000 |
+| docker-state:zg-etcd | health_configured | 1.000 |
+| docker-state:zg-etcd | healthy | 1.000 |
+| docker-state:zg-etcd | restart_count | 0.000 |
+| docker-state:zg-etcd | running | 1.000 |
+| docker-state:zg-kafka | health_configured | 1.000 |
+| docker-state:zg-kafka | healthy | 1.000 |
+| docker-state:zg-kafka | restart_count | 0.000 |
+| docker-state:zg-kafka | running | 1.000 |
+| docker-state:zg-zk | health_configured | 1.000 |
+| docker-state:zg-zk | healthy | 1.000 |
+| docker-state:zg-zk | restart_count | 0.000 |
+| docker-state:zg-zk | running | 1.000 |
+| docker:zg-canal | cpu_percent | 0.240 |
+| docker:zg-canal | memory_percent | 4.210 |
+| docker:zg-canal | pids | 78.000 |
+| docker:zg-es | cpu_percent | 1.140 |
+| docker:zg-es | memory_percent | 12.340 |
+| docker:zg-es | pids | 151.000 |
+| docker:zg-etcd | cpu_percent | 4.660 |
+| docker:zg-etcd | memory_percent | 0.270 |
+| docker:zg-etcd | pids | 16.000 |
+| docker:zg-kafka | cpu_percent | 133.160 |
+| docker:zg-kafka | memory_percent | 7.240 |
+| docker:zg-kafka | pids | 117.000 |
+| docker:zg-zk | cpu_percent | 44.690 |
+| docker:zg-zk | memory_percent | 1.160 |
+| docker:zg-zk | pids | 104.000 |
+| kafka | current_offset_total | 4104.000 |
+| kafka | lag_max | 0.000 |
+| kafka | lag_total | 0.000 |
+| kafka | log_end_offset_total | 4104.000 |
+| kafka | partitions | 1.000 |
+| mysql | questions | 250627.000 |
+| mysql | slow_queries | 0.000 |
+| mysql | threads_connected | 24.000 |
+| mysql | threads_running | 3.000 |
+| process:counter | cpu_percent | 2.325 |
+| process:counter | cpu_seconds_total | 131.000 |
+| process:counter | pid | 7060.000 |
+| process:counter | process_start_ms | 1786955465447.000 |
+| process:counter | rss_bytes | 46391296.000 |
+| process:counter | running | 1.000 |
+| process:gateway | cpu_percent | 87.452 |
+| process:gateway | cpu_seconds_total | 2301.734 |
+| process:gateway | pid | 27984.000 |
+| process:gateway | process_start_ms | 1786955487497.000 |
+| process:gateway | rss_bytes | 52174848.000 |
+| process:gateway | running | 1.000 |
+| process:knowpost | cpu_percent | 271.661 |
+| process:knowpost | cpu_seconds_total | 8865.234 |
+| process:knowpost | pid | 28168.000 |
+| process:knowpost | process_start_ms | 1786955477430.000 |
+| process:knowpost | rss_bytes | 78725120.000 |
+| process:knowpost | running | 1.000 |
+| process:relation | cpu_percent | 3.100 |
+| process:relation | cpu_seconds_total | 21.734 |
+| process:relation | pid | 15024.000 |
+| process:relation | process_start_ms | 1786955470022.000 |
+| process:relation | rss_bytes | 49381376.000 |
+| process:relation | running | 1.000 |
+| process:search | cpu_percent | 0.774 |
+| process:search | cpu_seconds_total | 3.453 |
+| process:search | pid | 21780.000 |
+| process:search | process_start_ms | 1786955483082.000 |
+| process:search | rss_bytes | 38162432.000 |
+| process:search | running | 1.000 |
+| process:user-storage | cpu_percent | 42.970 |
+| process:user-storage | cpu_seconds_total | 845.609 |
+| process:user-storage | pid | 4640.000 |
+| process:user-storage | process_start_ms | 1786955461190.000 |
+| process:user-storage | rss_bytes | 53071872.000 |
+| process:user-storage | running | 1.000 |
+| redis | blocked_clients | 0.000 |
+| redis | commands_total | 168559996.000 |
+| redis | connected_clients | 103.000 |
+| redis | evicted_keys | 0.000 |
+| redis | feed_safety_epoch | 3684.000 |
+| redis | hit_rate | 1.000 |
+| redis | keys | 596732.000 |
+| redis | keyspace_hits | 1288062443.000 |
+| redis | keyspace_misses | 280229.000 |
+| redis | net_input_bytes | 55411252861.000 |
+| redis | net_output_bytes | 345047821591.000 |
+| redis | ops_per_sec | 8038.000 |
+| redis | rejected_connections | 0.000 |
+| redis | uptime_seconds | 27655.000 |
+| redis | used_memory_bytes | 103934184.000 |
+
+## 说明
+
+- SLA values are reference lines, not pass/fail gates.

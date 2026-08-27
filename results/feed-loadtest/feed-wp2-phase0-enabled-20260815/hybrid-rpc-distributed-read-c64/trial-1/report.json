@@ -1,0 +1,2149 @@
+{
+  "run_id": "feed-wp2-phase0-enabled-20260815",
+  "strategy": "hybrid",
+  "entry": "rpc",
+  "scenario": "distributed-read-c64",
+  "started_at": "2026-08-15T19:04:21.7771984+08:00",
+  "duration_ns": 60030717200,
+  "concurrency": 64,
+  "trial": 1,
+  "complete": true,
+  "environment": {
+    "dataset_run_id": "feedbench-20260814c",
+    "effective_strategy": "hybrid",
+    "gateway_url": "http://127.0.0.1:8080",
+    "go_version": "go1.25.8",
+    "strategy_source": "docker:zg-knowpost"
+  },
+  "stages": [
+    {
+      "name": "read",
+      "total": 137575,
+      "success": 137575,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 2292.1643095753348,
+      "latency": {
+        "min": 13234300,
+        "mean": 27913186,
+        "p50": 27477600,
+        "p90": 33983500,
+        "p95": 36184900,
+        "p99": 40861500,
+        "max": 67678600
+      }
+    }
+  ],
+  "feed_metrics": {
+    "stage_calls": {
+      "bigv_pipeline": 137575,
+      "counter": 241,
+      "hydrate": 137575,
+      "inbox": 137575,
+      "merge_dedup": 137575,
+      "relation": 137575,
+      "route": 137575,
+      "total": 137575
+    },
+    "stage_mean_ms": {
+      "bigv_pipeline": 3.7045901714847767,
+      "counter": 5.304896539419114,
+      "hydrate": 5.2596156110484396,
+      "inbox": 4.203170834374608,
+      "merge_dedup": 0.024987254544789436,
+      "relation": 12.842647566935263,
+      "route": 0.019859560312551577,
+      "total": 26.10205534856583
+    },
+    "dependency_calls": {
+      "counter": 241,
+      "mysql": 626,
+      "redis": 413351,
+      "relation": 137575
+    },
+    "dependency_calls_per_success": {
+      "counter": 0.001751771760857714,
+      "mysql": 0.004550245320734145,
+      "redis": 3.004550245320734,
+      "relation": 1
+    },
+    "dependency_operations": {
+      "counter.batch_follower_counts": 241,
+      "mysql.feed_item_db": 626,
+      "redis.bigv_pipeline": 137575,
+      "redis.feed_item_cache_write": 626,
+      "redis.feed_item_mget": 137575,
+      "redis.inbox_read": 137575,
+      "relation.list_followings": 137575
+    },
+    "dependency_operations_per_success": {
+      "counter.batch_follower_counts": 0.001751771760857714,
+      "mysql.feed_item_db": 0.004550245320734145,
+      "redis.bigv_pipeline": 1,
+      "redis.feed_item_cache_write": 0.004550245320734145,
+      "redis.feed_item_mget": 1,
+      "redis.inbox_read": 1,
+      "relation.list_followings": 1
+    },
+    "cold_computes": 137575,
+    "cold_computes_per_success": 1
+  },
+  "resources": [
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1002084,
+        "slow_queries": 0,
+        "threads_connected": 88,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8430349,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933161271111056,
+        "keys": 519484,
+        "keyspace_hits": 41783077,
+        "keyspace_misses": 4989925,
+        "net_input_bytes": 1904554235,
+        "net_output_bytes": 8621909081,
+        "ops_per_sec": 18676,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87135192
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 630611,
+        "dependency_calls:counter:batch_follower_counts:success": 1189,
+        "dependency_calls:mysql:feed_item_db:success": 4323,
+        "dependency_calls:redis:bigv_pipeline:success": 630611,
+        "dependency_calls:redis:feed_item_cache_write:success": 4323,
+        "dependency_calls:redis:feed_item_mget:success": 630611,
+        "dependency_calls:redis:inbox_read:success": 630611,
+        "dependency_calls:relation:list_followings:success": 630611,
+        "stage_duration_count:bigv_pipeline:success": 630611,
+        "stage_duration_count:counter:success": 1189,
+        "stage_duration_count:hydrate:success": 630611,
+        "stage_duration_count:inbox:success": 630611,
+        "stage_duration_count:merge_dedup:success": 630611,
+        "stage_duration_count:relation:success": 630611,
+        "stage_duration_count:route:success": 630611,
+        "stage_duration_count:total:success": 630611,
+        "stage_duration_sum:bigv_pipeline:success": 2265258.577075944,
+        "stage_duration_sum:counter:success": 5506.164066999994,
+        "stage_duration_sum:hydrate:success": 3235192.5596610107,
+        "stage_duration_sum:inbox:success": 2549978.82688996,
+        "stage_duration_sum:merge_dedup:success": 15007.2354219994,
+        "stage_duration_sum:relation:success": 7816668.3661948275,
+        "stage_duration_sum:route:success": 11537.771026997065,
+        "stage_duration_sum:total:success": 15921472.167637264,
+        "stage_total:bigv_pipeline:success": 630611,
+        "stage_total:counter:success": 1189,
+        "stage_total:hydrate:success": 630611,
+        "stage_total:inbox:success": 630611,
+        "stage_total:merge_dedup:success": 630611,
+        "stage_total:relation:success": 630611,
+        "stage_total:route:success": 630611,
+        "stage_total:total:success": 630611
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.11,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 1.83,
+        "memory_percent": 0.31,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 0.2,
+        "memory_percent": 0.28,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 1.09,
+        "memory_percent": 0.12,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:17.6279461+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1004462,
+        "slow_queries": 0,
+        "threads_connected": 103,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8449855,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933129203927098,
+        "keys": 519485,
+        "keyspace_hits": 41879152,
+        "keyspace_misses": 5001567,
+        "net_input_bytes": 1908932067,
+        "net_output_bytes": 8641771695,
+        "ops_per_sec": 11500,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87170080
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 633242,
+        "dependency_calls:counter:batch_follower_counts:success": 1210,
+        "dependency_calls:mysql:feed_item_db:success": 4377,
+        "dependency_calls:redis:bigv_pipeline:success": 633259,
+        "dependency_calls:redis:feed_item_cache_write:success": 4377,
+        "dependency_calls:redis:feed_item_mget:success": 633242,
+        "dependency_calls:redis:inbox_read:success": 633265,
+        "dependency_calls:relation:list_followings:success": 633275,
+        "stage_duration_count:bigv_pipeline:success": 633260,
+        "stage_duration_count:counter:success": 1210,
+        "stage_duration_count:hydrate:success": 633242,
+        "stage_duration_count:inbox:success": 633267,
+        "stage_duration_count:merge_dedup:success": 633260,
+        "stage_duration_count:relation:success": 633275,
+        "stage_duration_count:route:success": 633275,
+        "stage_duration_count:total:success": 633242,
+        "stage_duration_sum:bigv_pipeline:success": 2274966.911120947,
+        "stage_duration_sum:counter:success": 5621.746674999994,
+        "stage_duration_sum:hydrate:success": 3249916.611103016,
+        "stage_duration_sum:inbox:success": 2561406.9181089588,
+        "stage_duration_sum:merge_dedup:success": 15068.576499999397,
+        "stage_duration_sum:relation:success": 7850535.11402784,
+        "stage_duration_sum:route:success": 11786.490118997037,
+        "stage_duration_sum:total:success": 15990990.04351326,
+        "stage_total:bigv_pipeline:success": 633259,
+        "stage_total:counter:success": 1210,
+        "stage_total:hydrate:success": 633242,
+        "stage_total:inbox:success": 633265,
+        "stage_total:merge_dedup:success": 633259,
+        "stage_total:relation:success": 633275,
+        "stage_total:route:success": 633275,
+        "stage_total:total:success": 633242
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 3.21,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 317.06,
+        "memory_percent": 0.32,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 250.53,
+        "memory_percent": 0.26,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 1.95,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:22.7775232+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1016863,
+        "slow_queries": 0,
+        "threads_connected": 92,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8549670,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933176687828278,
+        "keys": 519484,
+        "keyspace_hits": 42398402,
+        "keyspace_misses": 5063328,
+        "net_input_bytes": 1932230986,
+        "net_output_bytes": 8749225092,
+        "ops_per_sec": 18740,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87174104
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 645632,
+        "dependency_calls:counter:batch_follower_counts:success": 1230,
+        "dependency_calls:mysql:feed_item_db:success": 4404,
+        "dependency_calls:redis:bigv_pipeline:success": 645643,
+        "dependency_calls:redis:feed_item_cache_write:success": 4404,
+        "dependency_calls:redis:feed_item_mget:success": 645633,
+        "dependency_calls:redis:inbox_read:success": 645653,
+        "dependency_calls:relation:list_followings:success": 645654,
+        "stage_duration_count:bigv_pipeline:success": 645643,
+        "stage_duration_count:counter:success": 1230,
+        "stage_duration_count:hydrate:success": 645632,
+        "stage_duration_count:inbox:success": 645653,
+        "stage_duration_count:merge_dedup:success": 645643,
+        "stage_duration_count:relation:success": 645654,
+        "stage_duration_count:route:success": 645654,
+        "stage_duration_count:total:success": 645632,
+        "stage_duration_sum:bigv_pipeline:success": 2320693.980832948,
+        "stage_duration_sum:counter:success": 5715.179566999994,
+        "stage_duration_sum:hydrate:success": 3314890.6778089995,
+        "stage_duration_sum:inbox:success": 2613036.585577002,
+        "stage_duration_sum:merge_dedup:success": 15378.74050499946,
+        "stage_duration_sum:relation:success": 8008407.9834558545,
+        "stage_duration_sum:route:success": 11977.618319996975,
+        "stage_duration_sum:total:success": 16312489.392205205,
+        "stage_total:bigv_pipeline:success": 645643,
+        "stage_total:counter:success": 1230,
+        "stage_total:hydrate:success": 645631,
+        "stage_total:inbox:success": 645653,
+        "stage_total:merge_dedup:success": 645643,
+        "stage_total:relation:success": 645654,
+        "stage_total:route:success": 645654,
+        "stage_total:total:success": 645631
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.24,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 288.05,
+        "memory_percent": 0.32,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 205.44,
+        "memory_percent": 0.27,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.38,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:28.1090308+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1029006,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 4
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8647498,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933207558546153,
+        "keys": 519484,
+        "keyspace_hits": 42906932,
+        "keyspace_misses": 5123892,
+        "net_input_bytes": 1955053800,
+        "net_output_bytes": 8854504981,
+        "ops_per_sec": 18590,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87210240
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 657695,
+        "dependency_calls:counter:batch_follower_counts:success": 1250,
+        "dependency_calls:mysql:feed_item_db:success": 4439,
+        "dependency_calls:redis:bigv_pipeline:success": 657700,
+        "dependency_calls:redis:feed_item_cache_write:success": 4439,
+        "dependency_calls:redis:feed_item_mget:success": 657695,
+        "dependency_calls:redis:inbox_read:success": 657706,
+        "dependency_calls:relation:list_followings:success": 657734,
+        "stage_duration_count:bigv_pipeline:success": 657700,
+        "stage_duration_count:counter:success": 1250,
+        "stage_duration_count:hydrate:success": 657695,
+        "stage_duration_count:inbox:success": 657706,
+        "stage_duration_count:merge_dedup:success": 657700,
+        "stage_duration_count:relation:success": 657736,
+        "stage_duration_count:route:success": 657736,
+        "stage_duration_count:total:success": 657695,
+        "stage_duration_sum:bigv_pipeline:success": 2365870.85050095,
+        "stage_duration_sum:counter:success": 5812.175994999994,
+        "stage_duration_sum:hydrate:success": 3378114.7742569936,
+        "stage_duration_sum:inbox:success": 2664159.420819032,
+        "stage_duration_sum:merge_dedup:success": 15683.748842999456,
+        "stage_duration_sum:relation:success": 8165901.382507898,
+        "stage_duration_sum:route:success": 12183.862743996802,
+        "stage_duration_sum:total:success": 16630286.120556245,
+        "stage_total:bigv_pipeline:success": 657700,
+        "stage_total:counter:success": 1250,
+        "stage_total:hydrate:success": 657694,
+        "stage_total:inbox:success": 657706,
+        "stage_total:merge_dedup:success": 657700,
+        "stage_total:relation:success": 657732,
+        "stage_total:route:success": 657733,
+        "stage_total:total:success": 657694
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.3,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 302.96,
+        "memory_percent": 0.34,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 249.95,
+        "memory_percent": 0.28,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.78,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:33.4465204+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1041117,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 7
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8745269,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933260242142484,
+        "keys": 519485,
+        "keyspace_hits": 43416070,
+        "keyspace_misses": 5184406,
+        "net_input_bytes": 1977892012,
+        "net_output_bytes": 8959828235,
+        "ops_per_sec": 18276,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87584760
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 669788,
+        "dependency_calls:counter:batch_follower_counts:success": 1270,
+        "dependency_calls:mysql:feed_item_db:success": 4464,
+        "dependency_calls:redis:bigv_pipeline:success": 669798,
+        "dependency_calls:redis:feed_item_cache_write:success": 4464,
+        "dependency_calls:redis:feed_item_mget:success": 669788,
+        "dependency_calls:redis:inbox_read:success": 669810,
+        "dependency_calls:relation:list_followings:success": 669817,
+        "stage_duration_count:bigv_pipeline:success": 669798,
+        "stage_duration_count:counter:success": 1270,
+        "stage_duration_count:hydrate:success": 669788,
+        "stage_duration_count:inbox:success": 669810,
+        "stage_duration_count:merge_dedup:success": 669798,
+        "stage_duration_count:relation:success": 669817,
+        "stage_duration_count:route:success": 669817,
+        "stage_duration_count:total:success": 669788,
+        "stage_duration_sum:bigv_pipeline:success": 2411054.7458599424,
+        "stage_duration_sum:counter:success": 5917.977411999994,
+        "stage_duration_sum:hydrate:success": 3442123.893377976,
+        "stage_duration_sum:inbox:success": 2715226.3538750326,
+        "stage_duration_sum:merge_dedup:success": 15987.297129999546,
+        "stage_duration_sum:relation:success": 8320115.248893902,
+        "stage_duration_sum:route:success": 12377.317704996813,
+        "stage_duration_sum:total:success": 16946089.582258187,
+        "stage_total:bigv_pipeline:success": 669798,
+        "stage_total:counter:success": 1270,
+        "stage_total:hydrate:success": 669788,
+        "stage_total:inbox:success": 669810,
+        "stage_total:merge_dedup:success": 669798,
+        "stage_total:relation:success": 669817,
+        "stage_total:route:success": 669817,
+        "stage_total:total:success": 669788
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.22,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 295.18,
+        "memory_percent": 0.33,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 234.75,
+        "memory_percent": 0.28,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.89,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:38.7363776+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1053308,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8843132,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933280229438763,
+        "keys": 519484,
+        "keyspace_hits": 43924067,
+        "keyspace_misses": 5244957,
+        "net_input_bytes": 2000708019,
+        "net_output_bytes": 9065013030,
+        "ops_per_sec": 18273,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87331768
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 681843,
+        "dependency_calls:counter:batch_follower_counts:success": 1290,
+        "dependency_calls:mysql:feed_item_db:success": 4543,
+        "dependency_calls:redis:bigv_pipeline:success": 681851,
+        "dependency_calls:redis:feed_item_cache_write:success": 4543,
+        "dependency_calls:redis:feed_item_mget:success": 681843,
+        "dependency_calls:redis:inbox_read:success": 681858,
+        "dependency_calls:relation:list_followings:success": 681872,
+        "stage_duration_count:bigv_pipeline:success": 681851,
+        "stage_duration_count:counter:success": 1290,
+        "stage_duration_count:hydrate:success": 681843,
+        "stage_duration_count:inbox:success": 681858,
+        "stage_duration_count:merge_dedup:success": 681851,
+        "stage_duration_count:relation:success": 681872,
+        "stage_duration_count:route:success": 681872,
+        "stage_duration_count:total:success": 681843,
+        "stage_duration_sum:bigv_pipeline:success": 2455961.3217549566,
+        "stage_duration_sum:counter:success": 6029.193663999995,
+        "stage_duration_sum:hydrate:success": 3505667.0941169877,
+        "stage_duration_sum:inbox:success": 2765761.2256810274,
+        "stage_duration_sum:merge_dedup:success": 16287.444119999565,
+        "stage_duration_sum:relation:success": 8474787.142131928,
+        "stage_duration_sum:route:success": 12637.262659996804,
+        "stage_duration_sum:total:success": 17260902.03906022,
+        "stage_total:bigv_pipeline:success": 681851,
+        "stage_total:counter:success": 1290,
+        "stage_total:hydrate:success": 681843,
+        "stage_total:inbox:success": 681858,
+        "stage_total:merge_dedup:success": 681851,
+        "stage_total:relation:success": 681872,
+        "stage_total:route:success": 681872,
+        "stage_total:total:success": 681843
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.22,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 316.6,
+        "memory_percent": 0.34,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 256.84,
+        "memory_percent": 0.3,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.16,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:44.0257166+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1065566,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 4
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 8941996,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933321585359693,
+        "keys": 519484,
+        "keyspace_hits": 44438584,
+        "keyspace_misses": 5306165,
+        "net_input_bytes": 2023789285,
+        "net_output_bytes": 9171498107,
+        "ops_per_sec": 18245,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87210560
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 694147,
+        "dependency_calls:counter:batch_follower_counts:success": 1310,
+        "dependency_calls:mysql:feed_item_db:success": 4560,
+        "dependency_calls:redis:bigv_pipeline:success": 694153,
+        "dependency_calls:redis:feed_item_cache_write:success": 4560,
+        "dependency_calls:redis:feed_item_mget:success": 694147,
+        "dependency_calls:redis:inbox_read:success": 694163,
+        "dependency_calls:relation:list_followings:success": 694176,
+        "stage_duration_count:bigv_pipeline:success": 694153,
+        "stage_duration_count:counter:success": 1310,
+        "stage_duration_count:hydrate:success": 694147,
+        "stage_duration_count:inbox:success": 694163,
+        "stage_duration_count:merge_dedup:success": 694153,
+        "stage_duration_count:relation:success": 694176,
+        "stage_duration_count:route:success": 694177,
+        "stage_duration_count:total:success": 694147,
+        "stage_duration_sum:bigv_pipeline:success": 2501135.9800289543,
+        "stage_duration_sum:counter:success": 6150.367914999996,
+        "stage_duration_sum:hydrate:success": 3568540.6467279824,
+        "stage_duration_sum:inbox:success": 2816696.045173035,
+        "stage_duration_sum:merge_dedup:success": 16607.33632099947,
+        "stage_duration_sum:relation:success": 8632379.886724904,
+        "stage_duration_sum:route:success": 12887.371516996855,
+        "stage_duration_sum:total:success": 17578632.28110102,
+        "stage_total:bigv_pipeline:success": 694153,
+        "stage_total:counter:success": 1310,
+        "stage_total:hydrate:success": 694147,
+        "stage_total:inbox:success": 694163,
+        "stage_total:merge_dedup:success": 694153,
+        "stage_total:relation:success": 694176,
+        "stage_total:route:success": 694176,
+        "stage_total:total:success": 694147
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.33,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 306.25,
+        "memory_percent": 0.34,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 234.87,
+        "memory_percent": 0.29,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 4.96,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:49.3133996+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1077829,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9040587,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933351865903789,
+        "keys": 519484,
+        "keyspace_hits": 44951392,
+        "keyspace_misses": 5367226,
+        "net_input_bytes": 2046809255,
+        "net_output_bytes": 9277614596,
+        "ops_per_sec": 17973,
+        "rejected_connections": 0,
+        "used_memory_bytes": 88277376
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 706324,
+        "dependency_calls:counter:batch_follower_counts:success": 1330,
+        "dependency_calls:mysql:feed_item_db:success": 4639,
+        "dependency_calls:redis:bigv_pipeline:success": 706328,
+        "dependency_calls:redis:feed_item_cache_write:success": 4639,
+        "dependency_calls:redis:feed_item_mget:success": 706326,
+        "dependency_calls:redis:inbox_read:success": 706333,
+        "dependency_calls:relation:list_followings:success": 706357,
+        "stage_duration_count:bigv_pipeline:success": 706328,
+        "stage_duration_count:counter:success": 1330,
+        "stage_duration_count:hydrate:success": 706324,
+        "stage_duration_count:inbox:success": 706331,
+        "stage_duration_count:merge_dedup:success": 706328,
+        "stage_duration_count:relation:success": 706333,
+        "stage_duration_count:route:success": 706333,
+        "stage_duration_count:total:success": 706318,
+        "stage_duration_sum:bigv_pipeline:success": 2546534.704479954,
+        "stage_duration_sum:counter:success": 6258.8425869999965,
+        "stage_duration_sum:hydrate:success": 3632351.014043006,
+        "stage_duration_sum:inbox:success": 2868119.0010930696,
+        "stage_duration_sum:merge_dedup:success": 16892.144439999414,
+        "stage_duration_sum:relation:success": 8789255.401923908,
+        "stage_duration_sum:route:success": 13212.638223996835,
+        "stage_duration_sum:total:success": 17897415.097574152,
+        "stage_total:bigv_pipeline:success": 706328,
+        "stage_total:counter:success": 1330,
+        "stage_total:hydrate:success": 706324,
+        "stage_total:inbox:success": 706333,
+        "stage_total:merge_dedup:success": 706328,
+        "stage_total:relation:success": 706357,
+        "stage_total:route:success": 706356,
+        "stage_total:total:success": 706324
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.25,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 299.29,
+        "memory_percent": 0.35,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 243.11,
+        "memory_percent": 0.3,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.24,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:54.6631846+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1090104,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9139590,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933396773996685,
+        "keys": 519485,
+        "keyspace_hits": 45466346,
+        "keyspace_misses": 5428456,
+        "net_input_bytes": 2069913716,
+        "net_output_bytes": 9384189411,
+        "ops_per_sec": 18379,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87254464
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 718545,
+        "dependency_calls:counter:batch_follower_counts:success": 1350,
+        "dependency_calls:mysql:feed_item_db:success": 4650,
+        "dependency_calls:redis:bigv_pipeline:success": 718565,
+        "dependency_calls:redis:feed_item_cache_write:success": 4650,
+        "dependency_calls:redis:feed_item_mget:success": 718545,
+        "dependency_calls:redis:inbox_read:success": 718585,
+        "dependency_calls:relation:list_followings:success": 718592,
+        "stage_duration_count:bigv_pipeline:success": 718565,
+        "stage_duration_count:counter:success": 1350,
+        "stage_duration_count:hydrate:success": 718545,
+        "stage_duration_count:inbox:success": 718585,
+        "stage_duration_count:merge_dedup:success": 718565,
+        "stage_duration_count:relation:success": 718592,
+        "stage_duration_count:route:success": 718592,
+        "stage_duration_count:total:success": 718545,
+        "stage_duration_sum:bigv_pipeline:success": 2591195.5931149567,
+        "stage_duration_sum:counter:success": 6360.967630999998,
+        "stage_duration_sum:hydrate:success": 3695625.7292480106,
+        "stage_duration_sum:inbox:success": 2918983.323726064,
+        "stage_duration_sum:merge_dedup:success": 17174.40953899923,
+        "stage_duration_sum:relation:success": 8946289.82770989,
+        "stage_duration_sum:route:success": 13418.858143996831,
+        "stage_duration_sum:total:success": 18213780.930209294,
+        "stage_total:bigv_pipeline:success": 718565,
+        "stage_total:counter:success": 1350,
+        "stage_total:hydrate:success": 718545,
+        "stage_total:inbox:success": 718585,
+        "stage_total:merge_dedup:success": 718564,
+        "stage_total:relation:success": 718592,
+        "stage_total:route:success": 718592,
+        "stage_total:total:success": 718545
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.69,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 280.93,
+        "memory_percent": 0.36,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 227.01,
+        "memory_percent": 0.29,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 6.74,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:04:59.9398173+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1102413,
+        "slow_queries": 0,
+        "threads_connected": 99,
+        "threads_running": 4
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9238671,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933424938967516,
+        "keys": 519484,
+        "keyspace_hits": 45981554,
+        "keyspace_misses": 5489807,
+        "net_input_bytes": 2093037042,
+        "net_output_bytes": 9490833856,
+        "ops_per_sec": 18030,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87211936
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 730842,
+        "dependency_calls:counter:batch_follower_counts:success": 1370,
+        "dependency_calls:mysql:feed_item_db:success": 4701,
+        "dependency_calls:redis:bigv_pipeline:success": 730848,
+        "dependency_calls:redis:feed_item_cache_write:success": 4701,
+        "dependency_calls:redis:feed_item_mget:success": 730842,
+        "dependency_calls:redis:inbox_read:success": 730853,
+        "dependency_calls:relation:list_followings:success": 730872,
+        "stage_duration_count:bigv_pipeline:success": 730848,
+        "stage_duration_count:counter:success": 1370,
+        "stage_duration_count:hydrate:success": 730842,
+        "stage_duration_count:inbox:success": 730853,
+        "stage_duration_count:merge_dedup:success": 730848,
+        "stage_duration_count:relation:success": 730873,
+        "stage_duration_count:route:success": 730873,
+        "stage_duration_count:total:success": 730842,
+        "stage_duration_sum:bigv_pipeline:success": 2636778.939400962,
+        "stage_duration_sum:counter:success": 6455.2570319999995,
+        "stage_duration_sum:hydrate:success": 3759966.702986,
+        "stage_duration_sum:inbox:success": 2970168.9558430347,
+        "stage_duration_sum:merge_dedup:success": 17477.94286299927,
+        "stage_duration_sum:relation:success": 9102931.242154842,
+        "stage_duration_sum:route:success": 13613.498432996712,
+        "stage_duration_sum:total:success": 18532974.239165276,
+        "stage_total:bigv_pipeline:success": 730848,
+        "stage_total:counter:success": 1370,
+        "stage_total:hydrate:success": 730842,
+        "stage_total:inbox:success": 730853,
+        "stage_total:merge_dedup:success": 730848,
+        "stage_total:relation:success": 730872,
+        "stage_total:route:success": 730872,
+        "stage_total:total:success": 730842
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.14,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 299.33,
+        "memory_percent": 0.36,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 231.16,
+        "memory_percent": 0.3,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 7.2,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:05.2503486+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1114668,
+        "slow_queries": 0,
+        "threads_connected": 85,
+        "threads_running": 5
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9336293,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933456383222952,
+        "keys": 519484,
+        "keyspace_hits": 46489347,
+        "keyspace_misses": 5550250,
+        "net_input_bytes": 2115829638,
+        "net_output_bytes": 9595917749,
+        "ops_per_sec": 18391,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87623864
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 742902,
+        "dependency_calls:counter:batch_follower_counts:success": 1390,
+        "dependency_calls:mysql:feed_item_db:success": 4792,
+        "dependency_calls:redis:bigv_pipeline:success": 742917,
+        "dependency_calls:redis:feed_item_cache_write:success": 4792,
+        "dependency_calls:redis:feed_item_mget:success": 742902,
+        "dependency_calls:redis:inbox_read:success": 742939,
+        "dependency_calls:relation:list_followings:success": 742948,
+        "stage_duration_count:bigv_pipeline:success": 742917,
+        "stage_duration_count:counter:success": 1390,
+        "stage_duration_count:hydrate:success": 742902,
+        "stage_duration_count:inbox:success": 742939,
+        "stage_duration_count:merge_dedup:success": 742917,
+        "stage_duration_count:relation:success": 742948,
+        "stage_duration_count:route:success": 742948,
+        "stage_duration_count:total:success": 742902,
+        "stage_duration_sum:bigv_pipeline:success": 2681305.5147629846,
+        "stage_duration_sum:counter:success": 6567.044202,
+        "stage_duration_sum:hydrate:success": 3824506.176737988,
+        "stage_duration_sum:inbox:success": 3021219.0663650213,
+        "stage_duration_sum:merge_dedup:success": 17770.786339999024,
+        "stage_duration_sum:relation:success": 9258147.037281767,
+        "stage_duration_sum:route:success": 13836.348195996656,
+        "stage_duration_sum:total:success": 18849132.75231827,
+        "stage_total:bigv_pipeline:success": 742917,
+        "stage_total:counter:success": 1390,
+        "stage_total:hydrate:success": 742902,
+        "stage_total:inbox:success": 742939,
+        "stage_total:merge_dedup:success": 742917,
+        "stage_total:relation:success": 742948,
+        "stage_total:route:success": 742948,
+        "stage_total:total:success": 742902
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.29,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 283.11,
+        "memory_percent": 0.3,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 228.22,
+        "memory_percent": 0.3,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 6.01,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:10.5349849+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1126825,
+        "slow_queries": 0,
+        "threads_connected": 86,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9433490,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.893346117619859,
+        "keys": 519485,
+        "keyspace_hits": 46993723,
+        "keyspace_misses": 5610438,
+        "net_input_bytes": 2138496960,
+        "net_output_bytes": 9700327075,
+        "ops_per_sec": 17719,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87459272
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 754923,
+        "dependency_calls:counter:batch_follower_counts:success": 1410,
+        "dependency_calls:mysql:feed_item_db:success": 4909,
+        "dependency_calls:redis:bigv_pipeline:success": 754927,
+        "dependency_calls:redis:feed_item_cache_write:success": 4909,
+        "dependency_calls:redis:feed_item_mget:success": 754924,
+        "dependency_calls:redis:inbox_read:success": 754941,
+        "dependency_calls:relation:list_followings:success": 754949,
+        "stage_duration_count:bigv_pipeline:success": 754927,
+        "stage_duration_count:counter:success": 1410,
+        "stage_duration_count:hydrate:success": 754923,
+        "stage_duration_count:inbox:success": 754941,
+        "stage_duration_count:merge_dedup:success": 754927,
+        "stage_duration_count:relation:success": 754949,
+        "stage_duration_count:route:success": 754949,
+        "stage_duration_count:total:success": 754923,
+        "stage_duration_sum:bigv_pipeline:success": 2726008.1807989725,
+        "stage_duration_sum:counter:success": 6664.776906000001,
+        "stage_duration_sum:hydrate:success": 3889244.3830929915,
+        "stage_duration_sum:inbox:success": 3072197.212749031,
+        "stage_duration_sum:merge_dedup:success": 18066.072780999082,
+        "stage_duration_sum:relation:success": 9412911.723721866,
+        "stage_duration_sum:route:success": 14024.889021996567,
+        "stage_duration_sum:total:success": 19165755.11102827,
+        "stage_total:bigv_pipeline:success": 754927,
+        "stage_total:counter:success": 1410,
+        "stage_total:hydrate:success": 754923,
+        "stage_total:inbox:success": 754941,
+        "stage_total:merge_dedup:success": 754927,
+        "stage_total:relation:success": 754949,
+        "stage_total:route:success": 754949,
+        "stage_total:total:success": 754923
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.21,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 273.7,
+        "memory_percent": 0.32,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 211.94,
+        "memory_percent": 0.31,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 5.84,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:15.8162504+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1138954,
+        "slow_queries": 0,
+        "threads_connected": 86,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9531209,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.893349641651802,
+        "keys": 519484,
+        "keyspace_hits": 47501959,
+        "keyspace_misses": 5670905,
+        "net_input_bytes": 2161305361,
+        "net_output_bytes": 9805508675,
+        "ops_per_sec": 18140,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87133816
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.1119078+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 766997,
+        "dependency_calls:counter:batch_follower_counts:success": 1430,
+        "dependency_calls:mysql:feed_item_db:success": 4949,
+        "dependency_calls:redis:bigv_pipeline:success": 767013,
+        "dependency_calls:redis:feed_item_cache_write:success": 4949,
+        "dependency_calls:redis:feed_item_mget:success": 766997,
+        "dependency_calls:redis:inbox_read:success": 767021,
+        "dependency_calls:relation:list_followings:success": 767033,
+        "stage_duration_count:bigv_pipeline:success": 767013,
+        "stage_duration_count:counter:success": 1430,
+        "stage_duration_count:hydrate:success": 766997,
+        "stage_duration_count:inbox:success": 767020,
+        "stage_duration_count:merge_dedup:success": 767013,
+        "stage_duration_count:relation:success": 767032,
+        "stage_duration_count:route:success": 767032,
+        "stage_duration_count:total:success": 766997,
+        "stage_duration_sum:bigv_pipeline:success": 2770606.9018199644,
+        "stage_duration_sum:counter:success": 6784.644133000001,
+        "stage_duration_sum:hydrate:success": 3952604.8500210033,
+        "stage_duration_sum:inbox:success": 3123251.9750490473,
+        "stage_duration_sum:merge_dedup:success": 18391.687696998797,
+        "stage_duration_sum:relation:success": 9568314.558162931,
+        "stage_duration_sum:route:success": 14265.077743996384,
+        "stage_duration_sum:total:success": 19481131.14863027,
+        "stage_total:bigv_pipeline:success": 767013,
+        "stage_total:counter:success": 1430,
+        "stage_total:hydrate:success": 766997,
+        "stage_total:inbox:success": 767021,
+        "stage_total:merge_dedup:success": 767013,
+        "stage_total:relation:success": 767033,
+        "stage_total:route:success": 767033,
+        "stage_total:total:success": 766997
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 1140475,
+        "slow_queries": 0,
+        "threads_connected": 86,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 9543507,
+        "connected_clients": 270,
+        "evicted_keys": 0,
+        "hit_rate": 0.8933510821912756,
+        "keys": 519485,
+        "keyspace_hits": 47566582,
+        "keyspace_misses": 5678534,
+        "net_input_bytes": 2164202007,
+        "net_output_bytes": 9818882243,
+        "ops_per_sec": 17853,
+        "rejected_connections": 0,
+        "used_memory_bytes": 86847968
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker-state:zg-gateway",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker-state:zg-knowpost",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker-state:zg-relation",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker-state:zg-counter",
+      "values": {
+        "healthy": 1,
+        "restart_count": 0,
+        "running": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "prometheus:knowpost",
+      "values": {
+        "cold_compute:success": 768186,
+        "dependency_calls:counter:batch_follower_counts:success": 1430,
+        "dependency_calls:mysql:feed_item_db:success": 4949,
+        "dependency_calls:redis:bigv_pipeline:success": 768186,
+        "dependency_calls:redis:feed_item_cache_write:success": 4949,
+        "dependency_calls:redis:feed_item_mget:success": 768186,
+        "dependency_calls:redis:inbox_read:success": 768186,
+        "dependency_calls:relation:list_followings:success": 768186,
+        "stage_duration_count:bigv_pipeline:success": 768186,
+        "stage_duration_count:counter:success": 1430,
+        "stage_duration_count:hydrate:success": 768186,
+        "stage_duration_count:inbox:success": 768186,
+        "stage_duration_count:merge_dedup:success": 768186,
+        "stage_duration_count:relation:success": 768186,
+        "stage_duration_count:route:success": 768186,
+        "stage_duration_count:total:success": 768186,
+        "stage_duration_sum:bigv_pipeline:success": 2774917.569917962,
+        "stage_duration_sum:counter:success": 6784.644133000001,
+        "stage_duration_sum:hydrate:success": 3958784.177351,
+        "stage_duration_sum:inbox:success": 3128230.054429047,
+        "stage_duration_sum:merge_dedup:success": 18444.856965998806,
+        "stage_duration_sum:relation:success": 9583495.605215946,
+        "stage_duration_sum:route:success": 14269.950036996348,
+        "stage_duration_sum:total:success": 19512462.43221621,
+        "stage_total:bigv_pipeline:success": 768186,
+        "stage_total:counter:success": 1430,
+        "stage_total:hydrate:success": 768186,
+        "stage_total:inbox:success": 768186,
+        "stage_total:merge_dedup:success": 768186,
+        "stage_total:relation:success": 768186,
+        "stage_total:route:success": 768186,
+        "stage_total:total:success": 768186
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.13,
+        "memory_percent": 0.11,
+        "pids": 19
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 0.35,
+        "memory_percent": 0.32,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 0.16,
+        "memory_percent": 0.3,
+        "pids": 28
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 1.07,
+        "memory_percent": 0.11,
+        "pids": 18
+      }
+    },
+    {
+      "timestamp": "2026-08-15T19:05:21.811682+08:00",
+      "source": "kafka",
+      "values": {
+        "current_offset_total": 2962,
+        "lag_max": 0,
+        "lag_total": 0,
+        "log_end_offset_total": 2962,
+        "partitions": 1
+      }
+    }
+  ],
+  "notes": [
+    "SLA values are reference lines, not pass/fail gates."
+  ]
+}

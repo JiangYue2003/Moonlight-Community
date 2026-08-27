@@ -1,0 +1,93 @@
+# Feed 压测报告：hybrid / rpc / distributed-read-c64
+
+- Run ID：`feed-wp6-combined-enabled-20260815`
+- 开始时间：2026-08-15T22:10:46+08:00
+- 采样时长：1m0.0469679s
+- 并发：64
+- 重复轮次：1 / 3
+- 报告完整：true
+
+| stage | total | success | failed | timeout | QPS | P50(ms) | P90(ms) | P95(ms) | P99(ms) | Max(ms) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| read | 585843 | 585843 | 0 | 0 | 9763.14 | 6.375 | 8.530 | 9.306 | 11.131 | 41.823 |
+
+## Feed 冷路径指标（本次运行增量）
+
+| dependency | calls | calls / successful read |
+|---|---:|---:|
+| counter | 240 | 0.000 |
+| mysql | 125 | 0.000 |
+| redis | 1171811 | 2.000 |
+| relation | 240 | 0.000 |
+
+- Cold compute：585843（1.000 / successful read）
+
+| feed stage | calls(all outcomes) | success mean(ms) |
+|---|---:|---:|
+| bigv_pipeline | 585843 | 2.560 |
+| counter | 240 | 3.353 |
+| hydrate | 585843 | 2.500 |
+| inbox | 585843 | 2.559 |
+| merge_dedup | 585843 | 0.002 |
+| relation | 240 | 7.488 |
+| route | 585843 | 0.029 |
+| total | 585843 | 5.113 |
+
+## 资源采样峰值
+
+| source | metric | max |
+|---|---|---:|
+| docker-state:zg-counter | health_configured | 1.000 |
+| docker-state:zg-counter | healthy | 1.000 |
+| docker-state:zg-counter | restart_count | 0.000 |
+| docker-state:zg-counter | running | 1.000 |
+| docker-state:zg-gateway | health_configured | 1.000 |
+| docker-state:zg-gateway | healthy | 1.000 |
+| docker-state:zg-gateway | restart_count | 0.000 |
+| docker-state:zg-gateway | running | 1.000 |
+| docker-state:zg-knowpost | health_configured | 1.000 |
+| docker-state:zg-knowpost | healthy | 1.000 |
+| docker-state:zg-knowpost | restart_count | 0.000 |
+| docker-state:zg-knowpost | running | 1.000 |
+| docker-state:zg-relation | health_configured | 1.000 |
+| docker-state:zg-relation | healthy | 1.000 |
+| docker-state:zg-relation | restart_count | 0.000 |
+| docker-state:zg-relation | running | 1.000 |
+| docker:zg-counter | cpu_percent | 4.600 |
+| docker:zg-counter | memory_percent | 0.170 |
+| docker:zg-counter | pids | 21.000 |
+| docker:zg-gateway | cpu_percent | 1.680 |
+| docker:zg-gateway | memory_percent | 0.210 |
+| docker:zg-gateway | pids | 20.000 |
+| docker:zg-knowpost | cpu_percent | 470.990 |
+| docker:zg-knowpost | memory_percent | 0.760 |
+| docker:zg-knowpost | pids | 25.000 |
+| docker:zg-relation | cpu_percent | 0.550 |
+| docker:zg-relation | memory_percent | 0.330 |
+| docker:zg-relation | pids | 28.000 |
+| kafka | current_offset_total | 2966.000 |
+| kafka | lag_max | 0.000 |
+| kafka | lag_total | 0.000 |
+| kafka | log_end_offset_total | 2966.000 |
+| kafka | partitions | 1.000 |
+| mysql | questions | 6509886.000 |
+| mysql | slow_queries | 0.000 |
+| mysql | threads_connected | 83.000 |
+| mysql | threads_running | 3.000 |
+| redis | blocked_clients | 0.000 |
+| redis | commands_total | 92667569.000 |
+| redis | connected_clients | 190.000 |
+| redis | evicted_keys | 0.000 |
+| redis | hit_rate | 0.887 |
+| redis | keys | 515092.000 |
+| redis | keyspace_hits | 414705329.000 |
+| redis | keyspace_misses | 54743260.000 |
+| redis | net_input_bytes | 19412359950.000 |
+| redis | net_output_bytes | 85485355572.000 |
+| redis | ops_per_sec | 70750.000 |
+| redis | rejected_connections | 0.000 |
+| redis | used_memory_bytes | 84016776.000 |
+
+## 说明
+
+- SLA values are reference lines, not pass/fail gates.

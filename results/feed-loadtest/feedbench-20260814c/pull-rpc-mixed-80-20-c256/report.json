@@ -1,0 +1,383 @@
+{
+  "run_id": "feedbench-20260814c",
+  "strategy": "pull",
+  "entry": "rpc",
+  "scenario": "mixed-80-20-c256",
+  "started_at": "2026-08-14T15:39:14.2185917+08:00",
+  "duration_ns": 5838279100,
+  "concurrency": 256,
+  "complete": false,
+  "environment": {
+    "gateway_url": "http://127.0.0.1:8080",
+    "go_version": "go1.25.8"
+  },
+  "stages": [
+    {
+      "name": "read",
+      "total": 240,
+      "success": 240,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 445.387511259953,
+      "latency": {
+        "min": 169498700,
+        "mean": 382043557,
+        "p50": 428774500,
+        "p90": 452851600,
+        "p95": 457637600,
+        "p99": 478685200,
+        "max": 482375700
+      }
+    },
+    {
+      "name": "publish_total",
+      "total": 60,
+      "success": 1,
+      "failed": 59,
+      "timeouts": 0,
+      "success_qps": 0.171283349574706,
+      "latency": {
+        "min": 837847500,
+        "mean": 837847500,
+        "p50": 837847500,
+        "p90": 837847500,
+        "p95": 837847500,
+        "p99": 837847500,
+        "max": 837847500
+      },
+      "errors": {
+        "request_error": 59
+      }
+    },
+    {
+      "name": "publish_draft",
+      "total": 60,
+      "success": 60,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 10.27700097448236,
+      "latency": {
+        "min": 6917500,
+        "mean": 57762361,
+        "p50": 45620700,
+        "p90": 99471500,
+        "p95": 103787400,
+        "p99": 117875200,
+        "max": 117875200
+      }
+    },
+    {
+      "name": "publish_metadata",
+      "total": 60,
+      "success": 59,
+      "failed": 1,
+      "timeouts": 0,
+      "success_qps": 10.105717624907655,
+      "latency": {
+        "min": 316558700,
+        "mean": 1734012269,
+        "p50": 1925705300,
+        "p90": 1977479700,
+        "p95": 1987803000,
+        "p99": 1993025800,
+        "max": 1993025800
+      },
+      "errors": {
+        "request_error": 1
+      }
+    },
+    {
+      "name": "publish_confirm",
+      "total": 59,
+      "success": 59,
+      "failed": 0,
+      "timeouts": 0,
+      "success_qps": 10.105717624907655,
+      "latency": {
+        "min": 276068100,
+        "mean": 1315661983,
+        "p50": 1446379000,
+        "p90": 1506082900,
+        "p95": 1517798800,
+        "p99": 1543819900,
+        "max": 1543819900
+      }
+    },
+    {
+      "name": "publish_commit",
+      "total": 59,
+      "success": 1,
+      "failed": 58,
+      "timeouts": 0,
+      "success_qps": 0.171283349574706,
+      "latency": {
+        "min": 228306700,
+        "mean": 228306700,
+        "p50": 228306700,
+        "p90": 228306700,
+        "p95": 228306700,
+        "p99": 228306700,
+        "max": 228306700
+      },
+      "errors": {
+        "request_error": 58
+      }
+    }
+  ],
+  "resources": [
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 344939,
+        "slow_queries": 0,
+        "threads_connected": 93,
+        "threads_running": 6
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 5390232,
+        "connected_clients": 420,
+        "evicted_keys": 0,
+        "hit_rate": 0.9896525554327839,
+        "keys": 537405,
+        "keyspace_hits": 7842375,
+        "keyspace_misses": 81997,
+        "net_input_bytes": 620109721,
+        "net_output_bytes": 1681054611,
+        "ops_per_sec": 111,
+        "rejected_connections": 0,
+        "used_memory_bytes": 88130624
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "kafka",
+      "values": {
+        "lag_max": 0,
+        "lag_total": 0,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.71,
+        "memory_percent": 0.14,
+        "pids": 23
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 133.9,
+        "memory_percent": 0.54,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 1.38,
+        "memory_percent": 0.3,
+        "pids": 25
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:14.2185917+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.38,
+        "memory_percent": 0.12,
+        "pids": 20
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 345648,
+        "slow_queries": 0,
+        "threads_connected": 118,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 5433453,
+        "connected_clients": 420,
+        "evicted_keys": 0,
+        "hit_rate": 0.9894675626695574,
+        "keys": 537439,
+        "keyspace_hits": 7857260,
+        "keyspace_misses": 83637,
+        "net_input_bytes": 623948795,
+        "net_output_bytes": 1690082117,
+        "ops_per_sec": 13867,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87935400
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "kafka",
+      "values": {
+        "lag_max": 0,
+        "lag_total": 0,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.15,
+        "memory_percent": 0.14,
+        "pids": 23
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 110.32,
+        "memory_percent": 0.44,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 3.2,
+        "memory_percent": 0.3,
+        "pids": 25
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:17.3638439+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 4.5,
+        "memory_percent": 0.12,
+        "pids": 20
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:19.4085675+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 345949,
+        "slow_queries": 0,
+        "threads_connected": 118,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:19.4085675+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 5455492,
+        "connected_clients": 420,
+        "evicted_keys": 0,
+        "hit_rate": 0.9894308085156968,
+        "keys": 537435,
+        "keyspace_hits": 7857262,
+        "keyspace_misses": 83932,
+        "net_input_bytes": 625712069,
+        "net_output_bytes": 1690487032,
+        "ops_per_sec": 11081,
+        "rejected_connections": 0,
+        "used_memory_bytes": 87238288
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "mysql",
+      "values": {
+        "questions": 345970,
+        "slow_queries": 0,
+        "threads_connected": 118,
+        "threads_running": 3
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "redis",
+      "values": {
+        "blocked_clients": 0,
+        "commands_total": 5459643,
+        "connected_clients": 420,
+        "evicted_keys": 0,
+        "hit_rate": 0.9894258287468313,
+        "keys": 537431,
+        "keyspace_hits": 7857265,
+        "keyspace_misses": 83972,
+        "net_input_bytes": 626041490,
+        "net_output_bytes": 1690566871,
+        "ops_per_sec": 9424,
+        "rejected_connections": 0,
+        "used_memory_bytes": 86377512
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "kafka",
+      "values": {
+        "lag_max": 0,
+        "lag_total": 0,
+        "partitions": 1
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "docker:zg-gateway",
+      "values": {
+        "cpu_percent": 0.13,
+        "memory_percent": 0.14,
+        "pids": 23
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "docker:zg-knowpost",
+      "values": {
+        "cpu_percent": 1.65,
+        "memory_percent": 0.44,
+        "pids": 26
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "docker:zg-relation",
+      "values": {
+        "cpu_percent": 0.23,
+        "memory_percent": 0.3,
+        "pids": 25
+      }
+    },
+    {
+      "timestamp": "2026-08-14T15:39:20.061218+08:00",
+      "source": "docker:zg-counter",
+      "values": {
+        "cpu_percent": 2.06,
+        "memory_percent": 0.12,
+        "pids": 20
+      }
+    }
+  ],
+  "notes": [
+    "SLA values are reference lines, not pass/fail gates."
+  ]
+}
