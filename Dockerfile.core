@@ -1,0 +1,57 @@
+# syntax=docker/dockerfile:1.7
+
+FROM alpine:3.22 AS builder
+
+WORKDIR /build
+
+ARG GOPROXY=https://goproxy.cn
+ARG GO_VERSION=1.25.8
+ARG TARGETARCH
+ENV GOPROXY=$GOPROXY
+ENV PATH=/usr/local/go/bin:$PATH
+
+RUN apk add --no-cache ca-certificates git && \
+    case "$TARGETARCH" in \
+      amd64) GO_SHA256=ceb5e041bbc3893846bd1614d76cb4681c91dadee579426cf21a63f2d7e03be6 ;; \
+      arm64) GO_SHA256=7d137f59f66bb93f40a6b2b11e713adc2a9d0c8d9ae581718e3fad19e5295dc7 ;; \
+      *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" && \
+    echo "$GO_SHA256  /tmp/go.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz
+RUN go version && test "$(go env GOVERSION)" = "go${GO_VERSION}"
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/root/go/pkg/mod go mod download
+
+COPY . .
+
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/gateway ./services/gateway && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/storage-merged ./services/user/cmd/user && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/counter-merged ./services/counter/cmd/counter && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/knowpost-merged ./services/knowpost/cmd/knowpost && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/relation-merged ./services/relation/cmd/relation && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/search-merged ./services/search/cmd/search
+
+FROM alpine:3.22
+
+RUN apk add --no-cache ca-certificates tzdata busybox-extras openssl
+
+ENV TZ=Asia/Shanghai
+
+WORKDIR /app
+
+COPY --from=builder /out/ ./bin/
+COPY services/gateway/etc/ ./services/gateway/etc/
+COPY services/user/cmd/user/etc/ ./services/user/cmd/user/etc/
+COPY services/counter/cmd/counter/etc/ ./services/counter/cmd/counter/etc/
+COPY services/knowpost/cmd/knowpost/etc/ ./services/knowpost/cmd/knowpost/etc/
+COPY services/relation/cmd/relation/etc/ ./services/relation/cmd/relation/etc/
+COPY services/search/cmd/search/etc/ ./services/search/cmd/search/etc/
+
+EXPOSE 8080 9002 9003 9004 9006 9013 9017
+
+CMD ["./bin/gateway", "-f", "services/gateway/etc/gateway-docker.yaml"]
