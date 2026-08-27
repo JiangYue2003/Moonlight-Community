@@ -47,7 +47,8 @@ Kibana 保持工具属性，不作为核心服务健康的必要条件。
 
 ## 核心镜像
 
-新增核心开发 Dockerfile，构建阶段使用与 `go.mod` 一致的 Go 1.25.8，并只编译：
+新增核心开发 Dockerfile，构建阶段使用满足 `go.mod` 最低要求的 Go 1.25
+补丁版本，并只编译：
 
 - `gateway`
 - `storage-merged`
@@ -56,8 +57,12 @@ Kibana 保持工具属性，不作为核心服务健康的必要条件。
 - `relation-merged`
 - `search-merged`
 
-运行阶段只包含这些二进制、对应配置、证书以及健康检查需要的最小工具。LLM、Agent
-及其二进制不进入该镜像。
+运行阶段只包含这些二进制、对应配置以及健康检查需要的最小工具。LLM、Agent
+及其服务端二进制不进入该镜像，本机 `certs/` 也不进入构建上下文或镜像层。
+
+一次性 `jwt-cert-init` 容器在 Compose 命名卷中生成开发用 JWT 密钥。该卷只读挂载到
+`user-storage`；Gateway、Counter、KnowPost、Relation、Search 均不会获得私钥。
+命名卷不存在时自动生成，后续启动复用已有私钥。
 
 所有应用服务复用相同的镜像定义，避免重复维护 Dockerfile。Compose 仍通过不同
 `command` 启动各业务域进程。
@@ -83,6 +88,9 @@ elasticsearch:9200
 一个一次性 `host-infra-check` 服务在应用启动前检查宿主机 MySQL、Redis、etcd
 端口。检查超时会使 Compose 明确失败，而不是让所有应用进入反复重启。
 
+ZooKeeper、Kafka、Canal、Elasticsearch 以及工具 profile 的宿主机端口统一绑定到
+`127.0.0.1`。容器间调用仍走 Compose 网络，不向局域网暴露匿名或明文开发服务。
+
 ## RPC 双向可达性
 
 go-zero 在 `ListenOn` 为 `0.0.0.0` 时会自动选择容器内部 IP 并注册到 etcd。该 IP
@@ -97,30 +105,39 @@ go-zero 在 `ListenOn` 为 `0.0.0.0` 时会自动选择容器内部 IP 并注册
 3. 服务仍向宿主机 etcd 注册，注册值为 `127.0.0.1:<port>`；
 4. 宿主机压测程序从 etcd 取得地址后通过已发布端口调用容器内 RPC。
 
+宿主机 etcd 如果仍广播默认的 `http://localhost:2379`，go-zero 每分钟的成员自动同步
+会记录一次连接告警；初始连接、租约续期和上述双通道调用不受影响。要消除该告警，
+宿主机 etcd 的 `advertise-client-urls` 需配置为容器可达地址。
+
 需要改为容器直连的活跃调用包括：
 
 - Gateway 到 User、Storage、Counter、KnowPost、Relation、Search；
-- KnowPost RPC 到 Counter；
+- KnowPost RPC 到 Counter、Relation；
 - Relation RPC/Syncer 到 User、Counter；
 - Search RPC/Indexer 到 Counter、KnowPost。
 
-LLM 客户端保留非阻塞配置，但没有 LLM 实例注册；LLM 路由不属于本次健康验收范围。
+既有 LLM 兼容客户端保留非阻塞配置以避免修改封存业务代码，但不构建、不启动 LLM
+服务端，也不注册 LLM 实例；LLM 路由不属于本次健康验收范围。
 
 ## 启动顺序与健康检查
 
 依赖顺序如下：
 
-1. `host-infra-check` 等待宿主机 MySQL、Redis、etcd 可连接；
-2. ZooKeeper、Kafka 与 Elasticsearch 达到健康状态；
-3. 启动 User/Storage 与 Counter；
-4. 启动 KnowPost、Relation、Search；
-5. 所有核心 RPC 端口健康后启动 Gateway。
+1. `host-infra-check` 等待宿主机 MySQL、Redis、etcd 可连接，同时
+   `jwt-cert-init` 准备开发 JWT 密钥；
+2. ZooKeeper、Kafka、Canal 与 Elasticsearch 达到健康状态；
+3. JWT 密钥准备完成后启动 User/Storage，同时启动 Counter；
+4. 启动 Relation；
+5. Relation 健康后启动 KnowPost，随后启动 Search；
+6. 所有核心 RPC 端口健康后启动 Gateway。
 
 应用健康检查使用容器内 TCP 探测：
 
 - `user-storage` 同时检查 `9002` 与 `9013`；
 - 其他 RPC 服务检查各自 RPC 端口；
 - Gateway 检查 `8080`。
+- Canal 在 Kafka 模式下不以 `11111` 是否监听作为就绪条件；检查 Java 主进程、
+  Canal Server 启动完成日志和 `example` instance 启动成功日志。
 
 所有长期运行服务使用 `restart: unless-stopped`。Compose 的
 `depends_on.condition: service_healthy` 负责首次启动排序；应用自身仍需保留正常的
@@ -136,7 +153,9 @@ docker compose -f deploy/compose/docker-compose.dev.yml up -d --build --wait --w
 
 - 宿主机端口不可达：`host-infra-check` 输出具体端口并失败。
 - Kafka 或 Elasticsearch 未就绪：依赖服务不启动，Compose `--wait` 返回失败。
-- 核心 RPC 进程退出或端口未监听：对应容器变为 unhealthy，并按重启策略恢复。
+- 核心 RPC 主进程退出：`restart: unless-stopped` 负责重启。
+- 主进程仍在但端口未监听：容器标记为 unhealthy，首次 `--wait` 启动会失败；Docker
+  不会仅因 unhealthy 自动重启，需要查看日志后手动重启或修复。
 - 宿主机端口被其他进程占用：Docker 在创建容器时直接报告端口冲突。
 - LLM/Agent 缺失：不影响核心容器健康；相关封存接口不纳入验收。
 - 停止开发栈：只停止 Compose 管理的容器，不操作宿主机 MySQL、Redis、etcd。
@@ -149,7 +168,8 @@ docker compose -f deploy/compose/docker-compose.dev.yml up -d --build --wait --w
    契约测试，并先确认测试因功能缺失而失败。
 2. `docker compose config` 必须无错误，且默认服务中不包含 LLM、Agent、MySQL、
    Redis、etcd。
-3. 核心镜像必须使用 Go 1.25.8，并成功构建六个目标二进制。
+3. 核心镜像必须使用不低于 Go 1.25.8 的工具链，并成功构建六个目标二进制；本机
+   `certs/` 必须被 `.dockerignore` 排除，最终镜像不得复制 JWT 私钥。
 4. 使用标准启动命令等待所有默认服务就绪。
 5. 从应用容器验证宿主机 MySQL、Redis、etcd 与容器内 Kafka、Elasticsearch 可达。
 6. 检查宿主机 etcd 中的核心 RPC 注册值均为 `127.0.0.1:<port>`。

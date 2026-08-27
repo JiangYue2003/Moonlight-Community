@@ -4,7 +4,7 @@
 
 依据：`docs/superpowers/specs/2026-08-15-feed-hybrid-read-performance-evolution-design.md`
 
-状态：待执行批准
+状态：WP1-WP11 已完成既定 RPC 交付（纯读、Cursor、mutation RPC 正式 A/B）；后续 Gateway 性能矩阵按用户决策取消
 
 ## 1. 执行规则
 
@@ -46,12 +46,12 @@ git diff -- <本工作包涉及的已有文件>
 | WP3 | Relation/Content EpochStore | 原子递增、故障旁路测试通过 |
 | WP4 | Relation epoch 消费者 | 事件重复/乱序只造成额外失效 |
 | WP5 | 完整 RouteSnapshot | Relation RPC/request 降低至少 80% |
-| WP6 | Inbox + BigV 合并 Pipeline | 冷路径 P95 降低 15% 或 Redis commands/request 降低 20% |
+| WP6 | Inbox + BigV 合并 Pipeline | 冷路径 P95 降低 15% 或 Redis round trips/request 降低 20% |
 | WP7 | 第一页 L1/L2 Cache | Fresh 命中正确、冷路径可回退 |
 | WP8 | Content Safety 失效 | 删除/私密/下架不返回旧页面 |
 | WP9 | Singleflight + SWR + 有界刷新 | 集中失效无协程/依赖雪崩 |
-| WP10 | 压测工具与 Docker 本地混合手册 | 三种读者基数、拓扑可记录 |
-| WP11 | 正式分阶段压测与总结 | 热点 10K 或明确下一瓶颈 |
+| WP10 | 压测工具与 Docker 本地混合手册 | 已完成；终审 Ready，Critical 0 / Important 0 |
+| WP11 | 正式分阶段压测与总结 | 完成：纯读与 Cursor 结果已落盘；mutation RPC-only Control/Treatment 共 18 轮正式 A/B 完成，Gateway 后续矩阵取消 |
 
 ## 3. WP0：环境、测试与基线锁定
 
@@ -116,12 +116,11 @@ WP0 不修改业务代码。
 修改：
 
 - `services/knowpost/cmd/knowpost/internal/config/config.go`
-- `services/knowpost/cmd/knowpost/internal/app/components.go`
+- `services/knowpost/cmd/knowpost/internal/config/config_test.go`
 - `services/knowpost/cmd/knowpost/main.go`
 - `services/knowpost/cmd/knowpost/main_test.go`
 - `services/relation/cmd/relation/internal/config/config.go`
 - `services/relation/cmd/relation/internal/config/config_test.go`
-- `services/relation/cmd/relation/internal/app/components.go`
 - `services/relation/cmd/relation/main.go`
 - `services/knowpost/cmd/knowpost/etc/knowpost.yaml`
 - `services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml`
@@ -137,20 +136,23 @@ WP0 不修改业务代码。
 - `Enabled=false` 不监听端口。
 - 启用后 `/debug/pprof/`、`/debug/pprof/goroutine` 可访问。
 - Context 取消后服务关闭。
+- CPU profile 等长请求进行中取消 Context 时，请求和组件都能及时结束且不转成进程错误退出。
 - 监听失败返回错误并由 merged runner 触发受控退出。
-- 使用独立 `http.ServeMux`，不污染默认 mux。
+- 组件显式使用独立 `http.ServeMux`，任何实际 listener 都不得把 `http.DefaultServeMux` 作为 Handler。
 
 配置测试：
 
 - KnowPost 本地端口为 `127.0.0.1:6064`。
 - Relation 本地端口为 `127.0.0.1:6066`。
-- Docker 内部监听地址可被容器访问，但宿主机只映射到 `127.0.0.1`。
+- Docker 内部仍监听 `6064/6066`，宿主机回环映射使用 `16064/16066`。
+- Windows/Hyper-V 当前排除 TCP `6034-6133`，因此 Docker 不使用 `6064/6066` 作为宿主机发布端口；可用 `netsh interface ipv4 show excludedportrange protocol=tcp` 复验。
 - 关闭开关时不暴露端口。
 
 ### 4.3 最小实现
 
 - `debughttp.Server` 实现 `Name() string` 和 `Run(ctx) error`，可直接作为两个 merged runner 的 Component。
 - 使用 Go 标准库 `net/http/pprof` 注册到私有 mux。
+- `net/http/pprof` 包初始化会向 `http.DefaultServeMux` 注册标准路由，因此安全门禁不表述为“全局 mux 没有注册项”，而是：本组件及仓库其他实际 HTTP listener 均不服务默认 mux；新增 `Handler=nil` 或默认 mux listener 必须被审查阻止。
 - 不把 pprof 注册到 gRPC 9004/9006 或 Prometheus 9104/9106。
 - Compose 只增加回环地址端口映射，不改现有健康检查。
 
@@ -158,9 +160,11 @@ WP0 不修改业务代码。
 
 ```powershell
 go test ./pkg/debughttp/... ./services/knowpost/cmd/knowpost/... ./services/relation/cmd/relation/... ./deploy/compose/...
-go tool pprof -top http://127.0.0.1:6064/debug/pprof/profile?seconds=10
-go tool pprof -top http://127.0.0.1:6066/debug/pprof/profile?seconds=10
+go tool pprof -top http://127.0.0.1:16064/debug/pprof/profile?seconds=10
+go tool pprof -top http://127.0.0.1:16066/debug/pprof/profile?seconds=10
 ```
+
+本地进程拓扑继续使用 `6064/6066`；Compose 全栈拓扑使用宿主机 `16064/16066`。不得在同一份报告中混淆二者。
 
 检查点：不启用时行为完全不变；启用时只在开发环境可达。
 
@@ -376,6 +380,18 @@ go test -race ./services/knowpost/rpc/internal/feed/...
 
 不满足即暂停，不进入 WP6。
 
+### 8.5 执行结果（2026-08-15）
+
+状态：完成；最终复审 Ready（Critical 0 / Important 0）；允许进入 WP6。
+
+- Relation RPC/request 从约 1.0 降至 `0.0010~0.0011`，约下降 99.9%。
+- c32/c64/c128/c256 QPS 中位数较 WP2 严格基线分别提升 83.66%、70.98%、50.43%、39.04%。
+- 12/12 trial 完整，Feed 失败/timeout=0，degraded=false，Kafka lag=0。
+- 峰值无错 QPS `3978.74`（c64），稳定并发 c64，拐点 c128。
+- 正式压测后 KnowPost healthy、restart=0，定向错误日志 0 条。
+- Windows 缺少 gcc，未声称 `go test -race` 通过；确定性并发单测、重复测试和高并发正式压测通过。
+- 详细报告：`docs/superpowers/reports/2026-08-15-feed-hybrid-wp5-route-snapshot.md`。
+
 ## 9. WP6：Inbox + BigV Outbox 合并 Pipeline
 
 ### 9.1 计划文件
@@ -414,7 +430,23 @@ go test -tags=integration ./services/knowpost/rpc/internal/feed/...
 满足以下之一并且无其他回退：
 
 - 冷路径 P95 至少下降 15%；或
-- Redis commands/request 至少下降 20%。
+- Redis dependency round trips/request 至少下降 20%。
+
+round trip 以一次单命令调用或一次 `Pipeline.Exec` 计数；命令条数不会因 Pipeline 合并而减少，
+不得把该指标表述为 Redis commands/request。正式报告还需对照 Redis `ops/sec`。
+
+### 9.5 执行结果（2026-08-15）
+
+状态：完成；最终复审 Ready（Critical 0 / Important 0）；允许进入可选 WP7。
+
+- 第一批 Inbox + BigV 合并、跨批次 Top-N 等价、部分错误偏移隔离、Context 取消和无 batch 接口回退均有自动化覆盖。
+- 普通 Feed 测试、integration build tag 测试、定向重复测试和相关 `go vet` 通过。
+- 12/12 正式 trial 完整，Feed 失败/timeout=0，degraded=false，Kafka lag=0。
+- Redis dependency round trips/request 从约 3.00 降至约 2.00，下降约 33%；同时保留 Redis ops/s 证明命令负载没有被隐藏。
+- c128 三轮中位数 `10661.31 QPS`、P95 `18.112 ms`；稳定点 c64 为 `9866.82 QPS`、P95 `9.171 ms`。
+- c32/c64/c128/c256 QPS 较 WP5 分别提升 123.82%、147.99%、173.61%、172.58%，P95 下降 54.46%~63.26%。
+- Phase 2 在冷路径上已达到 10K；WP7 变为热点第一页的可选增益阶段，必须保留 WP6 作为回退和对照基线。
+- 详细报告：`docs/superpowers/reports/2026-08-15-feed-hybrid-wp6-combined-pipeline.md`。
 
 ## 10. WP7：第一页 L1/L2 PageCache 基础路径
 
@@ -477,9 +509,29 @@ go test -race ./services/knowpost/rpc/internal/cache/userfeed/... ./services/kno
 
 Feature Flag 顺序：`off -> l2 -> l1-l2`。每一步冒烟后再继续。
 
+### 10.6 执行结果（2026-08-15）
+
+状态：完成；最终复审 Ready（Critical 0 / Important 0）；PageCache 保持 off，允许进入 WP8。
+
+- 完整 epoch key、仅 Hybrid page1/size20 准入、Fresh L1/L2、Protobuf L2、cost 与故障回退测试通过。
+- Epoch error、SafetyPending，以及 cache lookup 中途 pending/relation bump/safety bump 均丢弃旧页并回 WP6。
+- L2 get/decode/encode/set 有独立低基数指标和按 operation 限频错误报告。
+- loader 使用 Cache 提供的 Context；真实 Ristretto+miniredis 与 64 路只读 marshal 测试通过。
+- 普通/integration 回归、50 次定向重复、相关 `go vet` 通过；Windows 缺 gcc，未声称 race 门禁通过。
+- Docker `off -> l2 -> l1-l2` 启动与 Hybrid 冒烟通过；40 个真实 page1/size20 RPC 全成功，观察到 `l1_fresh` 与 `miss`。
+- 最新 KnowPost 镜像 `sha256:203349ab6e77343a5eb328149da87ac5e664075be9631556813696d84d3f6fb6`；最终运行态 PageCache=off、healthy、restart=0。
+- 详细报告：`docs/superpowers/reports/2026-08-15-feed-hybrid-wp7-page-cache-foundation.md`。
+
 ## 11. WP8：Content Safety Epoch 写路径
 
 ### 11.1 计划文件
+
+新增：
+
+- `services/knowpost/rpc/internal/listener/content_safety_epoch.go`
+- `services/knowpost/rpc/internal/listener/content_safety_epoch_test.go`
+- `services/knowpost/rpc/internal/logic/knowpost/cache_safety_test.go`
+- `cmd/loadtest/content_safety_integration_test.go`
 
 修改：
 
@@ -489,6 +541,10 @@ Feature Flag 顺序：`off -> l2 -> l1-l2`。每一步冒烟后再继续。
 - `services/knowpost/rpc/internal/logic/knowpost/updatetoplogic.go`
 - `services/knowpost/rpc/internal/logic/knowpost/updatevisibilitylogic.go`
 - `services/knowpost/rpc/internal/logic/knowpost/deletelogic.go`
+- `services/knowpost/rpc/internal/logic/knowpost/getuserfeedlogic.go`
+- `services/knowpost/rpc/internal/cache/keys.go`
+- `services/knowpost/rpc/internal/svc/servicecontext.go`
+- KnowPost Config、应用生命周期、YAML、Compose、loadtest 环境快照。
 - 对应测试文件。
 
 ### 11.2 顺序
@@ -519,6 +575,20 @@ go test ./services/knowpost/rpc/internal/logic/knowpost/... ./services/knowpost/
 ```
 
 集成测试测量删除、转私密和下架到 Feed 不可见的时间，正常目标 1 秒。
+
+### 11.5 执行结果（2026-08-15）
+
+状态：完成；二次复审 Ready（Critical 0 / Important 0）；允许进入 WP9。
+
+- Delete、UpdateVisibility、UpdateTop、PatchMetadata 在 commit 后同步 bump；Publish 不触发全局 safety 冷却。
+- commit 后既有缓存失效失败仍推进 safety 并返回原错误；safety bump 失败不篡改已提交业务结果，而是合并 pending 并由后续读尝试补偿。
+- PageCache 路径的个人 FeedItem key 携带 safety epoch；pending、epoch 错误、cache lookup 中途版本变化或 PageCache 不准入时，个人 FeedItem cache 与 PageCache 一同 bypass。
+- 新增独立 `canal-outbox` consumer group；Updated/Deleted 持久 bump，Published 跳过。PageCache 非 off 时配置强制要求 `SafetyConsumerEnabled=true`。
+- 真实开发栈集成测试：转私密 `95.4161ms`、删除 `92.5074ms` 内从 Feed 消失；两次均观察到 epoch `N -> N+2`，证明同步和异步补偿均生效。
+- 普通回归、integration 编译、相关 `go vet` 和 `git diff --check` 通过；Windows `CGO_ENABLED=0` 且无 gcc，未声称 race 门禁通过。
+- Docker 镜像 `sha256:f604129f626e4259ac1bc76b39aac71a1e842ad82f6c725624608d005a457cca`；KnowPost healthy、restart=0，safety consumer group lag=0。
+- 小样本运行态报告 `results/feed-loadtest/feed-wp8-safety-validation-20260815` 仅证明开关、路径和指标，不作为容量结论。
+- 详细报告：`docs/superpowers/reports/2026-08-15-feed-hybrid-wp8-content-safety-epoch.md`。
 
 ## 12. WP9：Singleflight、SWR 与有界刷新
 
@@ -570,6 +640,22 @@ go test -race ./services/knowpost/rpc/internal/cache/userfeed/...
 
 集中失效测试必须同时观察 goroutine、refresh queue、Relation QPS 和 Redis ops。
 
+### 12.5 执行结果（2026-08-16）
+
+状态：完成；终审 Ready（Critical 0 / Important 0）；允许进入 WP10。
+
+- 相同完整 page key 的冷 burst 合并 L2 查询和 loader；不同 key 不互相阻塞，每个 waiter 使用自己的请求 Context。
+- Fresh 最后 20% 与合法 Stale 均可立即返回并投递刷新；worker=`32`、queue=`1024`、loader timeout=`2s`，队列溢出不派生 goroutine。
+- queued refresh 可由已过期的前台请求原子接管；running refresh 失败后回退新的有界 Hybrid cold loader，不让刷新协调器成为可用性单点。
+- L1/L2 nominal TTL 为 `800ms/4s`，在 ±20% jitter 后分别严格落在 `500ms~1s` 与 `3s~5s`；Stale window 不超过 `10s`。
+- queue depth、active workers、pending keys 已接入无用户标签 Gauge；queue full 与 refresh load error 分操作限频报告。
+- PageCache 定向包连续 50 轮、KnowPost/Cache/Kafka/Loadtest/Compose 相关回归、`go vet` 与 `git diff --check` 通过。Windows `CGO_ENABLED=0`，`go test -race` 明确报 `-race requires cgo`，未声称 race 门禁通过。
+- 最终镜像 `sha256:5a4c1e4832048c71c35fe3eb5d9e133eb7f57091174f31abcbb8d9ff4a048ef5`；KnowPost healthy、restart=0，全部 Feed 开关启用，三个 Kafka group lag=0。
+- 真实 SWR 定向样本 40/40 成功、P95 `0.804ms`，观察到 enqueue/load 各 1 次，结束时 queue/active/pending 均为 0。
+- c16、400 请求热读小样本 400/400 成功、QPS `10694.99`、P95 `1.3515ms`、cold compute=1、singleflight shared=15。该结果只证明运行路径，不替代 WP10 的固定时长三轮容量结论。
+- 内容安全回归：转私密 `95.3161ms`、删除 `93.2795ms` 内从已预热 Feed 消失，safety epoch 分别 `26->28`、`30->32`。
+- 详细报告：`docs/superpowers/reports/2026-08-16-feed-hybrid-wp9-singleflight-swr.md`。
+
 ## 13. WP10：压测工具、三种基数与 Docker 混合拓扑
 
 ### 13.1 计划文件
@@ -578,12 +664,25 @@ go test -race ./services/knowpost/rpc/internal/cache/userfeed/...
 
 - `cmd/loadtest/load_test.yaml`
 - `cmd/loadtest/config_test.go`
+- `cmd/loadtest/cache_state.go`
+- `cmd/loadtest/cache_state_test.go`
+- `cmd/loadtest/client_cpu.go`
+- `cmd/loadtest/client_cpu_test.go`
+- `cmd/loadtest/comparison.go`
+- `cmd/loadtest/comparison_test.go`
 - `cmd/loadtest/dataset.go`
 - `cmd/loadtest/dataset_test.go`
+- `cmd/loadtest/environment_evidence.go`
+- `cmd/loadtest/environment_evidence_test.go`
+- `cmd/loadtest/local_process_monitor.go`
+- `cmd/loadtest/local_process_monitor_test.go`
 - `cmd/loadtest/runner.go`
 - `cmd/loadtest/monitor.go`
+- `cmd/loadtest/monitor_test.go`
 - `cmd/loadtest/report.go`
 - `cmd/loadtest/report_test.go`
+- `cmd/loadtest/runtime_strategy.go`
+- `cmd/loadtest/runtime_strategy_test.go`
 - `cmd/loadtest/run_feed_matrix.ps1`
 - `cmd/loadtest/FEED_MATRIX_GUIDE.md`
 
@@ -602,6 +701,9 @@ go test -race ./services/knowpost/rpc/internal/cache/userfeed/...
 - 报告记录 topology：`compose-full` 或 `compose-middleware-local-services`。
 - 报告记录 Route/Page cache outcome、冷计算、epoch、刷新队列和 pprof 文件位置。
 - 压测前检测客户端 CPU；客户端饱和时报告无效。
+- 正式矩阵默认只跑数据不变的读场景；publish/mixed 在 checkpoint/restore 完成前只允许独立命名空间的单轮 probe，不能生成容量结论。
+- manifest 固定 strategy 与 seed；报告固定 Git patch 内容哈希、镜像 ID/本地 exe SHA、资源/地址/工作负载兼容指纹，证据不一致时 comparison fail closed。
+- 本地拓扑连续采集项目进程 CPU/RSS，并按 PID+exe+start time 检测替换；停止脚本同样校验三者。
 
 ### 13.3 Docker 镜像源降级路径
 
@@ -632,7 +734,30 @@ go test ./cmd/loadtest/... ./deploy/compose/...
 & ./scripts/stop-feed-local-services.ps1 -WhatIf
 ```
 
+### 13.5 完成证据与终审
+
+- `go test ./cmd/loadtest/... ./deploy/compose/... -count=3` 通过。
+- `go vet ./cmd/loadtest/... ./deploy/compose/...` 通过。
+- `run_feed_matrix.ps1`、start/stop 本地服务脚本 PowerShell 语法检查通过。
+- start/stop `-WhatIf` 无容器、进程或状态文件副作用；`git diff --check` 通过，仅有 Windows CRLF 提示。
+- 终审 Verdict：Ready；Critical 0，Important 0。三项 Minor（SWR sampled max 命名、显式 Mode/日志字段、Redis 监控自流量说明）已记入 WP11 Spec，不阻塞 WP10。
+
 ## 14. WP11：正式阶段压测与交付报告
+
+WP11 分两段执行：先完成不改变数据集的三档纯读 control/treatment 容量矩阵；再实现并验证 mutation checkpoint/restore，随后才运行 publish、90/10、80/20 的 60 秒 × 三轮正式矩阵。checkpoint 至少覆盖 benchmark 作者帖子/Outbox、Redis Feed keys、Kafka drain、Page Cache safety epoch 和恢复前后数据指纹。未完成该门禁时，mutation probe 不计入正式交付结论。
+
+执行进度（更新至 2026-08-27）：
+
+- 已按用户批准的压缩档策略完成约 1,200 与 20,000 读者的 RPC/Gateway Control/Treatment：先用 10 秒 scout 确定容量拐点，再仅对稳定最优档执行 60 秒 × 3。
+- distributed：RPC c64 从 6,797.75 提升至目标态 102,075.49 QPS；Gateway c16 从 1,218.99 提升至 1,529.10 QPS，但 P95 从 23.02ms 回退到 26.34ms。
+- high：Control RPC c32 为 6,162.47 QPS；Treatment c32 触发 `feed_degraded` 判无效，稳定档 c16 为 9,477.51 QPS。Gateway c8 为 1,402.80 → 1,407.80 QPS，基本持平且 P95 回退。
+- 压测日志预设、签名 token、Redis RDB 失败隔离和资源证据已实现；受 Redis `MISCONF` 影响的旧报告不进入结论。
+- Cursor 深分页专用数据集、实现与 RPC/Gateway 正式 A/B 已完成，结果按第 19 节交付。
+- trial 级 mutation checkpoint/restore 已实现：覆盖 MySQL 帖子/Outbox、精确 Redis Feed key DUMP、Kafka 稳定排空、safety epoch、生成帖子 ID 和恢复范围校验；RPC publish、RPC 90/10、RPC 80/20、Gateway 90/10 短时闭环均 `complete=true`。
+- 独立正式矩阵脚本经终审补强后完成短时端到端验收：RPC 90/10 c2 得到 90 读/10 写、零失败/超时，10 个成功发布 ID 全部删除，restore 与脚本末尾 checkpoint verify 均通过；TTL 自然老化与即时恢复严格校验已分离。正式脚本现强制新鲜结果命名空间、预期矩阵 manifest、逐格/总数验收，以及从首次 restore 前开始的 incomplete 审计记录。
+- 已在全新 checkpoint `43dec82fd77f1173d630fef98b1ac6f2ab4aececde9f5f3e04fb47d1062dd24f` 上完成 RPC-only 正式矩阵：Control/Treatment 各 9 轮，publish c2、90/10 c4、80/20 c4 均为 10 秒预热 + 60 秒采样 × 3；18/18 完整，失败/超时为 0，所有试后恢复成功。
+- Treatment 的完整发布、90/10、80/20 总吞吐分别变化 -4.33%、-5.85%、-12.28%；90/10 读 P95 改善 18.43%。发布耗时增加、低 Fresh 命中与吞吐回退共同出现，但 bundled A/B 不对单个开关做因果归因；正式结论见 `docs/superpowers/reports/2026-08-27-feed-wp11-mutation-rpc-ab.md`。
+- 后续 Gateway 性能测试按用户决策取消。已有 Gateway 数据保留为已知入口瓶颈旁证，不进入本次 mutation 严格 A/B，也不再作为 WP11 未完成项。
 
 ### 14.1 每阶段固定流程
 
@@ -664,7 +789,7 @@ go test ./cmd/loadtest/... ./deploy/compose/...
 - 取关、删除、转私密、下架按 Spec 收敛。
 - Redis、Relation、epoch consumer 暂停与恢复。
 - 页面集中失效时无 refresh/goroutine/依赖雪崩。
-- Gateway 入口完成对照，但不与 RPC 10K 目标混为同一口径。
+- Gateway 历史对照保留且不与 RPC 10K 目标混为同一口径；2026-08-27 后不再追加 Gateway 性能矩阵。
 
 ### 14.3 交付
 
