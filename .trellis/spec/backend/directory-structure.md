@@ -20,6 +20,94 @@ Do not move business packages merely to make the tree visually uniform. Move
 one bounded context at a time, preserving HTTP, RPC, SQL, Redis, and Kafka
 contracts throughout the migration.
 
+## Scenario: Bounded-Context Process Extraction
+
+### 1. Scope / Trigger
+
+This contract applies when moving a component out of a merged process into an
+independently runnable bounded-context process.
+
+### 2. Signatures
+
+```text
+services/<context>/
+  cmd/<process>/main.go       executable and flag parsing
+  internal/
+    application/              use-case orchestration and context rules
+    bootstrap/                 config, dependencies, and lifecycle
+    transport/grpc/            generated RPC adapter only
+```
+
+```go
+func Run(ctx context.Context, cfg Config) error
+func NewServiceContext(cfg Config) *ServiceContext
+```
+
+The process accepts `-f <config>` and stores local and container configs under
+`services/<context>/cmd/<process>/etc/`.
+
+### 3. Contracts
+
+The extraction must keep the protobuf package, generated client import path,
+RPC service key, listen port, persistence schema, cache keys, and message
+topics unchanged. A transport adapter may depend on `internal/application`,
+but callers must not import another context's `internal` packages. Keep legacy
+API trees and generated RPC contracts until their explicit retirement stage;
+the new process is the owner of active runtime behavior.
+
+Declare the process in `deploy/topology/services.json`, then update every active
+Dockerfile, Compose file, lifecycle script, Supervisor config, and current
+documentation consumer in the same stage. Historical reports and design records
+remain unchanged.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+|---|---|
+| RPC service key, protobuf package, or client import path changes | Stop the migration stage; requires a separate contract migration |
+| Old merged process still owns the extracted port | Topology and runtime smoke checks fail |
+| An active deployment or lifecycle file references the old entry point | Reference audit or Compose contract test fails |
+| New application behavior differs from the old logic | Focused parity test fails |
+| Legacy API or generated contract is removed during extraction | Reject the change until the explicit retirement stage |
+
+### 5. Good/Base/Bad Cases
+
+- Good: `storage` owns `cmd/storage`, context-level application/bootstrap/transport
+  packages, and the unchanged `storage.rpc` service key.
+- Base: generated protobuf/client code remains under its existing public RPC
+  path while active runtime code moves to the bounded-context `internal` tree.
+- Bad: rename the RPC key, move generated clients, and delete legacy HTTP code
+  in the same directory-migration commit.
+
+### 6. Tests Required
+
+- Add focused application tests for every moved use case, including existing
+  validation and error mappings.
+- Add configuration contract assertions for the preserved RPC name, discovery
+  key, listen port, and metrics port.
+- Run topology and Compose contract tests, then `go test ./...`, `go vet ./...`,
+  and `go build ./...`.
+- Start the default local stack and assert the old owner no longer holds the
+  extracted port, the new process does hold it, a Gateway route reaches the new
+  RPC process, and shutdown releases every managed port.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```go
+// User remains the runtime owner of a sibling context.
+components := []Component{NewUserComponent(c.User), NewStorageComponent(c.Storage)}
+```
+
+Correct:
+
+```text
+services/user/cmd/user       -> user.rpc on 9002
+services/storage/cmd/storage -> storage.rpc on 9013
+services/storage/rpc/client  -> unchanged public client import path
+```
+
 ## Scenario: Runtime Topology and Local Artifacts
 
 ### 1. Scope / Trigger

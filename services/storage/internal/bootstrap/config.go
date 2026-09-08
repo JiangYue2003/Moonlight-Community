@@ -1,4 +1,4 @@
-package config
+package bootstrap
 
 import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
@@ -8,7 +8,6 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-
 	Mysql      MysqlConf
 	CacheRedis cache.CacheConf
 	Oss        ossx.Config

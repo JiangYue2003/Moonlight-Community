@@ -15,7 +15,7 @@
 - `services/knowpost/rpc/etc/knowpost.yaml`
 - `services/relation/rpc/etc/relation.yaml`
 - `services/search/rpc/etc/search.yaml` (已有配置)
-- `services/storage/rpc/etc/storage.yaml` (已有配置)
+- `services/storage/cmd/storage/etc/storage.yaml` (已有配置)
 - `services/llm/rpc/etc/llm.yaml` (已有配置)
 
 **配置示例**：

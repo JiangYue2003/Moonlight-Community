@@ -31,9 +31,10 @@ $configDir = Join-Path $runtimeRoot "config"
 $logDir = Join-Path $runtimeRoot "logs"
 
 $middleware = @("etcd", "zookeeper", "kafka", "canal-server", "elasticsearch")
-$composeProjectServices = @("gateway", "user-storage", "counter", "knowpost", "relation", "search")
+$composeProjectServices = @("gateway", "user", "storage", "counter", "knowpost", "relation", "search")
 $services = @(
-    [pscustomobject]@{ Name = "user-storage"; Package = "./services/user/cmd/user"; Config = "services/user/cmd/user/etc/user-docker.yaml"; Ports = @(20002, 20013) },
+    [pscustomobject]@{ Name = "user"; Package = "./services/user/cmd/user"; Config = "services/user/cmd/user/etc/user-docker.yaml"; Ports = @(20002) },
+    [pscustomobject]@{ Name = "storage"; Package = "./services/storage/cmd/storage"; Config = "services/storage/cmd/storage/etc/storage-docker.yaml"; Ports = @(20013) },
     [pscustomobject]@{ Name = "counter"; Package = "./services/counter/cmd/counter"; Config = "services/counter/cmd/counter/etc/counter-docker.yaml"; Ports = @(20003, 19103) },
     [pscustomobject]@{ Name = "relation"; Package = "./services/relation/cmd/relation"; Config = "services/relation/cmd/relation/etc/relation-docker.yaml"; Ports = @(20006, 16066, 19105) },
     [pscustomobject]@{ Name = "knowpost"; Package = "./services/knowpost/cmd/knowpost"; Config = "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml"; Ports = @(20004, 16064, 19104) },
@@ -133,8 +134,8 @@ function Convert-LocalConfig {
         "mysql:3306" = "127.0.0.1:3306"
         "redis:6379" = "127.0.0.1:6379"
         "kafka:29092" = "127.0.0.1:9092"
-        "user-storage:9002" = "127.0.0.1:20002"
-        "user-storage:9013" = "127.0.0.1:20013"
+        "user:9002" = "127.0.0.1:20002"
+        "storage:9013" = "127.0.0.1:20013"
         "counter:9003" = "127.0.0.1:20003"
         "knowpost:9004" = "127.0.0.1:20004"
         "relation:9006" = "127.0.0.1:20006"

@@ -30,7 +30,8 @@ COPY . .
 RUN --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/gateway ./services/gateway && \
-    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/storage-merged ./services/user/cmd/user && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/user-merged ./services/user/cmd/user && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/storage ./services/storage/cmd/storage && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/counter-merged ./services/counter/cmd/counter && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/knowpost-merged ./services/knowpost/cmd/knowpost && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/relation-merged ./services/relation/cmd/relation && \
@@ -47,6 +48,7 @@ WORKDIR /app
 COPY --from=builder /out/ ./bin/
 COPY services/gateway/etc/ ./services/gateway/etc/
 COPY services/user/cmd/user/etc/ ./services/user/cmd/user/etc/
+COPY services/storage/cmd/storage/etc/ ./services/storage/cmd/storage/etc/
 COPY services/counter/cmd/counter/etc/ ./services/counter/cmd/counter/etc/
 COPY services/knowpost/cmd/knowpost/etc/ ./services/knowpost/cmd/knowpost/etc/
 COPY services/relation/cmd/relation/etc/ ./services/relation/cmd/relation/etc/

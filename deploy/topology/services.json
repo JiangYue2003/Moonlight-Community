@@ -50,8 +50,8 @@
       ]
     },
     {
-      "id": "user-storage",
-      "role": "merged-service",
+      "id": "user",
+      "role": "rpc",
       "run": {
         "package": "services/user/cmd/user",
         "config": "services/user/cmd/user/etc/user.yaml",
@@ -62,8 +62,22 @@
       "dependencyProfiles": ["host-core", "compose-core"],
       "ports": [
         { "name": "user-rpc", "number": 9002, "protocol": "grpc", "managedOnStart": true },
+        { "name": "user-metrics", "number": 9102, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "storage",
+      "role": "rpc",
+      "run": {
+        "package": "services/storage/cmd/storage",
+        "config": "services/storage/cmd/storage/etc/storage.yaml",
+        "args": ["-f", "services/storage/cmd/storage/etc/storage.yaml"]
+      },
+      "logFile": "storage-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
         { "name": "storage-rpc", "number": 9013, "protocol": "grpc", "managedOnStart": true },
-        { "name": "user-metrics", "number": 9102, "protocol": "http", "managedOnStart": false },
         { "name": "storage-metrics", "number": 9106, "protocol": "http", "managedOnStart": false }
       ]
     },

@@ -18,7 +18,7 @@
    - 成功后 `issueAndPersist`：`JwtSigner.IssuePair`（签发 access token + refresh token）+ `Tokens.Save`（refresh token 存 Redis，带 TTL）。登录成功也记一条 `login_logs`（非事务，写失败只记日志不影响登录本身）。
    - 之后每次请求，`common/middleware/auth.go`（HTTP 网关侧的 JWT 校验中间件）解出 userId 放入 ctx，经 `common/interceptor`（gRPC 拦截器）把 userId 透传进下游 RPC 的 metadata。
 
-2. **获取 OSS 上传凭证**（`services/storage/rpc/internal/logic/storage/presignlogic.go` `Presign`）
+2. **获取 OSS 上传凭证**（`services/storage/internal/application/presign.go` `Service.Presign`）
    - 校验 `UserId>0`、`ContentType` 非空；`Scene`（上传场景）必须是知文正文或知文配图。
    - 用 `PostId` 反查 `know_posts` 草稿行，`CreatorId != UserId` 时统一返回 `CodeForbidden`（不区分"帖子不存在"和"不属于你"两种情况，防止信息泄露）。
    - `ossx.ObjectKeyFor` 生成对象 Key，`Oss.Presign` 生成带签名的直传 URL，返回给客户端。此后客户端直接 PUT 到 OSS，**不经过任何应用服务**。

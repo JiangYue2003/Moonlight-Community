@@ -27,7 +27,6 @@ func main() {
 
 	components := []app.Component{
 		app.NewUserComponent(c.User),
-		app.NewStorageComponent(c.Storage),
 	}
 
 	if err := app.Run(ctx, components); err != nil {

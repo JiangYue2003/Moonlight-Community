@@ -109,7 +109,7 @@ docker compose -f deploy/compose/docker-compose.full.yml exec mysql \
 ```bash
 # 启动所有应用服务
 docker compose -f deploy/compose/docker-compose.full.yml up -d \
-  gateway user-storage counter knowpost relation search llm agent
+  gateway user storage counter knowpost relation search llm agent
 ```
 
 ## 验证部署

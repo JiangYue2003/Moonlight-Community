@@ -32,6 +32,7 @@ func TestCoreDockerfileBuildsOnlyActiveServices(t *testing.T) {
 		"openssl",
 		"./services/gateway",
 		"./services/user/cmd/user",
+		"./services/storage/cmd/storage",
 		"./services/counter/cmd/counter",
 		"./services/knowpost/cmd/knowpost",
 		"./services/relation/cmd/relation",
@@ -112,12 +113,13 @@ func TestDevComposePublishesHostReachableRPCAndWaitsForHealth(t *testing.T) {
 	services := loadDevComposeServices(t)
 
 	expectedPorts := map[string][]string{
-		"gateway":      {"127.0.0.1:8080:8080"},
-		"user-storage": {"127.0.0.1:9002:9002", "127.0.0.1:9013:9013"},
-		"counter":      {"127.0.0.1:9003:9003"},
-		"knowpost":     {"127.0.0.1:9004:9004", "127.0.0.1:16064:6064"},
-		"relation":     {"127.0.0.1:9006:9006", "127.0.0.1:16066:6066"},
-		"search":       {"127.0.0.1:9017:9017"},
+		"gateway":  {"127.0.0.1:8080:8080"},
+		"user":     {"127.0.0.1:9002:9002"},
+		"storage":  {"127.0.0.1:9013:9013"},
+		"counter":  {"127.0.0.1:9003:9003"},
+		"knowpost": {"127.0.0.1:9004:9004", "127.0.0.1:16064:6064"},
+		"relation": {"127.0.0.1:9006:9006", "127.0.0.1:16066:6066"},
+		"search":   {"127.0.0.1:9017:9017"},
 	}
 	for name, wantPorts := range expectedPorts {
 		service := services[name]
@@ -142,7 +144,7 @@ func TestDevComposePublishesHostReachableRPCAndWaitsForHealth(t *testing.T) {
 		}
 	}
 
-	for _, name := range []string{"user-storage", "counter", "knowpost", "relation", "search"} {
+	for _, name := range []string{"user", "storage", "counter", "knowpost", "relation", "search"} {
 		environment := mapValue(t, name+".environment", services[name]["environment"])
 		if got := stringValue(environment["POD_IP"]); got != "127.0.0.1" {
 			t.Errorf("%s POD_IP = %q, want 127.0.0.1", name, got)
@@ -166,7 +168,7 @@ func TestDevComposePublishesHostReachableRPCAndWaitsForHealth(t *testing.T) {
 	}
 
 	gatewayDependsOn := mapValue(t, "gateway.depends_on", services["gateway"]["depends_on"])
-	for _, dependency := range []string{"user-storage", "counter", "knowpost", "relation", "search"} {
+	for _, dependency := range []string{"user", "storage", "counter", "knowpost", "relation", "search"} {
 		condition := mapValue(t, "gateway.depends_on."+dependency, gatewayDependsOn[dependency])
 		if got := stringValue(condition["condition"]); got != "service_healthy" {
 			t.Errorf("gateway dependency %s condition = %q, want service_healthy", dependency, got)
@@ -200,20 +202,20 @@ func TestDevComposeGeneratesJwtCertsOutsideImageAndScopesThemToUser(t *testing.T
 		t.Errorf("jwt-cert-init must write the managed JWT certificate volume")
 	}
 
-	userStorage := services["user-storage"]
+	user := services["user"]
 	if !contains(
-		stringSlice(t, "user-storage.volumes", userStorage["volumes"]),
+		stringSlice(t, "user.volumes", user["volumes"]),
 		"zg_dev_jwt_certs:/app/certs:ro",
 	) {
-		t.Errorf("user-storage must mount the managed JWT certificate volume read-only")
+		t.Errorf("user must mount the managed JWT certificate volume read-only")
 	}
-	userDependsOn := mapValue(t, "user-storage.depends_on", userStorage["depends_on"])
-	certCondition := mapValue(t, "user-storage.depends_on.jwt-cert-init", userDependsOn["jwt-cert-init"])
+	userDependsOn := mapValue(t, "user.depends_on", user["depends_on"])
+	certCondition := mapValue(t, "user.depends_on.jwt-cert-init", userDependsOn["jwt-cert-init"])
 	if got := stringValue(certCondition["condition"]); got != "service_completed_successfully" {
-		t.Errorf("user-storage jwt-cert-init condition = %q, want service_completed_successfully", got)
+		t.Errorf("user jwt-cert-init condition = %q, want service_completed_successfully", got)
 	}
 
-	for _, name := range []string{"gateway", "counter", "knowpost", "relation", "search"} {
+	for _, name := range []string{"gateway", "storage", "counter", "knowpost", "relation", "search"} {
 		if volumes, ok := services[name]["volumes"]; ok {
 			for _, volume := range stringSlice(t, name+".volumes", volumes) {
 				if strings.Contains(volume, "zg_dev_jwt_certs") {
@@ -290,7 +292,7 @@ func TestDevComposeRunsInternalEtcdForContainersAndHostLoadTest(t *testing.T) {
 		t.Errorf("host-infra-check must not require the retired host etcd")
 	}
 
-	for _, name := range []string{"gateway", "user-storage", "counter", "knowpost", "relation", "search"} {
+	for _, name := range []string{"gateway", "user", "storage", "counter", "knowpost", "relation", "search"} {
 		dependsOn := mapValue(t, name+".depends_on", services[name]["depends_on"])
 		condition := mapValue(t, name+".depends_on.etcd", dependsOn["etcd"])
 		if got := stringValue(condition["condition"]); got != "service_healthy" {
@@ -319,7 +321,8 @@ func TestDevComposeMapsHostInfrastructureForApplicationContainers(t *testing.T) 
 	for _, name := range []string{
 		"host-infra-check",
 		"gateway",
-		"user-storage",
+		"user",
+		"storage",
 		"counter",
 		"knowpost",
 		"relation",
@@ -346,17 +349,17 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 		{
 			file:     "services/gateway/etc/gateway-docker.yaml",
 			path:     []string{"AuthRpc"},
-			endpoint: "user-storage:9002",
+			endpoint: "user:9002",
 		},
 		{
 			file:     "services/gateway/etc/gateway-docker.yaml",
 			path:     []string{"UserRpc"},
-			endpoint: "user-storage:9002",
+			endpoint: "user:9002",
 		},
 		{
 			file:     "services/gateway/etc/gateway-docker.yaml",
 			path:     []string{"StorageRpc"},
-			endpoint: "user-storage:9013",
+			endpoint: "storage:9013",
 		},
 		{
 			file:     "services/gateway/etc/gateway-docker.yaml",
@@ -401,7 +404,7 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 		{
 			file:     "services/relation/cmd/relation/etc/relation-docker.yaml",
 			path:     []string{"Rpc", "UserRpc"},
-			endpoint: "user-storage:9002",
+			endpoint: "user:9002",
 		},
 		{
 			file:     "services/relation/cmd/relation/etc/relation-docker.yaml",
@@ -441,6 +444,29 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 		}
 		if _, ok := client["Etcd"]; ok {
 			t.Errorf("%s %s must use direct endpoints, not Etcd", testCase.file, strings.Join(testCase.path, "."))
+		}
+	}
+}
+
+func TestStorageConfigsPreserveRpcIdentityAndMetrics(t *testing.T) {
+	for _, file := range []string{
+		"services/storage/cmd/storage/etc/storage.yaml",
+		"services/storage/cmd/storage/etc/storage-docker.yaml",
+	} {
+		config := loadProjectYAML(t, file)
+		if got := stringValue(config["Name"]); got != "storage.rpc" {
+			t.Errorf("%s Name = %q, want storage.rpc", file, got)
+		}
+		if got := stringValue(config["ListenOn"]); got != "0.0.0.0:9013" {
+			t.Errorf("%s ListenOn = %q, want 0.0.0.0:9013", file, got)
+		}
+		etcd := mapValue(t, file+".Etcd", config["Etcd"])
+		if got := stringValue(etcd["Key"]); got != "storage.rpc" {
+			t.Errorf("%s Etcd.Key = %q, want storage.rpc", file, got)
+		}
+		prometheus := mapValue(t, file+".Prometheus", config["Prometheus"])
+		if got := intValue(t, file+".Prometheus.Port", prometheus["Port"]); got != 9106 {
+			t.Errorf("%s Prometheus.Port = %d, want 9106", file, got)
 		}
 	}
 }
@@ -545,6 +571,16 @@ func stringValue(value any) string {
 	default:
 		return ""
 	}
+}
+
+func intValue(t *testing.T, name string, value any) int {
+	t.Helper()
+
+	result, ok := value.(int)
+	if !ok {
+		t.Fatalf("%s has type %T, want integer", name, value)
+	}
+	return result
 }
 
 func contains(values []string, want string) bool {

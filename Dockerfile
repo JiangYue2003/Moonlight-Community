@@ -22,7 +22,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/knowpost-merg
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/relation-merged ./services/relation/cmd/relation
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/search-merged ./services/search/cmd/search
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/llm-merged ./services/llm/cmd/llm
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/storage-merged ./services/user/cmd/user
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/user-merged ./services/user/cmd/user
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/storage ./services/storage/cmd/storage
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/agent ./services/agent/cmd/agent
 
 # 运行阶段：最小化镜像

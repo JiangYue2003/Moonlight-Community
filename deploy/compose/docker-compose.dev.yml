@@ -228,9 +228,9 @@ services:
     ports:
       - "127.0.0.1:5601:5601"
 
-  user-storage:
+  user:
     <<: *core-service
-    container_name: zg-user-storage
+    container_name: zg-user
     depends_on:
       etcd:
         condition: service_healthy
@@ -240,13 +240,27 @@ services:
         condition: service_completed_successfully
     ports:
       - "127.0.0.1:9002:9002"
-      - "127.0.0.1:9013:9013"
     volumes:
       - zg_dev_jwt_certs:/app/certs:ro
-    command: ["./bin/storage-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    command: ["./bin/user-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
     healthcheck:
       <<: *rpc-healthcheck
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 9002 && nc -z 127.0.0.1 9013"]
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9002"]
+
+  storage:
+    <<: *core-service
+    container_name: zg-storage
+    depends_on:
+      etcd:
+        condition: service_healthy
+      host-infra-check:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:9013:9013"
+    command: ["./bin/storage", "-f", "services/storage/cmd/storage/etc/storage-docker.yaml"]
+    healthcheck:
+      <<: *rpc-healthcheck
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9013"]
 
   counter:
     <<: *core-service
@@ -308,7 +322,7 @@ services:
         condition: service_completed_successfully
       kafka:
         condition: service_healthy
-      user-storage:
+      user:
         condition: service_healthy
       counter:
         condition: service_healthy
@@ -351,7 +365,9 @@ services:
         condition: service_healthy
       host-infra-check:
         condition: service_completed_successfully
-      user-storage:
+      user:
+        condition: service_healthy
+      storage:
         condition: service_healthy
       counter:
         condition: service_healthy

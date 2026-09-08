@@ -46,7 +46,7 @@ zhiguang-go/
 └── services/
     ├── gateway/           # 统一对外 HTTP 网关
     ├── user/rpc/          # 用户 + 认证
-    ├── storage/rpc/       # OSS 预签名
+    ├── storage/           # media/storage bounded context
     ├── counter/           # 计数 rpc + aggregator + reconciler + merged
     ├── knowpost/          # 知文 rpc + merged
     ├── relation/          # 关系 rpc + syncer + merged
@@ -87,9 +87,10 @@ Windows:
 scripts\start-all.ps1
 ```
 
-当前主启动清单来自 `deploy/topology/services.json`，会拉起 6 个进程：
+当前主启动清单来自 `deploy/topology/services.json`，会拉起 7 个进程：
 
-- `user-storage`（`user-rpc + storage-rpc`）
+- `user`（`user-rpc`）
+- `storage`（`storage-rpc`）
 - `counter`（`counter-rpc + aggregator`）
 - `relation`（`relation-rpc + syncer`）
 - `knowpost`（`knowpost-rpc`）

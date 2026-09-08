@@ -70,11 +70,11 @@ services:
 
   # ==================== 核心应用服务 ====================
 
-  user-storage:
+  user:
     build:
       context: ../..
       dockerfile: Dockerfile
-    container_name: zg-user-storage
+    container_name: zg-user
     restart: unless-stopped
     depends_on:
       mysql:
@@ -85,10 +85,29 @@ services:
         condition: service_healthy
     environment:
       - TZ=Asia/Shanghai
-    command: ["./bin/storage-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    command: ["./bin/user-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
     volumes:
       - ./../../services/user/cmd/user/etc:/app/services/user/cmd/user/etc:ro
       - ./../../certs:/app/certs:ro
+
+  storage:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-storage
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/storage", "-f", "services/storage/cmd/storage/etc/storage-docker.yaml"]
+    volumes:
+      - ./../../services/storage/cmd/storage/etc:/app/services/storage/cmd/storage/etc:ro
 
   counter:
     build:
@@ -116,7 +135,9 @@ services:
     depends_on:
       etcd:
         condition: service_healthy
-      user-storage:
+      user:
+        condition: service_started
+      storage:
         condition: service_started
       counter:
         condition: service_started

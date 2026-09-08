@@ -1,29 +1,27 @@
-package storagelogic
+package application
 
 import (
 	"context"
 	"errors"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/ossx"
-	"github.com/zhiguang/zhiguang-go/services/storage/rpc/internal/svc"
+	knowmodel "github.com/zhiguang/zhiguang-go/services/knowpost/shared/model"
 	storagepb "github.com/zhiguang/zhiguang-go/services/storage/rpc/storage"
 )
 
-type PresignLogic struct {
-	ctx    context.Context
-	svcCtx *svc.ServiceContext
-	logx.Logger
+type Service struct {
+	knowPosts knowmodel.KnowPostsModel
+	oss       *ossx.Client
 }
 
-func NewPresignLogic(ctx context.Context, svcCtx *svc.ServiceContext) *PresignLogic {
-	return &PresignLogic{ctx: ctx, svcCtx: svcCtx, Logger: logx.WithContext(ctx)}
+func NewService(knowPosts knowmodel.KnowPostsModel, oss *ossx.Client) *Service {
+	return &Service{knowPosts: knowPosts, oss: oss}
 }
 
-func (l *PresignLogic) Presign(req *storagepb.PresignReq) (*storagepb.PresignResp, error) {
+func (s *Service) Presign(ctx context.Context, req *storagepb.PresignReq) (*storagepb.PresignResp, error) {
 	if req.UserId <= 0 {
 		return nil, errorx.New(errorx.CodeUnauthorized, "missing user id")
 	}
@@ -39,7 +37,7 @@ func (l *PresignLogic) Presign(req *storagepb.PresignReq) (*storagepb.PresignRes
 		if err != nil {
 			return nil, errorx.Wrap(errorx.CodeBadRequest, "postId not a number", err)
 		}
-		post, err := l.svcCtx.KnowPostsModel.FindOne(l.ctx, uint64(postID))
+		post, err := s.knowPosts.FindOne(ctx, uint64(postID))
 		if err != nil {
 			if errors.Is(err, sqlx.ErrNotFound) {
 				return nil, errorx.New(errorx.CodeForbidden, "draft not found or no permission")
@@ -54,19 +52,15 @@ func (l *PresignLogic) Presign(req *storagepb.PresignReq) (*storagepb.PresignRes
 	}
 
 	ext := ossx.ExtFromContentType(req.ContentType, req.Scene, req.Ext)
-	objectKey := ossx.ObjectKeyFor(req.Scene, req.PostId, req.UserId, l.svcCtx.Oss.AvatarFolder(), ext)
-	signed, err := l.svcCtx.Oss.Presign(l.ctx, ossx.PresignReq{
-		ObjectKey:   objectKey,
-		ContentType: req.ContentType,
+	objectKey := ossx.ObjectKeyFor(req.Scene, req.PostId, req.UserId, s.oss.AvatarFolder(), ext)
+	signed, err := s.oss.Presign(ctx, ossx.PresignReq{
+		ObjectKey: objectKey, ContentType: req.ContentType,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &storagepb.PresignResp{
-		Url:        signed.Url,
-		ObjectKey:  signed.ObjectKey,
-		ExpiresIn:  signed.ExpiresIn,
-		Headers:    signed.Headers,
-		ContentUrl: signed.ContentUrl,
+		Url: signed.Url, ObjectKey: signed.ObjectKey, ExpiresIn: signed.ExpiresIn,
+		Headers: signed.Headers, ContentUrl: signed.ContentUrl,
 	}, nil
 }
