@@ -1,10 +1,10 @@
-package server
+package grpc
 
 import (
 	"context"
 
-	llmlogic "github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/logic/llm"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/svc"
+	svc "github.com/zhiguang/zhiguang-go/services/llm/internal/application"
+	llmlogic "github.com/zhiguang/zhiguang-go/services/llm/internal/application/llm"
 	llmpb "github.com/zhiguang/zhiguang-go/services/llm/rpc/llm"
 )
 

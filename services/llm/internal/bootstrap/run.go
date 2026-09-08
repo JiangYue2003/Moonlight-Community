@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"context"
@@ -10,13 +10,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/config"
-	llmServer "github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/server/llm"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/svc"
+	svc "github.com/zhiguang/zhiguang-go/services/llm/internal/application"
+	llmServer "github.com/zhiguang/zhiguang-go/services/llm/internal/transport/grpc"
 	llmpb "github.com/zhiguang/zhiguang-go/services/llm/rpc/llm"
 )
-
-type Config = config.Config
 
 func Run(ctx context.Context, cfg Config) error {
 	svcCtx := svc.NewServiceContext(cfg)

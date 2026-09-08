@@ -9,9 +9,9 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/textx"
-	"github.com/zhiguang/zhiguang-go/services/llm/shared/prompt"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/svc"
+	svc "github.com/zhiguang/zhiguang-go/services/llm/internal/application"
 	llmpb "github.com/zhiguang/zhiguang-go/services/llm/rpc/llm"
+	"github.com/zhiguang/zhiguang-go/services/llm/shared/prompt"
 )
 
 type DescribeLogic struct {

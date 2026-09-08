@@ -1,19 +1,19 @@
-package svc
+package application
 
 import (
 	"context"
 	"log"
 	"time"
 
-	"github.com/cloudwego/eino/components/embedding"
-	"github.com/cloudwego/eino/components/model"
 	einodashscope "github.com/cloudwego/eino-ext/components/embedding/dashscope"
 	einodeepseek "github.com/cloudwego/eino-ext/components/model/deepseek"
+	"github.com/cloudwego/eino/components/embedding"
+	"github.com/cloudwego/eino/components/model"
 	goredis "github.com/redis/go-redis/v9"
 
 	"github.com/zhiguang/zhiguang-go/pkg/esx"
 	"github.com/zhiguang/zhiguang-go/pkg/ratelimit"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/llm/internal/application/config"
 )
 
 type ServiceContext struct {

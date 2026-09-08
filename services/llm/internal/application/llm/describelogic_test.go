@@ -7,11 +7,11 @@ import (
 
 	miniredis "github.com/alicebob/miniredis/v2"
 	"github.com/cloudwego/eino/components/model"
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/cloudwego/eino/schema"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/zhiguang/zhiguang-go/pkg/ratelimit"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/llm/rpc/internal/svc"
+	svc "github.com/zhiguang/zhiguang-go/services/llm/internal/application"
+	"github.com/zhiguang/zhiguang-go/services/llm/internal/application/config"
 	llmpb "github.com/zhiguang/zhiguang-go/services/llm/rpc/llm"
 )
 
