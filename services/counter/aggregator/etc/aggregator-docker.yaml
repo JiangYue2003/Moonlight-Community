@@ -1,0 +1,19 @@
+Redis:
+  Host: redis:6379
+  Type: node
+  Key: counter-aggregator
+Kafka:
+  Brokers:
+  - kafka:29092
+  Topic: counter-events
+  GroupId: counter-agg
+Flush:
+  IntervalMs: 1000
+  BatchSize: 200
+Lock:
+  Key: aggr:flush:lock
+  TtlMs: 11000
+Log:
+  ServiceName: counter.aggregator
+  Mode: console
+  Level: info

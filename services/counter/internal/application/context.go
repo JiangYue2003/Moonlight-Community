@@ -1,15 +1,52 @@
-package svc
+package application
 
 import (
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zhiguang/zhiguang-go/pkg/counterlua"
 	"github.com/zhiguang/zhiguang-go/pkg/kafkax"
 	"github.com/zhiguang/zhiguang-go/pkg/lockx"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/config"
 )
 
+type Config struct {
+	Redis   redis.RedisKeyConf
+	Kafka   KafkaConfig
+	Rebuild RebuildConfig
+}
+
+type KafkaConfig struct {
+	Brokers  []string
+	Topic    string
+	Producer ProducerConfig
+}
+
+type ProducerConfig struct {
+	LingerMs int
+}
+
+type RebuildConfig struct {
+	Enabled bool
+	Lock    RebuildLockConfig
+	Rate    RebuildRateConfig
+	Backoff RebuildBackoffConfig
+}
+
+type RebuildLockConfig struct {
+	TtlMs int
+}
+
+type RebuildRateConfig struct {
+	Permits       int
+	WindowSeconds int
+}
+
+type RebuildBackoffConfig struct {
+	BaseMs int
+	MaxMs  int
+}
+
 type ServiceContext struct {
-	Config config.Config
+	Config Config
 
 	Redis goredis.UniversalClient
 	Kafka *kafkax.Producer
@@ -23,7 +60,7 @@ type ServiceContext struct {
 	Locks *lockx.Mutexer
 }
 
-func NewServiceContext(c config.Config) *ServiceContext {
+func NewServiceContext(c Config) *ServiceContext {
 	rdb := goredis.NewUniversalClient(&goredis.UniversalOptions{
 		Addrs:    []string{c.Redis.Host},
 		Password: c.Redis.Pass,

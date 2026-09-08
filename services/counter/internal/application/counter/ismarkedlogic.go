@@ -5,18 +5,18 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/schema"
 )
 
 type IsMarkedLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewIsMarkedLogic(ctx context.Context, svcCtx *svc.ServiceContext) *IsMarkedLogic {
+func NewIsMarkedLogic(ctx context.Context, svcCtx *application.ServiceContext) *IsMarkedLogic {
 	return &IsMarkedLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

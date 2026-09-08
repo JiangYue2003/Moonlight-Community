@@ -8,19 +8,19 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/schema"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/sds"
 )
 
 type UserIncrementLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewUserIncrementLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserIncrementLogic {
+func NewUserIncrementLogic(ctx context.Context, svcCtx *application.ServiceContext) *UserIncrementLogic {
 	return &UserIncrementLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
@@ -48,11 +48,11 @@ func (l *UserIncrementLogic) UserIncrement(in *counter.UserIncrementReq) (*count
 
 type GetUserSnapshotLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewGetUserSnapshotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserSnapshotLogic {
+func NewGetUserSnapshotLogic(ctx context.Context, svcCtx *application.ServiceContext) *GetUserSnapshotLogic {
 	return &GetUserSnapshotLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
@@ -74,11 +74,11 @@ func (l *GetUserSnapshotLogic) GetUserSnapshot(in *counter.GetUserSnapshotReq) (
 
 type BatchGetUserSnapshotLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewBatchGetUserSnapshotLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BatchGetUserSnapshotLogic {
+func NewBatchGetUserSnapshotLogic(ctx context.Context, svcCtx *application.ServiceContext) *BatchGetUserSnapshotLogic {
 	return &BatchGetUserSnapshotLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

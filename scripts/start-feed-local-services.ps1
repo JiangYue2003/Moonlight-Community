@@ -31,11 +31,12 @@ $configDir = Join-Path $runtimeRoot "config"
 $logDir = Join-Path $runtimeRoot "logs"
 
 $middleware = @("etcd", "zookeeper", "kafka", "canal-server", "elasticsearch")
-$composeProjectServices = @("gateway", "user", "storage", "counter", "knowpost", "relation", "search")
+$composeProjectServices = @("gateway", "user", "storage", "counter", "counter-aggregator", "knowpost", "relation", "search")
 $services = @(
     [pscustomobject]@{ Name = "user"; Package = "./services/user/cmd/user"; Config = "services/user/cmd/user/etc/user-docker.yaml"; Ports = @(20002) },
     [pscustomobject]@{ Name = "storage"; Package = "./services/storage/cmd/storage"; Config = "services/storage/cmd/storage/etc/storage-docker.yaml"; Ports = @(20013) },
     [pscustomobject]@{ Name = "counter"; Package = "./services/counter/cmd/counter"; Config = "services/counter/cmd/counter/etc/counter-docker.yaml"; Ports = @(20003, 19103) },
+    [pscustomobject]@{ Name = "counter-aggregator"; Package = "./services/counter/aggregator"; Config = "services/counter/aggregator/etc/aggregator.yaml"; Ports = @() },
     [pscustomobject]@{ Name = "relation"; Package = "./services/relation/cmd/relation"; Config = "services/relation/cmd/relation/etc/relation-docker.yaml"; Ports = @(20006, 16066, 19105) },
     [pscustomobject]@{ Name = "knowpost"; Package = "./services/knowpost/cmd/knowpost"; Config = "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml"; Ports = @(20004, 16064, 19104) },
     [pscustomobject]@{ Name = "search"; Package = "./services/search/cmd/search"; Config = "services/search/cmd/search/etc/search-docker.yaml"; Ports = @(20017, 19107) },
@@ -173,11 +174,15 @@ function Convert-LocalConfig {
 		# zrpc's stat interceptor serializes every request before log-level
 		# filtering. Disable it in generated benchmark configs so the measured
 		# path does not pay request JSON/log formatting costs.
-		$body = [regex]::Replace(
-			$body,
-			'(?m)^Rpc:[ \t]*\r?$',
-			"Rpc:`r`n  Middlewares:`r`n    Stat: false"
-		)
+		if ($body -match '(?m)^Rpc:[ \t]*\r?$') {
+			$body = [regex]::Replace(
+				$body,
+				'(?m)^Rpc:[ \t]*\r?$',
+				"Rpc:`r`n  Middlewares:`r`n    Stat: false"
+			)
+		} elseif ($body -notmatch '(?m)^Middlewares:[ \t]*\r?$') {
+			$body = $body.TrimEnd() + "`r`n`r`nMiddlewares:`r`n  Stat: false`r`n"
+		}
 		if ($Service -eq "gateway") {
 			if ($body -match '(?m)^Log:[ \t]*\r?$' -or $body -match '(?m)^HTTPAccessLog:[ \t]*') {
 				throw "gateway source config already defines Log or HTTPAccessLog; benchmark logging conversion must be updated explicitly"

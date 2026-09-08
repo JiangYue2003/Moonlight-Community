@@ -274,10 +274,20 @@ services:
         condition: service_healthy
     ports:
       - "127.0.0.1:9003:9003"
-    command: ["./bin/counter-merged", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
+    command: ["./bin/counter-rpc", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
     healthcheck:
       <<: *rpc-healthcheck
       test: ["CMD", "nc", "-z", "127.0.0.1", "9003"]
+
+  counter-aggregator:
+    <<: *core-service
+    container_name: zg-counter-aggregator
+    depends_on:
+      host-infra-check:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    command: ["./bin/counter-aggregator", "-f", "services/counter/aggregator/etc/aggregator-docker.yaml"]
 
   knowpost:
     <<: *core-service

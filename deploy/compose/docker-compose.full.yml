@@ -243,9 +243,26 @@ services:
         condition: service_healthy
     environment:
       - TZ=Asia/Shanghai
-    command: ["./bin/counter-merged", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
+    command: ["./bin/counter-rpc", "-f", "services/counter/cmd/counter/etc/counter-docker.yaml"]
     volumes:
       - ./../../services/counter/cmd/counter/etc:/app/services/counter/cmd/counter/etc:ro
+
+  counter-aggregator:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    container_name: zg-counter-aggregator
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      - TZ=Asia/Shanghai
+    command: ["./bin/counter-aggregator", "-f", "services/counter/aggregator/etc/aggregator-docker.yaml"]
+    volumes:
+      - ./../../services/counter/aggregator/etc:/app/services/counter/aggregator/etc:ro
 
   knowpost:
     build:

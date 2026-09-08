@@ -11,12 +11,12 @@ import (
 	"github.com/zhiguang/zhiguang-go/pkg/counterlua"
 	"github.com/zhiguang/zhiguang-go/pkg/kafkax"
 	"github.com/zhiguang/zhiguang-go/pkg/lockx"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/schema"
 )
 
-func newGetSvc(t *testing.T) (*miniredis.Miniredis, *svc.ServiceContext) {
+func newGetSvc(t *testing.T) (*miniredis.Miniredis, *application.ServiceContext) {
 	t.Helper()
 	mr, err := miniredis.Run()
 	if err != nil {
@@ -25,7 +25,7 @@ func newGetSvc(t *testing.T) (*miniredis.Miniredis, *svc.ServiceContext) {
 	t.Cleanup(mr.Close)
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	t.Cleanup(func() { _ = rdb.Close() })
-	return mr, &svc.ServiceContext{
+	return mr, &application.ServiceContext{
 		Redis:           rdb,
 		Kafka:           kafkax.NewProducer([]string{"127.0.0.1:9092"}),
 		ToggleScript:    goredis.NewScript(counterlua.Toggle),

@@ -1,106 +1,35 @@
-DisableAPI: true
-
-Api:
-  Name: counter-api
-  Host: 0.0.0.0
-  Port: 8002
-
-  Mode: dev
-
-  CounterRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: counter.rpc
-    NonBlock: true
-
-  AuthRpc:
-    Etcd:
-      Hosts:
-      - etcd:2379
-      Key: user.rpc
-    NonBlock: true
-
-  Auth:
-    AccessSecret: zhiguang-placeholder-secret-do-not-use
-    AccessExpire: 900
-
-  Log:
-    ServiceName: counter-api
-    Mode: console
-    Level: info
-
-  Prometheus:
-    Host: 0.0.0.0
-    Port: 9112
-    Path: /metrics
-
-Rpc:
-  Name: counter.rpc
-  ListenOn: 0.0.0.0:9003
-
-  # Etcd 服务注册配置
-  Etcd:
-    Hosts:
-    - etcd:2379
-    Key: counter.rpc
-
-  Mode: dev
-
-  Redis:
-    Host: redis:6379
-    Type: node
-    Key: counter-rpc
-
-  Kafka:
-    Brokers:
-    - kafka:29092
-    Topic: counter-events
-    Producer:
-      LingerMs: 10
-
-  Rebuild:
-    Enabled: false
-    Lock:
-      TtlMs: 5000
-    Rate:
-      Permits: 3
-      WindowSeconds: 10
-    Backoff:
-      BaseMs: 500
-      MaxMs: 30000
-
-  Log:
-    ServiceName: counter.rpc
-    Mode: console
-    Level: info
-
-  Prometheus:
-    Host: 0.0.0.0
-    Port: 9103
-    Path: /metrics
-
-Aggregator:
-  Redis:
-    Host: redis:6379
-    Type: node
-    Key: counter-aggregator
-
-  Kafka:
-    Brokers:
-    - kafka:29092
-    Topic: counter-events
-    GroupId: counter-agg
-
-  Flush:
-    IntervalMs: 1000
-    BatchSize: 200
-
+Name: counter.rpc
+ListenOn: 0.0.0.0:9003
+Etcd:
+  Hosts:
+  - etcd:2379
+  Key: counter.rpc
+Mode: dev
+Redis:
+  Host: redis:6379
+  Type: node
+  Key: counter-rpc
+Kafka:
+  Brokers:
+  - kafka:29092
+  Topic: counter-events
+  Producer:
+    LingerMs: 10
+Rebuild:
+  Enabled: false
   Lock:
-    Key: aggr:flush:lock
-    TtlMs: 11000
-
-  Log:
-    ServiceName: counter.aggregator
-    Mode: console
-    Level: info
+    TtlMs: 5000
+  Rate:
+    Permits: 3
+    WindowSeconds: 10
+  Backoff:
+    BaseMs: 500
+    MaxMs: 30000
+Log:
+  ServiceName: counter.rpc
+  Mode: console
+  Level: info
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9103
+  Path: /metrics

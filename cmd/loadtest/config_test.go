@@ -28,11 +28,10 @@ func TestBenchmarkLoggingConfigConversionPreservesNestedYAML(t *testing.T) {
 			service: "counter",
 			source:  filepath.Join(root, "services", "counter", "cmd", "counter", "etc", "counter-docker.yaml"),
 			check: func(t *testing.T, body string) {
-				require.NotRegexp(t, `(?m)^Prometheus:`, body)
-				require.GreaterOrEqual(t, strings.Count(body, "\n  Prometheus:"), 2)
-				require.Contains(t, body, "\nRpc:\n  Middlewares:\n    Stat: false")
-				require.Contains(t, body, "    Level: error")
-				require.Contains(t, body, "    Stat: false")
+				require.Regexp(t, `(?m)^Prometheus:`, body)
+				require.Contains(t, body, "\nMiddlewares:\n  Stat: false")
+				require.Contains(t, body, "\n  Level: error")
+				require.Contains(t, body, "\n  Stat: false")
 			},
 		},
 		{

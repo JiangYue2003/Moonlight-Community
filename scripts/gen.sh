@@ -27,10 +27,13 @@ goctl rpc protoc proto/auth/auth.proto \
 
 echo "== generate counter-rpc =="
 goctl rpc protoc proto/counter/counter.proto \
-  --go_out=services/counter/rpc/internal \
-  --go-grpc_out=services/counter/rpc/internal \
-  --zrpc_out=services/counter/rpc \
-  -m
+	--go_out=services/counter/rpc \
+	--go-grpc_out=services/counter/rpc \
+	--zrpc_out=services/counter/rpc \
+	-m
+# Counter owns the runtime implementation outside generated public contracts.
+rm -rf services/counter/rpc/internal services/counter/rpc/etc
+rm -f services/counter/rpc/counter.go
 
 echo "== generate knowpost protobuf =="
 protoc --go_out=services/knowpost/rpc \

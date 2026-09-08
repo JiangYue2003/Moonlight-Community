@@ -4,19 +4,19 @@ import (
 	"context"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/schema"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/sds"
 )
 
 type BatchGetCountsLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewBatchGetCountsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *BatchGetCountsLogic {
+func NewBatchGetCountsLogic(ctx context.Context, svcCtx *application.ServiceContext) *BatchGetCountsLogic {
 	return &BatchGetCountsLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

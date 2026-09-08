@@ -23,7 +23,6 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 	logx.MustSetup(c.Log)
-
 	sc := svc.NewServiceContext(c)
 	defer sc.Close()
 

@@ -6,19 +6,19 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/event"
 	"github.com/zhiguang/zhiguang-go/services/counter/shared/schema"
 )
 
 type ToggleLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewToggleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ToggleLogic {
+func NewToggleLogic(ctx context.Context, svcCtx *application.ServiceContext) *ToggleLogic {
 	return &ToggleLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

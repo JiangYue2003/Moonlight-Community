@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"context"
@@ -7,23 +7,23 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/zhiguang/zhiguang-go/services/counter/internal/application"
+	grpcserver "github.com/zhiguang/zhiguang-go/services/counter/internal/transport/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	"github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/config"
-	counterServer "github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/server/counter"
-	usercounterServer "github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/server/usercounter"
-	"github.com/zhiguang/zhiguang-go/services/counter/rpc/internal/svc"
 )
 
-type Config = config.Config
-
 func Run(ctx context.Context, cfg Config) error {
-	svcCtx := svc.NewServiceContext(cfg)
+	svcCtx := application.NewServiceContext(application.Config{
+		Redis:   cfg.Redis,
+		Kafka:   cfg.Kafka,
+		Rebuild: cfg.Rebuild,
+	})
 	s := zrpc.MustNewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
-		counter.RegisterCounterServer(grpcServer, counterServer.NewCounterServer(svcCtx))
-		counter.RegisterUserCounterServer(grpcServer, usercounterServer.NewUserCounterServer(svcCtx))
+		counter.RegisterCounterServer(grpcServer, grpcserver.NewCounterServer(svcCtx))
+		counter.RegisterUserCounterServer(grpcServer, grpcserver.NewUserCounterServer(svcCtx))
 		if cfg.Mode == service.DevMode || cfg.Mode == service.TestMode {
 			reflection.Register(grpcServer)
 		}

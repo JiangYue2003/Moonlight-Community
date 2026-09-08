@@ -28,11 +28,15 @@ if errorlevel 1 goto :err
 
 echo == generate counter-rpc ==
 goctl rpc protoc proto/counter/counter.proto ^
-  --go_out=services/counter/rpc/internal ^
-  --go-grpc_out=services/counter/rpc/internal ^
-  --zrpc_out=services/counter/rpc ^
-  -m
+	--go_out=services/counter/rpc ^
+	--go-grpc_out=services/counter/rpc ^
+	--zrpc_out=services/counter/rpc ^
+	-m
 if errorlevel 1 goto :err
+rem Counter owns the runtime implementation outside generated public contracts.
+if exist services\counter\rpc\internal rmdir /s /q services\counter\rpc\internal
+if exist services\counter\rpc\etc rmdir /s /q services\counter\rpc\etc
+if exist services\counter\rpc\counter.go del /q services\counter\rpc\counter.go
 
 echo == generate knowpost protobuf ==
 protoc --go_out=services/knowpost/rpc ^

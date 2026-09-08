@@ -83,19 +83,32 @@
     },
     {
       "id": "counter",
-      "role": "merged-service",
+      "role": "rpc",
       "run": {
         "package": "services/counter/cmd/counter",
         "config": "services/counter/cmd/counter/etc/counter.yaml",
         "args": ["-f", "services/counter/cmd/counter/etc/counter.yaml"]
       },
-      "logFile": "counter-service.log",
+      "logFile": "counter-rpc.log",
       "defaultLocal": true,
       "dependencyProfiles": ["host-core", "compose-core"],
       "ports": [
-        { "name": "rpc", "number": 9003, "protocol": "grpc", "managedOnStart": true },
-        { "name": "metrics", "number": 9103, "protocol": "http", "managedOnStart": false }
+        { "name": "counter-rpc", "number": 9003, "protocol": "grpc", "managedOnStart": true },
+        { "name": "counter-metrics", "number": 9103, "protocol": "http", "managedOnStart": false }
       ]
+    },
+    {
+      "id": "counter-aggregator",
+      "role": "worker",
+      "run": {
+        "package": "services/counter/aggregator",
+        "config": "services/counter/aggregator/etc/aggregator.yaml",
+        "args": ["-f", "services/counter/aggregator/etc/aggregator.yaml"]
+      },
+      "logFile": "counter-aggregator.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": []
     },
     {
       "id": "knowpost",
