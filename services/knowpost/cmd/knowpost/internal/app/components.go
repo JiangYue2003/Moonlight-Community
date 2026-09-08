@@ -4,7 +4,7 @@ import (
 	"context"
 
 	knowpostapiapp "github.com/zhiguang/zhiguang-go/services/knowpost/api/app"
-	knowpostrpcapp "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/app"
+	knowpostrpcapp "github.com/zhiguang/zhiguang-go/services/knowpost/internal/bootstrap"
 )
 
 type apiComponent struct{ cfg knowpostapiapp.Config }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zhiguang/zhiguang-go/services/knowpost/rpc/internal/feed"
+	"github.com/zhiguang/zhiguang-go/services/knowpost/internal/application/feed"
 	relationmodel "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
 )
 
