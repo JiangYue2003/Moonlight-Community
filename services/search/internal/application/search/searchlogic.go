@@ -7,18 +7,18 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/search/shared/query"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application"
 	searchpb "github.com/zhiguang/zhiguang-go/services/search/rpc/search"
+	"github.com/zhiguang/zhiguang-go/services/search/shared/query"
 )
 
 type SearchLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewSearchLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SearchLogic {
+func NewSearchLogic(ctx context.Context, svcCtx *application.ServiceContext) *SearchLogic {
 	return &SearchLogic{ctx: ctx, svcCtx: svcCtx, Logger: logx.WithContext(ctx)}
 }
 

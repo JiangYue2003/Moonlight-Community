@@ -12,8 +12,8 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/pkg/esx"
 	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application/config"
 	searchpb "github.com/zhiguang/zhiguang-go/services/search/rpc/search"
 	"google.golang.org/grpc"
 )
@@ -40,7 +40,7 @@ func (s stubCounterClient) BatchGetCounts(context.Context, *counterpb.BatchGetCo
 	panic("not implemented")
 }
 
-func newTestSvc(t *testing.T, h http.HandlerFunc) *svc.ServiceContext {
+func newTestSvc(t *testing.T, h http.HandlerFunc) *application.ServiceContext {
 	t.Helper()
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
@@ -48,7 +48,7 @@ func newTestSvc(t *testing.T, h http.HandlerFunc) *svc.ServiceContext {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &svc.ServiceContext{
+	return &application.ServiceContext{
 		Config:     config.Config{ContentIndex: "idx"},
 		Es:         c,
 		CounterRpc: stubCounterClient{},

@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"context"
@@ -10,16 +10,13 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/config"
-	searchServer "github.com/zhiguang/zhiguang-go/services/search/rpc/internal/server/search"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application"
+	searchServer "github.com/zhiguang/zhiguang-go/services/search/internal/transport/grpc"
 	searchpb "github.com/zhiguang/zhiguang-go/services/search/rpc/search"
 )
 
-type Config = config.Config
-
 func Run(ctx context.Context, cfg Config) error {
-	svcCtx := svc.NewServiceContext(cfg)
+	svcCtx := application.NewServiceContext(cfg)
 	s := zrpc.MustNewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		searchpb.RegisterSearchServer(grpcServer, searchServer.NewSearchServer(svcCtx))
 		if cfg.Mode == service.DevMode || cfg.Mode == service.TestMode {

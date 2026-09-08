@@ -3,17 +3,17 @@ package server
 import (
 	"context"
 
-	searchlogic "github.com/zhiguang/zhiguang-go/services/search/rpc/internal/logic/search"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application"
+	searchlogic "github.com/zhiguang/zhiguang-go/services/search/internal/application/search"
 	searchpb "github.com/zhiguang/zhiguang-go/services/search/rpc/search"
 )
 
 type SearchServer struct {
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	searchpb.UnimplementedSearchServer
 }
 
-func NewSearchServer(svcCtx *svc.ServiceContext) *SearchServer {
+func NewSearchServer(svcCtx *application.ServiceContext) *SearchServer {
 	return &SearchServer{svcCtx: svcCtx}
 }
 

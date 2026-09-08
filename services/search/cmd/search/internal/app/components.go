@@ -5,7 +5,7 @@ import (
 
 	searchapiapp "github.com/zhiguang/zhiguang-go/services/search/api/app"
 	searchindexerapp "github.com/zhiguang/zhiguang-go/services/search/indexer/app"
-	searchrpcapp "github.com/zhiguang/zhiguang-go/services/search/rpc/app"
+	searchrpcapp "github.com/zhiguang/zhiguang-go/services/search/internal/bootstrap"
 )
 
 type apiComponent struct {

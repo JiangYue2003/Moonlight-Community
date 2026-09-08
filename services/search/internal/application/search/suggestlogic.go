@@ -5,17 +5,17 @@ import (
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zhiguang/zhiguang-go/services/search/rpc/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/search/internal/application"
 	searchpb "github.com/zhiguang/zhiguang-go/services/search/rpc/search"
 )
 
 type SuggestLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewSuggestLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SuggestLogic {
+func NewSuggestLogic(ctx context.Context, svcCtx *application.ServiceContext) *SuggestLogic {
 	return &SuggestLogic{ctx: ctx, svcCtx: svcCtx, Logger: logx.WithContext(ctx)}
 }
 
