@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudwego/eino/schema"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
 )
 
 func TestResolveUsageUsageSource(t *testing.T) {

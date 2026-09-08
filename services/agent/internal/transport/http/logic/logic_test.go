@@ -10,9 +10,9 @@ import (
 	miniredis "github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/types"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/types"
 )
 
 type fakeFlusher struct{ *httptest.ResponseRecorder }

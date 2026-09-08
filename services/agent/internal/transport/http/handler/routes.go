@@ -6,7 +6,7 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 
 	"github.com/zhiguang/zhiguang-go/common/middleware"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 )
 
 func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {

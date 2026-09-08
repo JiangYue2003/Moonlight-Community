@@ -9,7 +9,7 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
 )
 
 type RouteScenario string

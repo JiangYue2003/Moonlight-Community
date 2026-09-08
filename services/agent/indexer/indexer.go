@@ -13,9 +13,9 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/zhiguang/zhiguang-go/pkg/kafkax"
-	"github.com/zhiguang/zhiguang-go/services/agent/indexer/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/indexer/internal/processor"
-	"github.com/zhiguang/zhiguang-go/services/agent/indexer/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/indexer/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/indexer/processor"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/indexer/svc"
 )
 
 var configFile = flag.String("f", "etc/agent-indexer.yaml", "config file")

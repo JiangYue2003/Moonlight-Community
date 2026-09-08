@@ -19,7 +19,7 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/pkg/llmx"
 	"github.com/zhiguang/zhiguang-go/pkg/textx"
-	"github.com/zhiguang/zhiguang-go/services/agent/indexer/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/indexer/svc"
 	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
 	counterevent "github.com/zhiguang/zhiguang-go/services/counter/shared/event"
 	knowpostpb "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"

@@ -7,9 +7,9 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/handler"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/handler"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 )
 
 var configFile = flag.String("f", "etc/agent-api.yaml", "config file")

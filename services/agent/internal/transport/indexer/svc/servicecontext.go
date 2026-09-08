@@ -16,7 +16,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/zhiguang/zhiguang-go/pkg/esx"
-	"github.com/zhiguang/zhiguang-go/services/agent/indexer/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/indexer/config"
 	counterpb "github.com/zhiguang/zhiguang-go/services/counter/rpc/counter"
 	knowpostpb "github.com/zhiguang/zhiguang-go/services/knowpost/rpc/knowpost"
 )

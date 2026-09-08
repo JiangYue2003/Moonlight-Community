@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/tooling"
 )
 

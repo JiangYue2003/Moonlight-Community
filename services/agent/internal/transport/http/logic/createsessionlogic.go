@@ -10,8 +10,8 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/common/ctxdata"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/types"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/types"
 )
 
 type CreateSessionLogic struct {

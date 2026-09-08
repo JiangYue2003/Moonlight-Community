@@ -21,8 +21,8 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/pkg/esx"
 	"github.com/zhiguang/zhiguang-go/pkg/ratelimit"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/observability"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/observability"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
 	memoryproviders "github.com/zhiguang/zhiguang-go/services/agent/shared/memory/providers"
 	userpb "github.com/zhiguang/zhiguang-go/services/user/rpc/user"

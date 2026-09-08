@@ -8,7 +8,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/metric"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
 )
 
 type Usage struct {

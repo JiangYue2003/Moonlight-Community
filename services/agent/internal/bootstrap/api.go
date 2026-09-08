@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"context"
@@ -7,14 +7,14 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/handler"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/handler"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 )
 
-type Config = config.Config
+type APIConfig = config.Config
 
-func Run(ctx context.Context, cfg Config) error {
+func RunAPI(ctx context.Context, cfg APIConfig) error {
 	server := rest.MustNewServer(cfg.RestConf)
 	defer server.Stop()
 

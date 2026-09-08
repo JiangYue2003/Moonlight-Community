@@ -1,11 +1,8 @@
 package config
 
-import (
-	agentapiapp "github.com/zhiguang/zhiguang-go/services/agent/api/app"
-	agentindexerapp "github.com/zhiguang/zhiguang-go/services/agent/indexer/app"
-)
+import agentbootstrap "github.com/zhiguang/zhiguang-go/services/agent/internal/bootstrap"
 
 type Config struct {
-	Api     agentapiapp.Config
-	Indexer agentindexerapp.Config
+	Api     agentbootstrap.APIConfig
+	Indexer agentbootstrap.IndexerConfig
 }

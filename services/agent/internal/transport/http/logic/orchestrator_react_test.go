@@ -7,8 +7,8 @@ import (
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/config"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/retrieval"
 )

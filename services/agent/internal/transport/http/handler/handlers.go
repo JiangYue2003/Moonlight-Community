@@ -5,9 +5,9 @@ import (
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/logic"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/types"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/logic"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/types"
 )
 
 func CreateSessionHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {

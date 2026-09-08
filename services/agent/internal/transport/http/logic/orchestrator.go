@@ -18,7 +18,7 @@ import (
 	"github.com/zhiguang/zhiguang-go/common/ctxdata"
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/llmx"
-	"github.com/zhiguang/zhiguang-go/services/agent/api/internal/svc"
+	"github.com/zhiguang/zhiguang-go/services/agent/internal/transport/http/svc"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/memory"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/retrieval"
 	"github.com/zhiguang/zhiguang-go/services/agent/shared/retrieval/providers"
