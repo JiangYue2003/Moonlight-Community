@@ -107,3 +107,84 @@ $topology = Get-Content deploy/topology/services.json -Raw | ConvertFrom-Json
 $services = @($topology.services | Where-Object { $_.defaultLocal })
 # Stop only a recorded PID whose executable path and start time still match.
 ```
+
+## Scenario: Gateway Route Ownership
+
+### 1. Scope / Trigger
+
+This contract applies when adding, moving, renaming, or removing a Gateway HTTP
+route or handler under `services/gateway/internal/handler`.
+
+### 2. Signatures
+
+```go
+func NewEngine(sc *srv.ServiceContext) *gin.Engine
+func register<Context>Routes(r *gin.Engine, sc *srv.ServiceContext)
+```
+
+`NewEngine` is the single composition root. It configures global middleware and
+calls one registration function per bounded context. Context files own their
+route groups, context-specific middleware, handlers, and response projections.
+
+### 3. Contracts
+
+- Public HTTP methods, paths, registration order, middleware, payloads, status
+  codes, RPC calls, and response shapes remain compatibility contracts.
+- Route files use bounded-context names (`identity`, `media`, `content`,
+  `social`, `engagement`, `discovery`, and `intelligence`), not one file per
+  endpoint.
+- Cross-context parsing helpers may live in `shared.go` only when used by more
+  than one context. Business behavior stays with its owning context.
+- Adding a context requires one registration call in `NewEngine`; it must not
+  create another engine or composition root.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+|---|---|
+| HTTP method/path is added, removed, or changed | Route-parity expectation changes explicitly or the test fails |
+| A `RequiredAuth` route loses or bypasses middleware | Missing-token request does not return 401 and the auth-parity test fails |
+| A handler move changes imports, RPC types, or response mapping | Gateway tests, vet, or build fails |
+| Two contexts register the same method/path | Gin registration panics during `NewEngine` construction |
+
+### 5. Good/Base/Bad Cases
+
+- Good: add a content route in `content.go`, register it through
+  `registerContentRoutes`, and update route/auth parity assertions.
+- Base: `router.go` creates the engine, applies global middleware, calls bounded
+  context registrars, and contains no endpoint handler bodies.
+- Bad: append unrelated route groups and handlers directly to `NewEngine`, or
+  create a second Gateway engine for one context.
+
+### 6. Tests Required
+
+- `TestNewEngineRouteParity` asserts the complete sorted HTTP method/path set.
+- `TestNewEngineRequiredAuthRouteParity` sends missing-token requests to every
+  protected route and requires HTTP 401 before handler/RPC execution.
+- Context-specific behavior tests remain next to the Gateway handler package.
+- Run `go test ./services/gateway/...`, `go vet ./services/gateway/...`, and a
+  local Gateway HTTP smoke test through live RPC dependencies.
+
+### 7. Wrong vs Correct
+
+Wrong:
+
+```go
+func NewEngine(sc *srv.ServiceContext) *gin.Engine {
+	r := gin.New()
+	r.POST("/api/v1/knowposts/drafts", createDraft(sc))
+	// More endpoint bodies and route groups accumulate here.
+	return r
+}
+```
+
+Correct:
+
+```go
+func NewEngine(sc *srv.ServiceContext) *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	registerContentRoutes(r, sc)
+	return r
+}
+```

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
@@ -31,6 +32,122 @@ func TestNewEngineOmitsGinAccessLoggerWhenDisabled(t *testing.T) {
 
 	if got := len(router.Handlers); got != 1 {
 		t.Fatalf("global middleware count=%d, want recovery only", got)
+	}
+}
+
+func TestNewEngineRouteParity(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := NewEngine(&srv.ServiceContext{})
+
+	got := make([]string, 0, len(router.Routes()))
+	for _, route := range router.Routes() {
+		got = append(got, route.Method+" "+route.Path)
+	}
+	sort.Strings(got)
+
+	want := []string{
+		"DELETE /api/v1/knowposts/:id",
+		"GET /api/v1/auth/me",
+		"GET /api/v1/counter/:etype/:eid",
+		"GET /api/v1/knowposts/:id/qa/stream",
+		"GET /api/v1/knowposts/detail/:id",
+		"GET /api/v1/knowposts/feed",
+		"GET /api/v1/knowposts/following-feed",
+		"GET /api/v1/knowposts/mine",
+		"GET /api/v1/llm/qa/stream",
+		"GET /api/v1/profile/me",
+		"GET /api/v1/relation/counter",
+		"GET /api/v1/relation/followers",
+		"GET /api/v1/relation/following",
+		"GET /api/v1/relation/status",
+		"GET /api/v1/search/",
+		"GET /api/v1/search/suggest",
+		"PATCH /api/v1/knowposts/:id",
+		"PATCH /api/v1/knowposts/:id/top",
+		"PATCH /api/v1/knowposts/:id/visibility",
+		"PATCH /api/v1/profile/",
+		"POST /api/v1/action/fav",
+		"POST /api/v1/action/like",
+		"POST /api/v1/action/unfav",
+		"POST /api/v1/action/unlike",
+		"POST /api/v1/auth/login",
+		"POST /api/v1/auth/logout",
+		"POST /api/v1/auth/password/reset",
+		"POST /api/v1/auth/register",
+		"POST /api/v1/auth/send-code",
+		"POST /api/v1/auth/token/refresh",
+		"POST /api/v1/knowposts/:id/content/confirm",
+		"POST /api/v1/knowposts/:id/publish",
+		"POST /api/v1/knowposts/:id/rag/reindex",
+		"POST /api/v1/knowposts/:id/reindex",
+		"POST /api/v1/knowposts/description/suggest",
+		"POST /api/v1/knowposts/drafts",
+		"POST /api/v1/llm/describe",
+		"POST /api/v1/profile/avatar",
+		"POST /api/v1/relation/follow",
+		"POST /api/v1/relation/unfollow",
+		"POST /api/v1/storage/presign",
+	}
+	sort.Strings(want)
+
+	if len(got) != len(want) {
+		t.Fatalf("route count=%d, want %d\ngot: %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("route[%d]=%q, want %q\ngot: %v", i, got[i], want[i], got)
+		}
+	}
+}
+
+func TestNewEngineRequiredAuthRouteParity(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := NewEngine(&srv.ServiceContext{})
+
+	protectedRoutes := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/auth/logout"},
+		{http.MethodGet, "/api/v1/profile/me"},
+		{http.MethodPatch, "/api/v1/profile/"},
+		{http.MethodPost, "/api/v1/profile/avatar"},
+		{http.MethodPost, "/api/v1/storage/presign"},
+		{http.MethodPost, "/api/v1/knowposts/drafts"},
+		{http.MethodPost, "/api/v1/knowposts/1/content/confirm"},
+		{http.MethodPatch, "/api/v1/knowposts/1"},
+		{http.MethodPost, "/api/v1/knowposts/1/publish"},
+		{http.MethodPatch, "/api/v1/knowposts/1/top"},
+		{http.MethodPatch, "/api/v1/knowposts/1/visibility"},
+		{http.MethodDelete, "/api/v1/knowposts/1"},
+		{http.MethodGet, "/api/v1/knowposts/mine"},
+		{http.MethodGet, "/api/v1/knowposts/following-feed"},
+		{http.MethodPost, "/api/v1/knowposts/1/reindex"},
+		{http.MethodPost, "/api/v1/knowposts/1/rag/reindex"},
+		{http.MethodPost, "/api/v1/relation/follow"},
+		{http.MethodPost, "/api/v1/relation/unfollow"},
+		{http.MethodGet, "/api/v1/relation/following"},
+		{http.MethodGet, "/api/v1/relation/followers"},
+		{http.MethodGet, "/api/v1/relation/counter"},
+		{http.MethodPost, "/api/v1/action/like"},
+		{http.MethodPost, "/api/v1/action/unlike"},
+		{http.MethodPost, "/api/v1/action/fav"},
+		{http.MethodPost, "/api/v1/action/unfav"},
+		{http.MethodPost, "/api/v1/llm/describe"},
+	}
+
+	for _, route := range protectedRoutes {
+		route := route
+		t.Run(route.method+" "+route.path, func(t *testing.T) {
+			req := httptest.NewRequest(route.method, route.path, nil)
+			rec := httptest.NewRecorder()
+
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status=%d, want %d; body=%s", rec.Code, http.StatusUnauthorized, rec.Body.String())
+			}
+		})
 	}
 }
 
