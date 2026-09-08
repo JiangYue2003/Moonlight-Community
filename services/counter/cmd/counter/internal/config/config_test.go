@@ -23,8 +23,8 @@ func TestDecodeCounterMergedConfig(t *testing.T) {
 	if c.Api.Port == 0 {
 		t.Fatalf("api port should not be zero")
 	}
-	if c.DisableAPI {
-		t.Fatalf("disableAPI should default to false")
+	if !c.DisableAPI {
+		t.Fatalf("disableAPI should be true for the merged process")
 	}
 	if c.Rpc.ListenOn == "" {
 		t.Fatalf("rpc listen address should not be empty")

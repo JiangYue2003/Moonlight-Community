@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zhiguang/zhiguang-go/deploy/topology"
 	"gopkg.in/yaml.v3"
 )
 
@@ -55,7 +56,7 @@ func TestDockerIgnoreExcludesLocalBuildArtifacts(t *testing.T) {
 		t.Fatalf("read .dockerignore: %v", err)
 	}
 
-	for _, pattern := range []string{".gocache/", "**/*.exe", "certs/"} {
+	for _, pattern := range []string{".gocache/", "**/*.exe", "certs/", "var/"} {
 		if !containsLine(string(content), pattern) {
 			t.Errorf(".dockerignore missing local artifact pattern %q", pattern)
 		}
@@ -73,12 +74,6 @@ func TestDevComposeDefinesCoreServicesWithoutSealedOrHostInfrastructure(t *testi
 		"kafka",
 		"canal-server",
 		"elasticsearch",
-		"gateway",
-		"user-storage",
-		"counter",
-		"knowpost",
-		"relation",
-		"search",
 	}
 	for _, name := range required {
 		if _, ok := services[name]; !ok {
@@ -92,7 +87,7 @@ func TestDevComposeDefinesCoreServicesWithoutSealedOrHostInfrastructure(t *testi
 		}
 	}
 
-	for _, name := range []string{"gateway", "user-storage", "counter", "knowpost", "relation", "search"} {
+	for _, name := range defaultLocalServiceIDs(t) {
 		service := services[name]
 		if got := stringValue(service["image"]); got != "zhiguang-go-core:dev" {
 			t.Errorf("%s image = %q, want zhiguang-go-core:dev", name, got)
@@ -100,6 +95,15 @@ func TestDevComposeDefinesCoreServicesWithoutSealedOrHostInfrastructure(t *testi
 		build := mapValue(t, name+".build", service["build"])
 		if got := stringValue(build["dockerfile"]); got != "Dockerfile.core" {
 			t.Errorf("%s Dockerfile = %q, want Dockerfile.core", name, got)
+		}
+	}
+}
+
+func TestFullComposeContainsManifestDefaultLocalServices(t *testing.T) {
+	services := loadComposeServices(t, "docker-compose.full.yml")
+	for _, name := range defaultLocalServiceIDs(t) {
+		if _, ok := services[name]; !ok {
+			t.Errorf("full Compose missing default local topology service %q", name)
 		}
 	}
 }
@@ -443,19 +447,45 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 
 func loadDevComposeServices(t *testing.T) map[string]map[string]any {
 	t.Helper()
+	return loadComposeServices(t, "docker-compose.dev.yml")
+}
 
-	content, err := os.ReadFile("docker-compose.dev.yml")
+func loadComposeServices(t *testing.T, path string) map[string]map[string]any {
+	t.Helper()
+
+	content, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read dev Compose: %v", err)
+		t.Fatalf("read %s: %v", path, err)
 	}
 
 	var document struct {
 		Services map[string]map[string]any `yaml:"services"`
 	}
 	if err := yaml.Unmarshal(content, &document); err != nil {
-		t.Fatalf("parse dev Compose: %v", err)
+		t.Fatalf("parse %s: %v", path, err)
 	}
 	return document.Services
+}
+
+func defaultLocalServiceIDs(t *testing.T) []string {
+	t.Helper()
+
+	repoRoot := filepath.Join("..", "..")
+	manifest, err := topology.Load(filepath.Join(repoRoot, "deploy", "topology", "services.json"))
+	if err != nil {
+		t.Fatalf("load runtime topology: %v", err)
+	}
+	if err := topology.Validate(repoRoot, manifest); err != nil {
+		t.Fatalf("validate runtime topology: %v", err)
+	}
+
+	var ids []string
+	for _, service := range manifest.Services {
+		if service.DefaultLocal {
+			ids = append(ids, service.ID)
+		}
+	}
+	return ids
 }
 
 func loadProjectYAML(t *testing.T, path string) map[string]any {

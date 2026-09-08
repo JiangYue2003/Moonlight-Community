@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "defaultDependencyProfile": "host-core",
+  "dockerDependencyProfile": "compose-core",
+  "dependencyProfiles": [
+    {
+      "id": "host-core",
+      "description": "Core dependencies are already running on the host ports used by local service configs.",
+      "requiredEndpoints": [
+        { "name": "mysql", "host": "127.0.0.1", "port": 3306 },
+        { "name": "redis", "host": "127.0.0.1", "port": 6379 },
+        { "name": "etcd", "host": "127.0.0.1", "port": 2379 },
+        { "name": "kafka", "host": "127.0.0.1", "port": 9092 },
+        { "name": "elasticsearch", "host": "127.0.0.1", "port": 9200 }
+      ]
+    },
+    {
+      "id": "compose-core",
+      "description": "Start the infrastructure subset from the full Compose stack, leaving application services local.",
+      "composeFile": "deploy/compose/docker-compose.full.yml",
+      "composeServices": [
+        "etcd",
+        "zookeeper",
+        "kafka",
+        "elasticsearch"
+      ],
+      "requiredEndpoints": [
+        { "name": "mysql", "host": "127.0.0.1", "port": 3306 },
+        { "name": "redis", "host": "127.0.0.1", "port": 6379 },
+        { "name": "etcd", "host": "127.0.0.1", "port": 2379 },
+        { "name": "kafka", "host": "127.0.0.1", "port": 9092 },
+        { "name": "elasticsearch", "host": "127.0.0.1", "port": 9200 }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "gateway",
+      "role": "gateway",
+      "run": {
+        "package": "services/gateway",
+        "config": "services/gateway/etc/gateway.yaml",
+        "args": ["-f", "services/gateway/etc/gateway.yaml"]
+      },
+      "logFile": "gateway.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "http", "number": 8080, "protocol": "http", "managedOnStart": true }
+      ]
+    },
+    {
+      "id": "user-storage",
+      "role": "merged-service",
+      "run": {
+        "package": "services/user/cmd/user",
+        "config": "services/user/cmd/user/etc/user.yaml",
+        "args": ["-f", "services/user/cmd/user/etc/user.yaml"]
+      },
+      "logFile": "user-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "user-rpc", "number": 9002, "protocol": "grpc", "managedOnStart": true },
+        { "name": "storage-rpc", "number": 9013, "protocol": "grpc", "managedOnStart": true },
+        { "name": "user-metrics", "number": 9102, "protocol": "http", "managedOnStart": false },
+        { "name": "storage-metrics", "number": 9106, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "counter",
+      "role": "merged-service",
+      "run": {
+        "package": "services/counter/cmd/counter",
+        "config": "services/counter/cmd/counter/etc/counter.yaml",
+        "args": ["-f", "services/counter/cmd/counter/etc/counter.yaml"]
+      },
+      "logFile": "counter-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "rpc", "number": 9003, "protocol": "grpc", "managedOnStart": true },
+        { "name": "metrics", "number": 9103, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "knowpost",
+      "role": "merged-service",
+      "run": {
+        "package": "services/knowpost/cmd/knowpost",
+        "config": "services/knowpost/cmd/knowpost/etc/knowpost.yaml",
+        "args": ["-f", "services/knowpost/cmd/knowpost/etc/knowpost.yaml"]
+      },
+      "logFile": "knowpost-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "rpc", "number": 9004, "protocol": "grpc", "managedOnStart": true },
+        { "name": "debug", "number": 6064, "protocol": "http", "managedOnStart": false },
+        { "name": "metrics", "number": 9104, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "relation",
+      "role": "merged-service",
+      "run": {
+        "package": "services/relation/cmd/relation",
+        "config": "services/relation/cmd/relation/etc/relation.yaml",
+        "args": ["-f", "services/relation/cmd/relation/etc/relation.yaml"]
+      },
+      "logFile": "relation-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "rpc", "number": 9006, "protocol": "grpc", "managedOnStart": true },
+        { "name": "debug", "number": 6066, "protocol": "http", "managedOnStart": false },
+        { "name": "metrics", "number": 9105, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "search",
+      "role": "merged-service",
+      "run": {
+        "package": "services/search/cmd/search",
+        "config": "services/search/cmd/search/etc/search.yaml",
+        "args": ["-f", "services/search/cmd/search/etc/search.yaml"]
+      },
+      "logFile": "search-service.log",
+      "defaultLocal": true,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "rpc", "number": 9017, "protocol": "grpc", "managedOnStart": true },
+        { "name": "metrics", "number": 9107, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "llm-rpc",
+      "role": "rpc",
+      "run": {
+        "package": "services/llm/rpc",
+        "config": "services/llm/rpc/etc/llm.yaml",
+        "args": ["-f", "services/llm/rpc/etc/llm.yaml"]
+      },
+      "logFile": "llm-rpc.log",
+      "defaultLocal": false,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "rpc", "number": 9018, "protocol": "grpc", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "llm-worker",
+      "role": "worker",
+      "run": {
+        "package": "services/llm/cmd/llm",
+        "config": "services/llm/cmd/llm/etc/llm.yaml",
+        "args": ["-f", "services/llm/cmd/llm/etc/llm.yaml"]
+      },
+      "logFile": "llm-worker.log",
+      "defaultLocal": false,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": []
+    },
+    {
+      "id": "agent",
+      "role": "standalone-api",
+      "run": {
+        "package": "services/agent/cmd/agent",
+        "config": "services/agent/cmd/agent/etc/agent.yaml",
+        "args": ["-f", "services/agent/cmd/agent/etc/agent.yaml"]
+      },
+      "logFile": "agent.log",
+      "defaultLocal": false,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": [
+        { "name": "http", "number": 8011, "protocol": "http", "managedOnStart": false },
+        { "name": "metrics", "number": 9119, "protocol": "http", "managedOnStart": false }
+      ]
+    },
+    {
+      "id": "outbox-gc",
+      "role": "worker",
+      "run": {
+        "package": "services/outbox/gc",
+        "config": "services/outbox/gc/etc/gc.yaml",
+        "args": ["services/outbox/gc/etc/gc.yaml"]
+      },
+      "logFile": "outbox-gc.log",
+      "defaultLocal": false,
+      "dependencyProfiles": ["host-core", "compose-core"],
+      "ports": []
+    }
+  ]
+}

@@ -42,6 +42,7 @@ zhiguang-go/
 ├── common/                # 业务公共代码
 ├── deploy/                # docker / compose / 部署辅助
 ├── scripts/               # 启动、停止、迁移、生成脚本
+├── var/                   # 本地日志、PID、缓存（不入库）
 └── services/
     ├── gateway/           # 统一对外 HTTP 网关
     ├── user/rpc/          # 用户 + 认证
@@ -59,11 +60,9 @@ zhiguang-go/
 
 ### 1. 启动依赖
 
-```bash
-docker compose -f deploy/compose/docker-compose.dev.yml up -d
-
-# 启动 Etcd (服务发现)
-etcd
+```powershell
+# 保留宿主机 MySQL/Redis，只启动其余 compose-core 依赖，再启动本地 Go 进程
+scripts\start-all.ps1 -WithDocker
 ```
 
 **注意**：项目已支持基于 Etcd 的服务发现，所有 RPC 服务会自动注册到 Etcd，支持多实例部署和高可用。
@@ -88,19 +87,18 @@ Windows:
 scripts\start-all.ps1
 ```
 
-当前主启动清单会拉起：
+当前主启动清单来自 `deploy/topology/services.json`，会拉起 6 个进程：
 
+- `user-storage`（`user-rpc + storage-rpc`）
+- `counter`（`counter-rpc + aggregator`）
+- `relation`（`relation-rpc + syncer`）
+- `knowpost`（`knowpost-rpc`）
+- `search`（`search-rpc + indexer`）
 - `gateway`
-- `user-rpc`
-- `storage-rpc`
-- `search-rpc`
-- `llm-rpc`
-- `counter/cmd/counter`
-- `knowpost/cmd/knowpost`
-- `relation/cmd/relation`
-- `search/cmd/search`
-- `llm/cmd/llm`
-- `agent/cmd/agent`
+
+`llm` 与 `agent` 暂不属于默认本地核心栈。新增或调整服务时，应修改拓扑清单，
+不要在启动脚本和文档中分别维护进程列表。可运行 `go run ./deploy/topology/cmd/validate`
+检查路径、服务 ID、端口和依赖引用。
 
 ### 4. 前端开发代理
 

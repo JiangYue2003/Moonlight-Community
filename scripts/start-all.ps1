@@ -1,13 +1,20 @@
 param(
   [switch]$WithDocker,
-  [switch]$RunMigrate
+  [switch]$RunMigrate,
+  [string]$DependencyProfile = "",
+  [switch]$ValidateOnly
 )
 
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$LogsDir = Join-Path $Root "logs/dev"
-$PidFile = Join-Path $LogsDir "pids.json"
+$TopologyFile = Join-Path $Root "deploy/topology/services.json"
+$LogsDir = Join-Path $Root "var/log/dev"
+$RunDir = Join-Path $Root "var/run/dev"
+$BinDir = Join-Path $Root "var/bin/dev"
+$CacheDir = Join-Path $Root "var/cache/go-build"
+$PidFile = Join-Path $RunDir "pids.json"
+$LegacyPidFile = Join-Path $Root "logs/dev/pids.json"
 
 function Write-Info([string]$msg) {
   Write-Host "[INFO] $msg" -ForegroundColor Cyan
@@ -33,47 +40,70 @@ function Test-TcpPort([string]$HostName, [int]$Port, [int]$TimeoutMs = 1200) {
   }
 }
 
-function Stop-ProcessOnPort([int]$Port) {
-  $lines = netstat -ano | Select-String ":$Port\s+.*LISTENING\s+(\d+)$"
-  foreach ($line in $lines) {
-    $text = $line.ToString().Trim()
-    if ($text -match "(\d+)$") {
-      $procId = [int]$Matches[1]
-      if ($procId -gt 0 -and $procId -ne $PID) {
-        try {
-          Stop-Process -Id $procId -Force -ErrorAction Stop
-          Write-WarnMsg "Stopped process on port $Port (PID=$procId)"
-        } catch {
-          Write-WarnMsg "Failed to stop PID=$procId on port $Port"
-        }
-      }
+function Get-PortOwner([int]$Port) {
+  $line = netstat -ano | Select-String ":$Port\s+.*LISTENING\s+(\d+)$" | Select-Object -First 1
+  if ($null -eq $line) {
+    return 0
+  }
+  $text = $line.ToString().Trim()
+  if ($text -match "(\d+)$") {
+    return [int]$Matches[1]
+  }
+  return 0
+}
+
+function Assert-PortsAvailable([int[]]$Ports) {
+  foreach ($port in $Ports) {
+    $owner = Get-PortOwner -Port $port
+    if ($owner -ne 0) {
+      throw "service port $port is already owned by PID $owner; stop the recorded stack or choose another port"
     }
   }
 }
 
-function Start-GoService([string]$ServicePath, [string]$LogName, [string]$ExtraArgs = "") {
-  $serviceEntry = Join-Path $Root $ServicePath
-  if (-not (Test-Path $serviceEntry)) {
-    throw "Service path not found: $serviceEntry"
+function Wait-ServicePorts([string]$ServiceId, [System.Diagnostics.Process]$Process, [int[]]$Ports, [int]$TimeoutSeconds = 60) {
+  $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+  while ((Get-Date) -lt $deadline) {
+    $Process.Refresh()
+    if ($Process.HasExited) {
+      throw "$ServiceId exited before readiness with code $($Process.ExitCode)"
+    }
+    $ready = @($Ports | Where-Object { (Get-PortOwner -Port $_) -eq $Process.Id })
+    if ($ready.Count -eq $Ports.Count) {
+      return
+    }
+    Start-Sleep -Milliseconds 250
+  }
+  $owners = @($Ports | ForEach-Object { "$_=$(Get-PortOwner -Port $_)" }) -join ", "
+  throw "$ServiceId did not own all expected ports within $TimeoutSeconds seconds; owners: $owners"
+}
+
+function Start-GoService($Service) {
+  $executable = Join-Path $BinDir ($Service.id + ".exe")
+  & go build -buildvcs=false -trimpath -o $executable ("./" + $Service.run.package)
+  if ($LASTEXITCODE -ne 0) {
+    throw "go build failed for $($Service.id)"
   }
 
-  $logPath = Join-Path $LogsDir $LogName
-  $runCmd = "go run ./$ServicePath"
-  if (-not [string]::IsNullOrWhiteSpace($ExtraArgs)) {
-    $runCmd = "$runCmd $ExtraArgs"
-  }
-  $cmd = "Set-Location `"$Root`"; $runCmd *>> `"$logPath`""
-
+  $stdoutPath = Join-Path $LogsDir $Service.logFile
+  $stderrPath = Join-Path $LogsDir ([System.IO.Path]::GetFileNameWithoutExtension($Service.logFile) + ".stderr.log")
   $proc = Start-Process `
-    -FilePath "powershell" `
-    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $cmd) `
+    -FilePath $executable `
+    -ArgumentList @($Service.run.args) `
+    -WorkingDirectory $Root `
     -WindowStyle Hidden `
+    -RedirectStandardOutput $stdoutPath `
+    -RedirectStandardError $stderrPath `
     -PassThru
 
   return [PSCustomObject]@{
-    service = $ServicePath
+    service = $Service.id
     pid = $proc.Id
-    log = $logPath
+    executable = $executable
+    processStartUnixMs = ([DateTimeOffset]$proc.StartTime.ToUniversalTime()).ToUnixTimeMilliseconds()
+    stdout = $stdoutPath
+    stderr = $stderrPath
+    ports = @($Service.ports | Where-Object { $_.managedOnStart } | ForEach-Object { $_.number })
     startedAt = (Get-Date).ToString("s")
   }
 }
@@ -82,16 +112,75 @@ if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
   throw "go command is not found in PATH"
 }
 
-if ($WithDocker) {
-  Write-Info "Starting docker dependencies..."
-  docker compose -f (Join-Path $Root "deploy/compose/docker-compose.dev.yml") up -d
+foreach ($dir in @($LogsDir, $RunDir, $BinDir, $CacheDir)) {
+  if (-not (Test-Path $dir)) {
+    New-Item -ItemType Directory -Path $dir | Out-Null
+  }
+}
+$env:GOCACHE = $CacheDir
+
+if (-not (Test-Path -LiteralPath $TopologyFile)) {
+  throw "Topology manifest not found: $TopologyFile"
+}
+$topology = Get-Content -LiteralPath $TopologyFile -Raw | ConvertFrom-Json
+Push-Location $Root
+try {
+  & go run ./deploy/topology/cmd/validate -manifest $TopologyFile -repo-root $Root
+  if ($LASTEXITCODE -ne 0) {
+    throw "Topology validation failed"
+  }
+} finally {
+  Pop-Location
+}
+$coreServices = @($topology.services | Where-Object { $_.defaultLocal })
+if ($coreServices.Count -eq 0) {
+  throw "Topology has no default local services"
 }
 
-if (-not (Test-TcpPort "127.0.0.1" 3306)) {
-  throw "MySQL is not reachable at 127.0.0.1:3306"
+if ([string]::IsNullOrWhiteSpace($DependencyProfile)) {
+  $DependencyProfile = if ($WithDocker) {
+    [string]$topology.dockerDependencyProfile
+  } else {
+    [string]$topology.defaultDependencyProfile
+  }
 }
-if (-not (Test-TcpPort "127.0.0.1" 6379)) {
-  throw "Redis is not reachable at 127.0.0.1:6379"
+$profile = @($topology.dependencyProfiles | Where-Object { $_.id -eq $DependencyProfile })
+if ($profile.Count -ne 1) {
+  $availableProfiles = @($topology.dependencyProfiles.id) -join ", "
+  throw "Unknown dependency profile '$DependencyProfile'. Available profiles: $availableProfiles"
+}
+$profile = $profile[0]
+foreach ($service in $coreServices) {
+  if ($DependencyProfile -notin @($service.dependencyProfiles)) {
+    throw "Service '$($service.id)' does not support dependency profile '$DependencyProfile'"
+  }
+}
+
+Write-Info "Topology manifest: $TopologyFile"
+Write-Info "Dependency profile: $DependencyProfile"
+Write-Info ("Default local services: {0}" -f (@($coreServices.id) -join ", "))
+if ($ValidateOnly) {
+  Write-Info "Topology and startup plan are valid; no services were started."
+  return
+}
+
+if ($WithDocker) {
+  if ([string]::IsNullOrWhiteSpace([string]$profile.composeFile) -or @($profile.composeServices).Count -eq 0) {
+    throw "Dependency profile '$DependencyProfile' does not define Compose dependencies"
+  }
+  $composeFile = Join-Path $Root ([string]$profile.composeFile)
+  $dependencies = @($profile.composeServices)
+  Write-Info "Starting docker dependencies: $($dependencies -join ', ')"
+  docker compose -f $composeFile up -d --wait --wait-timeout 180 @dependencies
+  if ($LASTEXITCODE -ne 0) {
+    throw "Docker dependencies failed to start"
+  }
+}
+
+foreach ($endpoint in @($profile.requiredEndpoints)) {
+  if (-not (Test-TcpPort $endpoint.host $endpoint.port)) {
+    throw "$($endpoint.name) is not reachable at $($endpoint.host):$($endpoint.port)"
+  }
 }
 
 if ($RunMigrate) {
@@ -99,49 +188,42 @@ if ($RunMigrate) {
   & (Join-Path $Root "scripts/migrate.bat") up
 }
 
-if (-not (Test-Path $LogsDir)) {
-  New-Item -ItemType Directory -Path $LogsDir | Out-Null
-}
-
-foreach ($p in @(8080,9002,9003,9004,9006,9013,9017,9102,9103,9104,9105,9106,9107,9116)) {
-  Stop-ProcessOnPort -Port $p
-}
-
-if (Test-Path $PidFile) {
+if ((Test-Path $PidFile) -or (Test-Path $LegacyPidFile)) {
   Write-WarnMsg "Existing PID file found, trying to stop previous processes..."
-  try {
-    & (Join-Path $Root "scripts/stop-all.ps1")
-  } catch {
-    Write-WarnMsg "stop-all.ps1 failed, continue and overwrite PID file"
-  }
+  & (Join-Path $Root "scripts/stop-all.ps1")
 }
+
+$managedPorts = @($coreServices.ports | Where-Object { $_.managedOnStart } | ForEach-Object { $_.number } | Sort-Object -Unique)
+Assert-PortsAvailable -Ports $managedPorts
 
 if (-not (Test-Path (Join-Path $Root "certs/jwt_private.pem")) -or -not (Test-Path (Join-Path $Root "certs/jwt_public.pem"))) {
   Write-WarnMsg "JWT key files are missing under certs/"
 }
 
-$coreServices = @(
-  @{ path = "services/gateway"; log = "gateway.log"; args = "-f services/gateway/etc/gateway.yaml" },
-  @{ path = "services/user/cmd/user"; log = "user-service.log"; args = "-f services/user/cmd/user/etc/user.yaml" },
-  @{ path = "services/counter/cmd/counter"; log = "counter-service.log"; args = "-f services/counter/cmd/counter/etc/counter.yaml" },
-  @{ path = "services/knowpost/cmd/knowpost"; log = "knowpost-service.log"; args = "-f services/knowpost/cmd/knowpost/etc/knowpost.yaml" },
-  @{ path = "services/relation/cmd/relation"; log = "relation-service.log"; args = "-f services/relation/cmd/relation/etc/relation.yaml" },
-  @{ path = "services/search/cmd/search"; log = "search-service.log"; args = "-f services/search/cmd/search/etc/search.yaml" }
-)
-
-$targets = @()
-$targets += $coreServices
-
 Write-Info "Starting services in background..."
 $started = @()
-foreach ($s in $targets) {
-  $item = Start-GoService -ServicePath $s.path -LogName $s.log -ExtraArgs $s.args
-  $started += $item
-  Write-Info ("Started {0} (PID={1})" -f $item.service, $item.pid)
-  Start-Sleep -Milliseconds 250
+try {
+  foreach ($s in $coreServices) {
+    $servicePorts = @($s.ports | Where-Object { $_.managedOnStart } | ForEach-Object { $_.number })
+    Assert-PortsAvailable -Ports $servicePorts
+    $item = Start-GoService -Service $s
+    $started += $item
+    $started | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $PidFile -Encoding UTF8
+    $process = Get-Process -Id $item.pid -ErrorAction Stop
+    Wait-ServicePorts -ServiceId $s.id -Process $process -Ports $servicePorts
+    Write-Info ("Started {0} (PID={1})" -f $item.service, $item.pid)
+  }
+} catch {
+  $startupError = $_
+  if (Test-Path -LiteralPath $PidFile) {
+    try {
+      & (Join-Path $Root "scripts/stop-all.ps1") -PidFile $PidFile
+    } catch {
+      Write-WarnMsg "Startup cleanup failed: $_"
+    }
+  }
+  throw $startupError
 }
-
-$started | ConvertTo-Json -Depth 3 | Set-Content -Path $PidFile -Encoding UTF8
 
 Write-Host ""
 Write-Info "All start commands have been dispatched."
