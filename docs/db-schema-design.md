@@ -1,6 +1,6 @@
 # 数据库表设计
 
-本文档基于 `db/migrations/` 下的迁移脚本以及配套的模型层代码（`services/*/shared/model`、`services/user/rpc/internal/model*`）梳理 zhiguang-go 项目当前的 MySQL 表结构设计。全库统一使用 `ENGINE=InnoDB`、`CHARSET=utf8mb4`、`COLLATE=utf8mb4_unicode_ci`，业务主键普遍采用应用层生成的 **Snowflake ID**（`BIGINT UNSIGNED`，非自增），仅 `users` 表和 `login_logs` 表例外保留了传统的 `AUTO_INCREMENT`。
+本文档基于 `db/migrations/` 下的迁移脚本以及配套的模型层代码（`services/*/shared/model`、`services/user/internal/adapter/model*`）梳理 zhiguang-go 项目当前的 MySQL 表结构设计。全库统一使用 `ENGINE=InnoDB`、`CHARSET=utf8mb4`、`COLLATE=utf8mb4_unicode_ci`，业务主键普遍采用应用层生成的 **Snowflake ID**（`BIGINT UNSIGNED`，非自增），仅 `users` 表和 `login_logs` 表例外保留了传统的 `AUTO_INCREMENT`。
 
 ## 1. 表设计概述
 

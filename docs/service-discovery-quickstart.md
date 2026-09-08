@@ -38,7 +38,7 @@ scripts\start-all.ps1
 
 ```bash
 # 启动 user-rpc
-./bin/user-rpc.exe -f services/user/rpc/etc/user.yaml
+./bin/user-rpc.exe -f services/user/cmd/user/etc/user.yaml
 
 # 启动 counter-rpc
 ./bin/counter-rpc.exe -f services/counter/rpc/etc/counter.yaml

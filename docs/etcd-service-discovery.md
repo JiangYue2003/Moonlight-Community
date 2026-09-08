@@ -10,7 +10,7 @@
 
 为所有 RPC 服务添加 Etcd 注册配置，修改的服务包括：
 
-- `services/user/rpc/etc/user.yaml`
+- `services/user/cmd/user/etc/user.yaml`
 - `services/counter/rpc/etc/counter.yaml`
 - `services/knowpost/rpc/etc/knowpost.yaml`
 - `services/relation/rpc/etc/relation.yaml`
@@ -64,7 +64,7 @@ CounterRpc:
 - `services/relation/cmd/relation/etc/relation.yaml` (merged service)
 - `services/search/cmd/search/etc/search.yaml` (merged service)
 - `services/llm/cmd/llm/etc/llm.yaml` (merged service)
-- `services/user/cmd/user/etc/user.yaml` (merged service)
+- `services/user/cmd/user/etc/user.yaml`
 - `services/agent/cmd/agent/etc/agent.yaml`
 
 ## 验证测试

@@ -452,16 +452,12 @@ scripts\start-all.ps1
 
 ```text
 services/gateway
-services/user/rpc
-services/storage/rpc
-services/search/rpc
-services/llm/rpc
+services/user/cmd/user
+services/storage/cmd/storage
 services/counter/cmd/counter
 services/knowpost/cmd/knowpost
 services/relation/cmd/relation
 services/search/cmd/search
-services/llm/cmd/llm
-services/agent/cmd/agent
 ```
 
 可选维护项：

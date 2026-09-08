@@ -10,10 +10,13 @@ goctl --version
 
 echo "== generate user-rpc =="
 goctl rpc protoc proto/user/user.proto \
-  --go_out=services/user/rpc/internal \
-  --go-grpc_out=services/user/rpc/internal \
+  --go_out=services/user/rpc \
+  --go-grpc_out=services/user/rpc \
   --zrpc_out=services/user/rpc \
   -m
+# The context owns runtime implementation; retain only generated protobuf/client contracts.
+rm -rf services/user/rpc/internal services/user/rpc/etc
+rm -f services/user/rpc/user.go
 
 echo "== generate auth-rpc =="
 goctl rpc protoc proto/auth/auth.proto \
@@ -42,8 +45,8 @@ goctl api go -api services/counter/api/counter.api -dir services/counter/api
 
 echo "== generate models =="
 goctl model mysql ddl -src "db/migrations/000001_init_users.up.sql" \
-  -dir services/user/rpc/internal/model -c
+  -dir services/user/internal/adapter/model -c
 goctl model mysql ddl -src "db/migrations/000002_init_login_logs.up.sql" \
-  -dir services/auth/rpc/internal/model -c
+  -dir services/user/internal/adapter/model_auth -c
 
 echo "== done =="

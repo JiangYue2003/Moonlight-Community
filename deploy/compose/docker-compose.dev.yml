@@ -242,7 +242,7 @@ services:
       - "127.0.0.1:9002:9002"
     volumes:
       - zg_dev_jwt_certs:/app/certs:ro
-    command: ["./bin/user-merged", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
+    command: ["./bin/user-rpc", "-f", "services/user/cmd/user/etc/user-docker.yaml"]
     healthcheck:
       <<: *rpc-healthcheck
       test: ["CMD", "nc", "-z", "127.0.0.1", "9002"]

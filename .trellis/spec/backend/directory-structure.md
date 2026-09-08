@@ -3,9 +3,11 @@
 ## Current Boundaries
 
 The repository is one Go module. Runtime ownership starts under `services/`,
-while domain-neutral packages live under `pkg/` or `common/`. A go-zero
-transport keeps its generated `internal/handler`, `internal/logic`,
-`internal/svc`, and `internal/model` conventions inside the owning service.
+while domain-neutral packages live under `pkg/` or `common/`. Legacy contexts
+may retain go-zero's generated `internal/handler`, `internal/logic`,
+`internal/svc`, and `internal/model` tree until their migration stage. An
+extracted context owns active runtime code under its context-level `internal/`
+tree and keeps only public generated contracts under `rpc/`.
 
 Repository-level operational files have separate owners:
 
@@ -34,8 +36,9 @@ services/<context>/
   cmd/<process>/main.go       executable and flag parsing
   internal/
     application/              use-case orchestration and context rules
+    adapter/                  database, cache, token, and provider implementations
     bootstrap/                 config, dependencies, and lifecycle
-    transport/grpc/            generated RPC adapter only
+    transport/grpc/            RPC adapter only
 ```
 
 ```go
@@ -55,6 +58,14 @@ but callers must not import another context's `internal` packages. Keep legacy
 API trees and generated RPC contracts until their explicit retirement stage;
 the new process is the owner of active runtime behavior.
 
+Application packages must not import bootstrap. Bootstrap loads deployment
+configuration, constructs adapter dependencies, and injects application
+contexts/services. When goctl generates runtime scaffolding together with the
+protobuf and client contracts, the generation script must retain
+`rpc/<protobuf-package>` and `rpc/client/**` at their stable paths and remove
+the generated `rpc/internal`, `rpc/etc`, and RPC main entry point. Model
+generation targets the context-owned adapter directory directly.
+
 Declare the process in `deploy/topology/services.json`, then update every active
 Dockerfile, Compose file, lifecycle script, Supervisor config, and current
 documentation consumer in the same stage. Historical reports and design records
@@ -69,6 +80,8 @@ remain unchanged.
 | An active deployment or lifecycle file references the old entry point | Reference audit or Compose contract test fails |
 | New application behavior differs from the old logic | Focused parity test fails |
 | Legacy API or generated contract is removed during extraction | Reject the change until the explicit retirement stage |
+| Code generation recreates the retired `rpc/internal` runtime tree | Generation contract test or reference audit fails |
+| Application imports bootstrap configuration | Reject the dependency cycle; inject application-owned policy values from bootstrap |
 
 ### 5. Good/Base/Bad Cases
 
@@ -78,6 +91,8 @@ remain unchanged.
   path while active runtime code moves to the bounded-context `internal` tree.
 - Bad: rename the RPC key, move generated clients, and delete legacy HTTP code
   in the same directory-migration commit.
+- Bad: point goctl at a temporary module path and copy its clients; generated
+  imports bind to that temporary path rather than the stable RPC package.
 
 ### 6. Tests Required
 
@@ -85,6 +100,8 @@ remain unchanged.
   validation and error mappings.
 - Add configuration contract assertions for the preserved RPC name, discovery
   key, listen port, and metrics port.
+- Add generation-script assertions for stable protobuf/client output paths,
+  cleanup of generated runtime scaffolding, and context-owned model targets.
 - Run topology and Compose contract tests, then `go test ./...`, `go vet ./...`,
   and `go build ./...`.
 - Start the default local stack and assert the old owner no longer holds the
@@ -106,6 +123,21 @@ Correct:
 services/user/cmd/user       -> user.rpc on 9002
 services/storage/cmd/storage -> storage.rpc on 9013
 services/storage/rpc/client  -> unchanged public client import path
+```
+
+Wrong:
+
+```go
+package application
+
+import "example/services/user/internal/bootstrap"
+```
+
+Correct:
+
+```text
+bootstrap.Config -> bootstrap.NewServiceContext -> application.PasswordPolicy
+services/user/rpc/user and services/user/rpc/client -> unchanged generated contracts
 ```
 
 ## Scenario: Runtime Topology and Local Artifacts

@@ -10,27 +10,22 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 
-	"github.com/zhiguang/zhiguang-go/services/user/cmd/user/internal/app"
-	"github.com/zhiguang/zhiguang-go/services/user/cmd/user/internal/config"
+	"github.com/zhiguang/zhiguang-go/services/user/internal/bootstrap"
 )
 
-var configFile = flag.String("f", "etc/user.yaml", "the config file")
+var configFile = flag.String("f", "services/user/cmd/user/etc/user.yaml", "the config file")
 
 func main() {
 	flag.Parse()
 
-	var c config.Config
+	var c bootstrap.Config
 	conf.MustLoad(*configFile, &c)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	components := []app.Component{
-		app.NewUserComponent(c.User),
-	}
-
-	if err := app.Run(ctx, components); err != nil {
-		logx.Errorf("user merged service exit: %v", err)
+	if err := bootstrap.Run(ctx, c); err != nil {
+		logx.Errorf("user service exit: %v", err)
 		os.Exit(1)
 	}
 }

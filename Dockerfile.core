@@ -30,7 +30,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/gateway ./services/gateway && \
-    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/user-merged ./services/user/cmd/user && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/user-rpc ./services/user/cmd/user && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/storage ./services/storage/cmd/storage && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/counter-merged ./services/counter/cmd/counter && \
     CGO_ENABLED=0 GOOS=linux go build -trimpath -o /out/knowpost-merged ./services/knowpost/cmd/knowpost && \

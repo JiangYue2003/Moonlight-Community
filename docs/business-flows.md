@@ -12,9 +12,9 @@
 
 ### 关键步骤
 
-1. **登录**（`services/user/rpc/internal/logic/auth/loginlogic.go` `LoginLogic.Login`）
+1. **登录**（`services/user/internal/application/auth/loginlogic.go` `LoginLogic.Login`）
    - `normalizeIdentifier`（把手机号/邮箱标准化）+ 正则校验格式，查不到用户直接记 `login_logs` 状态为失败并返回 `CodeNotFound`。
-   - `Channel=PASSWORD`（密码登录）走 `bcrypt.CompareHashAndPassword`；`Channel=CODE`（验证码登录）走 `Verifier.Verify`（`internal/verification`，校验短信/邮件验证码）。任一失败都记一条失败的登录日志，返回 `CodeInvalidCredentials`。
+   - `Channel=PASSWORD`（密码登录）走 `bcrypt.CompareHashAndPassword`；`Channel=CODE`（验证码登录）走 `Verifier.Verify`（`services/user/internal/adapter/verification`，校验短信/邮件验证码）。任一失败都记一条失败的登录日志，返回 `CodeInvalidCredentials`。
    - 成功后 `issueAndPersist`：`JwtSigner.IssuePair`（签发 access token + refresh token）+ `Tokens.Save`（refresh token 存 Redis，带 TTL）。登录成功也记一条 `login_logs`（非事务，写失败只记日志不影响登录本身）。
    - 之后每次请求，`common/middleware/auth.go`（HTTP 网关侧的 JWT 校验中间件）解出 userId 放入 ctx，经 `common/interceptor`（gRPC 拦截器）把 userId 透传进下游 RPC 的 metadata。
 

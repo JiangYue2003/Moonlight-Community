@@ -16,13 +16,12 @@ COPY . .
 
 # 编译所有服务
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/gateway ./services/gateway
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/user-rpc ./services/user/rpc
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/counter-merged ./services/counter/cmd/counter
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/knowpost-merged ./services/knowpost/cmd/knowpost
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/relation-merged ./services/relation/cmd/relation
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/search-merged ./services/search/cmd/search
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/llm-merged ./services/llm/cmd/llm
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/user-merged ./services/user/cmd/user
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/user-rpc ./services/user/cmd/user
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/storage ./services/storage/cmd/storage
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/agent ./services/agent/cmd/agent
 

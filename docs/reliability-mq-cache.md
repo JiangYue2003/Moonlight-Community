@@ -73,8 +73,8 @@ Redis 故障切换或数据丢失后,项目里存的东西按"能否重建"分�
 **C 类:完全没有 MySQL 兜底,Redis 是唯一事实来源(不可逆,重建=清零)**
 
 - **counter 域的位图(`bm:*`)和 SDS(`cnt:v1:*`)**——这是本项目里唯一的高风险点。`counter-reconciler` 的整套设计前提是"位图永远正确",因为位图本身就是事实来源,没有更上游的数据库记录每一次点赞的历史。如果 Redis 因为故障丢失了这部分数据(比如主从切换时从库数据落后、或者两者都没做持久化就重启),**这些点赞/收藏计数是无法重建的**,只能清零重新开始积累,或者如果有能力从 ES/日志等旁路数据里反推近似值做人工修正,但代码里没有这样的机制。
-- **refresh token(`internal/token` 存 Redis)**——丢失后受影响用户的 refresh token 失效,需要重新登录,不算数据损失,只是体验影响。
-- **验证码(`internal/verification`)**——丢失后进行中的验证码流程失效,用户重新发一次验证码即可,天然是短 TTL 数据,影响窗口很小。
+- **refresh token(`services/user/internal/adapter/token` 存 Redis)**——丢失后受影响用户的 refresh token 失效,需要重新登录,不算数据损失,只是体验影响。
+- **验证码(`services/user/internal/adapter/verification`)**——丢失后进行中的验证码流程失效,用户重新发一次验证码即可,天然是短 TTL 数据,影响窗口很小。
 
 ### 2.3 针对本项目的具体重建流程建议
 

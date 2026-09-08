@@ -31,7 +31,7 @@ func TestCoreDockerfileBuildsOnlyActiveServices(t *testing.T) {
 		"ARG GOPROXY=https://goproxy.cn",
 		"openssl",
 		"./services/gateway",
-		"./services/user/cmd/user",
+		"/out/user-rpc ./services/user/cmd/user",
 		"./services/storage/cmd/storage",
 		"./services/counter/cmd/counter",
 		"./services/knowpost/cmd/knowpost",
@@ -44,7 +44,7 @@ func TestCoreDockerfileBuildsOnlyActiveServices(t *testing.T) {
 		}
 	}
 
-	for _, forbidden := range []string{"./services/llm", "./services/agent", "COPY certs/"} {
+	for _, forbidden := range []string{"./services/llm", "./services/agent", "./services/user/rpc", "/out/user-merged", "COPY certs/"} {
 		if strings.Contains(text, forbidden) {
 			t.Errorf("core Dockerfile must not build sealed service %q", forbidden)
 		}
@@ -467,6 +467,72 @@ func TestStorageConfigsPreserveRpcIdentityAndMetrics(t *testing.T) {
 		prometheus := mapValue(t, file+".Prometheus", config["Prometheus"])
 		if got := intValue(t, file+".Prometheus.Port", prometheus["Port"]); got != 9106 {
 			t.Errorf("%s Prometheus.Port = %d, want 9106", file, got)
+		}
+	}
+}
+
+func TestUserConfigsPreserveRpcIdentityAndMetrics(t *testing.T) {
+	for _, file := range []string{
+		"services/user/cmd/user/etc/user.yaml",
+		"services/user/cmd/user/etc/user-docker.yaml",
+	} {
+		config := loadProjectYAML(t, file)
+		if got := stringValue(config["Name"]); got != "user.rpc" {
+			t.Errorf("%s Name = %q, want user.rpc", file, got)
+		}
+		if got := stringValue(config["ListenOn"]); got != "0.0.0.0:9002" {
+			t.Errorf("%s ListenOn = %q, want 0.0.0.0:9002", file, got)
+		}
+		etcd := mapValue(t, file+".Etcd", config["Etcd"])
+		if got := stringValue(etcd["Key"]); got != "user.rpc" {
+			t.Errorf("%s Etcd.Key = %q, want user.rpc", file, got)
+		}
+		prometheus := mapValue(t, file+".Prometheus", config["Prometheus"])
+		if got := intValue(t, file+".Prometheus.Port", prometheus["Port"]); got != 9102 {
+			t.Errorf("%s Prometheus.Port = %d, want 9102", file, got)
+		}
+	}
+}
+
+func TestUserGenerationRetainsOnlyPublicRpcContracts(t *testing.T) {
+	testCases := []struct {
+		file     string
+		required []string
+	}{
+		{
+			file: "scripts/gen.sh",
+			required: []string{
+				"--zrpc_out=services/user/rpc",
+				"rm -rf services/user/rpc/internal services/user/rpc/etc",
+				"rm -f services/user/rpc/user.go",
+				"-dir services/user/internal/adapter/model -c",
+				"-dir services/user/internal/adapter/model_auth -c",
+			},
+		},
+		{
+			file: "scripts/gen.bat",
+			required: []string{
+				"--zrpc_out=services/user/rpc",
+				"rmdir /s /q services\\user\\rpc\\internal",
+				"del /q services\\user\\rpc\\user.go",
+				"-dir services/user/internal/adapter/model -c",
+				"-dir services/user/internal/adapter/model_auth -c",
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		content, err := os.ReadFile(filepath.Join("..", "..", filepath.FromSlash(testCase.file)))
+		if err != nil {
+			t.Fatalf("read %s: %v", testCase.file, err)
+		}
+		for _, snippet := range testCase.required {
+			if !strings.Contains(string(content), snippet) {
+				t.Errorf("%s missing %q", testCase.file, snippet)
+			}
+		}
+		if strings.Contains(string(content), "-dir services/auth/rpc/internal/model") {
+			t.Errorf("%s still generates login logs under the retired auth RPC runtime", testCase.file)
 		}
 	}
 }
