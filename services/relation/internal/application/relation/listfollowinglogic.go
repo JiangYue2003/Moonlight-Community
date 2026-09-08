@@ -6,18 +6,18 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	"github.com/zhiguang/zhiguang-go/services/relation/shared/zset"
 )
 
 type ListFollowingLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewListFollowingLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListFollowingLogic {
+func NewListFollowingLogic(ctx context.Context, svcCtx *application.ServiceContext) *ListFollowingLogic {
 	return &ListFollowingLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

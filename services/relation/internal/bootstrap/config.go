@@ -1,8 +1,10 @@
-package config
+package bootstrap
 
 import (
 	"github.com/zeromicro/go-zero/core/stores/cache"
 	"github.com/zeromicro/go-zero/zrpc"
+
+	"github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 )
 
 // Config relation-rpc 配置：MySQL（写 following + outbox）+ Redis（限流 + ZSet 列表缓存）
@@ -10,25 +12,11 @@ import (
 type Config struct {
 	zrpc.RpcServerConf
 
-	Mysql      MysqlConf
+	Mysql      application.MysqlConfig
 	CacheRedis cache.CacheConf
 
 	UserRpc zrpc.RpcClientConf
 
-	RateLimit RateLimitConf
-	Snowflake SnowflakeConf
-}
-
-type MysqlConf struct {
-	DataSource string
-}
-
-type RateLimitConf struct {
-	FollowCapacity     int64 `json:",default=100"`
-	FollowRefillPerSec int64 `json:",default=1"`
-}
-
-type SnowflakeConf struct {
-	WorkerId     int64 `json:",default=1"`
-	DatacenterId int64 `json:",default=3"`
+	RateLimit application.RateLimitConfig
+	Snowflake application.SnowflakeConfig
 }

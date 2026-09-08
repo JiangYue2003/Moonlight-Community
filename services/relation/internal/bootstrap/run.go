@@ -1,4 +1,4 @@
-package app
+package bootstrap
 
 import (
 	"context"
@@ -10,16 +10,20 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/config"
-	rpcserver "github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/server/relation"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
+	rpcserver "github.com/zhiguang/zhiguang-go/services/relation/internal/transport/grpc"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 )
 
-type Config = config.Config
-
 func Run(ctx context.Context, cfg Config) error {
-	svcCtx := svc.NewServiceContext(cfg)
+	svcCtx := application.NewServiceContext(application.Config{
+		Mysql:      cfg.Mysql,
+		CacheRedis: cfg.CacheRedis,
+		Redis:      cfg.Redis,
+		UserRpc:    cfg.UserRpc,
+		RateLimit:  cfg.RateLimit,
+		Snowflake:  cfg.Snowflake,
+	})
 	s := zrpc.MustNewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		relation.RegisterRelationServer(grpcServer, rpcserver.NewRelationServer(svcCtx))
 		if cfg.Mode == service.DevMode || cfg.Mode == service.TestMode {

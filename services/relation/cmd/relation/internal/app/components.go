@@ -4,7 +4,7 @@ import (
 	"context"
 
 	relationapiapp "github.com/zhiguang/zhiguang-go/services/relation/api/app"
-	relationrpcapp "github.com/zhiguang/zhiguang-go/services/relation/rpc/app"
+	relationbootstrap "github.com/zhiguang/zhiguang-go/services/relation/internal/bootstrap"
 	relationsyncerapp "github.com/zhiguang/zhiguang-go/services/relation/syncer/app"
 )
 
@@ -23,17 +23,17 @@ func (c *apiComponent) Run(ctx context.Context) error {
 }
 
 type rpcComponent struct {
-	cfg relationrpcapp.Config
+	cfg relationbootstrap.Config
 }
 
-func NewRPCComponent(cfg relationrpcapp.Config) Component {
+func NewRPCComponent(cfg relationbootstrap.Config) Component {
 	return &rpcComponent{cfg: cfg}
 }
 
 func (c *rpcComponent) Name() string { return "relation-rpc" }
 
 func (c *rpcComponent) Run(ctx context.Context) error {
-	return relationrpcapp.Run(ctx, c.cfg)
+	return relationbootstrap.Run(ctx, c.cfg)
 }
 
 type syncerComponent struct {

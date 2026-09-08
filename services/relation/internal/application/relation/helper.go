@@ -4,13 +4,13 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	pb "github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	userpb "github.com/zhiguang/zhiguang-go/services/user/rpc/user"
 )
 
 // hydrateUsers 调 user-rpc.FindByIds 把 id 列表转为 UserSummary 列表，保持原顺序。
-func hydrateUsers(ctx context.Context, sc *svc.ServiceContext, ids []int64) ([]*pb.UserSummary, error) {
+func hydrateUsers(ctx context.Context, sc *application.ServiceContext, ids []int64) ([]*pb.UserSummary, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}

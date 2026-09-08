@@ -15,13 +15,12 @@ import (
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/ratelimit"
 	"github.com/zhiguang/zhiguang-go/pkg/snowflakex"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/config"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	model "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
 )
 
-func newFollowFixture(t *testing.T) (*svc.ServiceContext, sqlmock.Sqlmock, *miniredis.Miniredis) {
+func newFollowFixture(t *testing.T) (*application.ServiceContext, sqlmock.Sqlmock, *miniredis.Miniredis) {
 	t.Helper()
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -41,8 +40,8 @@ func newFollowFixture(t *testing.T) (*svc.ServiceContext, sqlmock.Sqlmock, *mini
 		RedisConf: gzredis.RedisConf{Host: mr.Addr(), Type: "node"},
 		Weight:    100,
 	}}
-	sc := &svc.ServiceContext{
-		Config: config.Config{RateLimit: config.RateLimitConf{
+	sc := &application.ServiceContext{
+		Config: application.Config{RateLimit: application.RateLimitConfig{
 			FollowCapacity: 100, FollowRefillPerSec: 1,
 		}},
 		Db:             conn,

@@ -10,18 +10,18 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/txx"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	"github.com/zhiguang/zhiguang-go/services/relation/shared/event"
 )
 
 type FollowLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewFollowLogic(ctx context.Context, svcCtx *svc.ServiceContext) *FollowLogic {
+func NewFollowLogic(ctx context.Context, svcCtx *application.ServiceContext) *FollowLogic {
 	return &FollowLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

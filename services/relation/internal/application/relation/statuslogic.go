@@ -6,17 +6,17 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 )
 
 type StatusLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StatusLogic {
+func NewStatusLogic(ctx context.Context, svcCtx *application.ServiceContext) *StatusLogic {
 	return &StatusLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,

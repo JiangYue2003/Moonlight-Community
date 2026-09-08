@@ -2,22 +2,22 @@
 // goctl 1.10.1
 // Source: relation.proto
 
-package server
+package grpcserver
 
 import (
 	"context"
 
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/logic/relation"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
+	relationlogic "github.com/zhiguang/zhiguang-go/services/relation/internal/application/relation"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 )
 
 type RelationServer struct {
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	relation.UnimplementedRelationServer
 }
 
-func NewRelationServer(svcCtx *svc.ServiceContext) *RelationServer {
+func NewRelationServer(svcCtx *application.ServiceContext) *RelationServer {
 	return &RelationServer{
 		svcCtx: svcCtx,
 	}

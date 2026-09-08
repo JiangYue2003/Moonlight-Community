@@ -6,7 +6,7 @@ import (
 
 	miniredis "github.com/alicebob/miniredis/v2"
 	goredis "github.com/redis/go-redis/v9"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	model "github.com/zhiguang/zhiguang-go/services/relation/shared/model"
 	userpb "github.com/zhiguang/zhiguang-go/services/user/rpc/user"
@@ -59,7 +59,7 @@ func TestListFollowing_UsesTopCacheBeforeRedisAndDB(t *testing.T) {
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	defer rdb.Close()
 
-	sc := &svc.ServiceContext{
+	sc := &application.ServiceContext{
 		Redis:          rdb,
 		UserRpc:        stubUserClient{},
 		FollowingModel: panicFollowingModel{},
@@ -86,7 +86,7 @@ func TestListFollowers_UsesTopCacheBeforeRedisAndDB(t *testing.T) {
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	defer rdb.Close()
 
-	sc := &svc.ServiceContext{
+	sc := &application.ServiceContext{
 		Redis:         rdb,
 		UserRpc:       stubUserClient{},
 		FollowerModel: panicFollowerModel{},
@@ -113,7 +113,7 @@ func TestListFollowing_IDsOnlySkipsUserHydration(t *testing.T) {
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	defer rdb.Close()
 
-	sc := &svc.ServiceContext{
+	sc := &application.ServiceContext{
 		Redis:          rdb,
 		FollowingModel: panicFollowingModel{},
 		FollowingTopCache: map[int64][]int64{
@@ -140,7 +140,7 @@ func TestListFollowers_IDsOnlySkipsUserHydration(t *testing.T) {
 	rdb := goredis.NewClient(&goredis.Options{Addr: mr.Addr()})
 	defer rdb.Close()
 
-	sc := &svc.ServiceContext{
+	sc := &application.ServiceContext{
 		Redis:         rdb,
 		FollowerModel: panicFollowerModel{},
 		FollowerTopCache: map[int64][]int64{

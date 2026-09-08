@@ -9,18 +9,18 @@ import (
 
 	"github.com/zhiguang/zhiguang-go/pkg/errorx"
 	"github.com/zhiguang/zhiguang-go/pkg/txx"
-	"github.com/zhiguang/zhiguang-go/services/relation/rpc/internal/svc"
+	application "github.com/zhiguang/zhiguang-go/services/relation/internal/application"
 	"github.com/zhiguang/zhiguang-go/services/relation/rpc/relation"
 	"github.com/zhiguang/zhiguang-go/services/relation/shared/event"
 )
 
 type UnfollowLogic struct {
 	ctx    context.Context
-	svcCtx *svc.ServiceContext
+	svcCtx *application.ServiceContext
 	logx.Logger
 }
 
-func NewUnfollowLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UnfollowLogic {
+func NewUnfollowLogic(ctx context.Context, svcCtx *application.ServiceContext) *UnfollowLogic {
 	return &UnfollowLogic{
 		ctx:    ctx,
 		svcCtx: svcCtx,
