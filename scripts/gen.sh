@@ -40,12 +40,6 @@ protoc --go_out=services/knowpost/rpc \
   --go-grpc_out=services/knowpost/rpc \
   proto/knowpost/knowpost.proto
 
-echo "== generate auth-api =="
-goctl api go -api services/auth/api/auth.api -dir services/auth/api
-
-echo "== generate counter-api =="
-goctl api go -api services/counter/api/counter.api -dir services/counter/api
-
 echo "== generate models =="
 goctl model mysql ddl -src "db/migrations/000001_init_users.up.sql" \
   -dir services/user/internal/adapter/model -c

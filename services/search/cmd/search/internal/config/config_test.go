@@ -20,12 +20,6 @@ func TestDecodeSearchMergedConfig(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 
-	if c.Api.Port == 0 {
-		t.Fatalf("api port should not be zero")
-	}
-	if !c.DisableAPI {
-		t.Fatalf("disableAPI should be true for the merged process")
-	}
 	if len(c.Indexer.Kafka.Brokers) == 0 {
 		t.Fatalf("indexer kafka brokers should not be empty")
 	}

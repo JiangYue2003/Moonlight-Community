@@ -29,9 +29,6 @@ func main() {
 		app.NewRPCComponent(c.Rpc),
 		app.NewIndexerComponent(c.Indexer),
 	}
-	if !c.DisableAPI {
-		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)
-	}
 
 	if err := app.Run(ctx, components); err != nil {
 		logx.Errorf("search merged service exit: %v", err)

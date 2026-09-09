@@ -308,3 +308,68 @@ func NewEngine(sc *srv.ServiceContext) *gin.Engine {
 	return r
 }
 ```
+
+## Scenario: Legacy HTTP Runtime Retirement
+
+### 1. Scope / Trigger
+
+This contract applies after the Gateway has carried the public HTTP routes for
+one release cycle and a rollback tag has been created.
+
+### 2. Signatures
+
+```text
+services/gateway/                         active public HTTP composition root
+services/<context>/cmd/<process>           active RPC or worker entry point
+services/<context>/rpc/**                  stable generated RPC contracts
+```
+
+### 3. Contracts
+
+- Retired trees are `services/{agent,auth,counter,knowpost,llm,profile,relation,search,storage}/api`.
+- Public HTTP methods, paths, middleware, payloads, and response shapes remain
+  owned by `services/gateway`.
+- The rollback tag is `topology-v2-stage4-rollback-20260909`; retirement does
+  not change protobuf packages, generated client imports, SQL, Redis, or Kafka.
+- Active service configuration must not contain `DisableAPI` compatibility
+  switches or legacy API component imports.
+
+### 4. Validation & Error Matrix
+
+| Condition | Required result |
+|---|---|
+| A retired API tree exists | `TestStage5LegacyHTTPTreesAreRetired` fails |
+| A merged service imports an `api/app` compatibility component | `go test ./...` or reference audit fails |
+| A Gateway route disappears or changes | route-parity tests fail |
+| A generated RPC/client path changes | stop and perform a separate contract migration |
+
+### 5. Good/Base/Bad Cases
+
+- Good: delete the inactive API runtime after the observation gate, keep the
+  Gateway route and RPC contract, and retain the rollback tag.
+- Base: Agent keeps its active HTTP transport under `internal/transport/http`
+  and starts only from `cmd/agent`.
+- Bad: delete a protobuf/client tree, or reintroduce a second HTTP composition
+  root under a bounded context.
+
+### 6. Tests Required
+
+- Run `go test -buildvcs=false ./...`, `go vet -buildvcs=false ./...`, and
+  `go build -buildvcs=false ./...`.
+- Run topology/Compose contract tests and `docker compose ... config`.
+- Run a local startup/stop smoke that verifies Gateway and managed ports.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```text
+services/knowpost/api -> starts an HTTP server beside the Gateway
+```
+
+#### Correct
+
+```text
+services/gateway -> public HTTP routes
+services/knowpost/cmd/knowpost -> knowpost.rpc and workers only
+```

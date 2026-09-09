@@ -31,9 +31,6 @@ func main() {
 		app.NewSyncerComponent(c.Syncer),
 		debughttp.New(c.DebugHTTP),
 	}
-	if !c.DisableAPI {
-		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)
-	}
 
 	if err := app.Run(ctx, components); err != nil {
 		logx.Errorf("relation merged service exit: %v", err)

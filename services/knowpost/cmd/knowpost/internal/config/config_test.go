@@ -21,12 +21,6 @@ func TestDecodeKnowpostMergedConfig(t *testing.T) {
 		t.Fatalf("load config: %v", err)
 	}
 
-	if c.Api.Port == 0 {
-		t.Fatalf("api port should not be zero")
-	}
-	if !c.DisableAPI {
-		t.Fatalf("merged config should disable the legacy API")
-	}
 	if c.Rpc.ListenOn == "" {
 		t.Fatalf("rpc listen address should not be empty")
 	}

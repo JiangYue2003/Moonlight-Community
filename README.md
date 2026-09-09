@@ -28,8 +28,8 @@
   - `agent/cmd/agent`
 
 说明：
-- `counter/knowpost/relation/search/llm` 的 merged service 默认 `DisableAPI: true`
-- 即这些进程继续承载内部 `rpc` / `worker` 能力，但不再作为正式外部 HTTP 入口
+- `counter/knowpost/relation/search/llm` 的 merged service 只承载内部 `rpc` / `worker` 能力
+- 旧的服务级 HTTP runtime 已在 Stage 5 退役，外部 HTTP 入口统一通过 `gateway`
 - 外部 HTTP 请求统一通过 `gateway`
 
 ## 目录结构

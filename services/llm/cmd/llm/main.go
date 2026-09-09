@@ -28,9 +28,6 @@ func main() {
 	components := []app.Component{
 		app.NewRagIndexerComponent(c.RagIndexer),
 	}
-	if !c.DisableAPI {
-		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)
-	}
 
 	if err := app.Run(ctx, components); err != nil {
 		logx.Errorf("llm merged service exit: %v", err)

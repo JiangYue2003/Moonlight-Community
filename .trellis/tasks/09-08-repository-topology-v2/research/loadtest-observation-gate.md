@@ -378,9 +378,11 @@ High RPC c16 cold was valid at the request/health level but failed the proposed
 non-regression band: the first three trials had median 5.66K QPS / 6.47ms P95,
 and a clean rerun had median 4.56K QPS / 9.00ms P95. The cache Fresh ratio fell
 from 0.58 to 0.458 across the clean rerun while Redis eviction/rejection and
-client CPU remained zero/low. Stage 5 therefore remains unapproved; Cursor and
-mutation formal matrices were intentionally not started after this hard
-performance observation failure.
+client CPU remained zero/low. The user explicitly approved entering Stage 5
+after confirming that the migrated topology was fully connected. Cursor and
+mutation formal matrices were intentionally not started after this performance
+residual was observed; they remain follow-up evidence rather than a claim that
+the high RPC cold card passed.
 
 The fresh distributed and high manifests were cleaned by exact RunID. Cleanup
 needed bounded SQL batches and a 60-second maintenance-only MySQL timeout;

@@ -31,17 +31,27 @@
 
 ## Stage 5: legacy retirement
 
-- Complete one release-cycle observation gate.
-- Tag the rollback baseline.
-- Delete unused legacy HTTP entry points and compatibility bootstraps.
-- Run full tests, build, Compose smoke tests, and documentation drift checks.
+- [x] Complete one release-cycle observation gate. Runtime validity passed for
+  the selected hot, deep-page, distributed, and Gateway cards; high RPC cold
+  remained a documented performance residual risk and was accepted for this
+  stage by explicit user approval.
+- [x] Tag the rollback baseline as
+  `topology-v2-stage4-rollback-20260909` at `3185dcb`.
+- [x] Delete unused legacy HTTP entry points and compatibility bootstraps while
+  preserving the Gateway routes, Agent `cmd/agent` transport, and all RPC
+  contracts.
+- [x] Run the final full tests, build, Compose smoke tests, and documentation
+  drift checks before the Stage 5 commit. The local hybrid smoke returned 200
+  for public Feed, 401 for protected Feed without a token, and released all
+  managed ports during cleanup; existing middleware containers remained
+  healthy.
 
 ## Validation commands
 
 ```powershell
-go test ./...
-go vet ./...
-go build ./...
+go test -buildvcs=false ./...
+go vet -buildvcs=false ./...
+go build -buildvcs=false ./...
 docker compose -f deploy/compose/docker-compose.dev.yml config
 docker compose -f deploy/compose/docker-compose.dev.yml up -d mysql redis etcd kafka
 docker compose -f deploy/compose/docker-compose.dev.yml ps

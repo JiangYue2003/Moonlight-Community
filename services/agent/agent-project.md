@@ -6,10 +6,11 @@
 - last_verified_date: `2026-05-17`
 - target_reader: `LLM/AI Agent`
 - source_of_truth:
-  - `services/agent/api/internal/*`
+  - `services/agent/cmd/agent/internal/*`
+  - `services/agent/internal/transport/http/*`
   - `services/agent/indexer/internal/*`
   - `services/agent/shared/*`
-  - `services/agent/api/etc/agent-api.yaml`
+  - `services/agent/cmd/agent/etc/agent.yaml`
   - `services/agent/indexer/etc/agent-indexer.yaml`
 
 ## 1.Runtime Topology
@@ -220,7 +221,7 @@
 
 ### 5.2 Prometheus 指标暴露
 - expose:
-  - host/port/path: `agent-api.yaml -> Prometheus`
+  - host/port/path: `services/agent/cmd/agent/etc/agent.yaml -> Prometheus`
   - default: `0.0.0.0:9101/metrics`
 - metrics:
   - `zhiguang_agent_model_route_total{scenario,model,reason}`

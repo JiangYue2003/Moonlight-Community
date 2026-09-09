@@ -33,9 +33,6 @@ func main() {
 		app.NewRPCComponent(c.Rpc),
 		debughttp.New(c.DebugHTTP),
 	}
-	if !c.DisableAPI {
-		components = append([]app.Component{app.NewAPIComponent(c.Api)}, components...)
-	}
 
 	if err := app.Run(ctx, components); err != nil {
 		logx.Errorf("knowpost merged service exit: %v", err)
