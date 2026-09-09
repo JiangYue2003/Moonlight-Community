@@ -18,14 +18,6 @@ if exist services\user\rpc\internal rmdir /s /q services\user\rpc\internal
 if exist services\user\rpc\etc rmdir /s /q services\user\rpc\etc
 if exist services\user\rpc\user.go del /q services\user\rpc\user.go
 
-echo == generate auth-rpc ==
-goctl rpc protoc proto/auth/auth.proto ^
-  --go_out=services/auth/rpc/internal ^
-  --go-grpc_out=services/auth/rpc/internal ^
-  --zrpc_out=services/auth/rpc ^
-  -m
-if errorlevel 1 goto :err
-
 echo == generate counter-rpc ==
 goctl rpc protoc proto/counter/counter.proto ^
 	--go_out=services/counter/rpc ^

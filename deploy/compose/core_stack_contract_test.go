@@ -531,10 +531,15 @@ func TestUserGenerationRetainsOnlyPublicRpcContracts(t *testing.T) {
 				t.Errorf("%s missing %q", testCase.file, snippet)
 			}
 		}
-		if strings.Contains(string(content), "-dir services/auth/rpc/internal/model") {
-			t.Errorf("%s still generates login logs under the retired auth RPC runtime", testCase.file)
+			if strings.Contains(string(content), "-dir services/auth/rpc/internal/model") {
+				t.Errorf("%s still generates login logs under the retired auth RPC runtime", testCase.file)
+			}
+			for _, forbidden := range []string{"proto/auth/auth.proto", "services/auth/rpc"} {
+				if strings.Contains(string(content), forbidden) {
+					t.Errorf("%s still references retired auth generation path %q", testCase.file, forbidden)
+				}
+			}
 		}
-	}
 }
 
 func loadDevComposeServices(t *testing.T) map[string]map[string]any {

@@ -9,6 +9,10 @@ may retain go-zero's generated `internal/handler`, `internal/logic`,
 extracted context owns active runtime code under its context-level `internal/`
 tree and keeps only public generated contracts under `rpc/`.
 
+The human-facing placement and generation quick reference is
+`docs/project-structure-guideline.md`; this spec remains the executable contract
+for validation and review.
+
 Repository-level operational files have separate owners:
 
 ```text

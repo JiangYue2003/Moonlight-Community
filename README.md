@@ -34,6 +34,8 @@
 
 ## 目录结构
 
+新增代码与代码生成的落点规范见 `docs/project-structure-guideline.md`。
+
 ```text
 zhiguang-go/
 ├── docs/                  # 项目分析、阶段文档、实施记录

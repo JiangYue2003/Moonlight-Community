@@ -18,13 +18,6 @@ goctl rpc protoc proto/user/user.proto \
 rm -rf services/user/rpc/internal services/user/rpc/etc
 rm -f services/user/rpc/user.go
 
-echo "== generate auth-rpc =="
-goctl rpc protoc proto/auth/auth.proto \
-  --go_out=services/auth/rpc/internal \
-  --go-grpc_out=services/auth/rpc/internal \
-  --zrpc_out=services/auth/rpc \
-  -m
-
 echo "== generate counter-rpc =="
 goctl rpc protoc proto/counter/counter.proto \
 	--go_out=services/counter/rpc \
