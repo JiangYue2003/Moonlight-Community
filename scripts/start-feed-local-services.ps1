@@ -251,7 +251,7 @@ try {
         foreach ($service in $services) {
 			Assert-PortsAvailable -Ports $service.Ports
             $executable = Join-Path $binDir ($service.Name + ".exe")
-            Invoke-Checked "go" @("build", "-o", $executable, $service.Package)
+            Invoke-Checked "go" @("build", "-buildvcs=false", "-o", $executable, $service.Package)
 
             $sourceConfig = Join-Path $RepoRoot $service.Config
             $localConfig = Join-Path $configDir ($service.Name + ".yaml")

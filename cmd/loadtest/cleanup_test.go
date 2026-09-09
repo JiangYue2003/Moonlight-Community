@@ -83,3 +83,25 @@ func TestCleanupRedisKeysStayScopedToManifestRecords(t *testing.T) {
 	require.Contains(t, keys, "dedup:rel:FollowCreated:103")
 	require.NotContains(t, keys, "feed:inbox:8")
 }
+
+func TestCleanupDeleteBatchSizeStaysBelowMySQLPlaceholderLimit(t *testing.T) {
+	ids := make([]int64, 25001)
+	batches := cleanupIDBatches(ids)
+
+	require.Len(t, batches, 3)
+	require.Len(t, batches[0], cleanupDeleteBatchSize)
+	require.Len(t, batches[1], cleanupDeleteBatchSize)
+	require.Len(t, batches[2], 5001)
+	require.Empty(t, cleanupIDBatches(nil))
+	require.Len(t, cleanupIDBatchesSized(ids, cleanupRelationBatchSize), 26)
+	require.Len(t, cleanupStringBatches([]string{"a", "b", "c"}, 2), 2)
+}
+
+func TestCleanupMySQLDSNUsesLongMaintenanceTimeouts(t *testing.T) {
+	dsn, err := cleanupMySQLDSN("root:secret@tcp(127.0.0.1:3306)/zhiguang?timeout=2s&readTimeout=2s")
+
+	require.NoError(t, err)
+	require.Contains(t, dsn, "timeout=1m0s")
+	require.Contains(t, dsn, "readTimeout=1m0s")
+	require.Contains(t, dsn, "writeTimeout=1m0s")
+}

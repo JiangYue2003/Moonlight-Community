@@ -65,6 +65,30 @@ feed-fanout-group feed-fanout 1 200 203 3 - - -`)
 	require.Equal(t, 309.0, values["log_end_offset_total"])
 }
 
+func TestParseKafkaLagHandlesUncommittedPartition(t *testing.T) {
+	tests := []struct {
+		name   string
+		logEnd string
+		lag    float64
+	}{
+		{name: "empty topic", logEnd: "0", lag: 0},
+		{name: "existing messages", logEnd: "7", lag: 7},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			raw := []byte("GROUP TOPIC PARTITION CURRENT-OFFSET LOG-END-OFFSET LAG CONSUMER-ID HOST CLIENT-ID\n" +
+				"feed-fanout-group feed-fanout 0 - " + tt.logEnd + " - consumer host client")
+
+			values, err := parseKafkaLag(raw)
+
+			require.NoError(t, err)
+			require.Equal(t, tt.lag, values["lag_total"])
+			require.Equal(t, 0.0, values["current_offset_total"])
+			require.Equal(t, 1.0, values["partitions"])
+		})
+	}
+}
+
 func TestParseRedisInfoIncludesKeyCountAndHitRate(t *testing.T) {
 	raw := []byte("used_memory:1024\r\ntotal_commands_processed:100\r\nkeyspace_hits:80\r\nkeyspace_misses:20\r\ndb0:keys=12,expires=2,avg_ttl=100\r\n")
 

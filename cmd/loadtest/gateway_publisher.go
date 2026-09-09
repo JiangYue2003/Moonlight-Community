@@ -22,7 +22,7 @@ type gatewayPublisherClient struct {
 
 func newGatewayPublisherClient(baseURL string, client *http.Client, tokens map[int64]string) *gatewayPublisherClient {
 	if client == nil {
-		client = http.DefaultClient
+		client = newLoadtestHTTPClient()
 	}
 	return &gatewayPublisherClient{baseURL: strings.TrimRight(baseURL, "/"), client: client, tokens: tokens}
 }

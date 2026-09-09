@@ -35,9 +35,17 @@ type gatewayFeedClient struct {
 	client  *http.Client
 }
 
+func newLoadtestHTTPClient() *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.MaxIdleConns = 512
+	transport.MaxIdleConnsPerHost = 512
+	transport.MaxConnsPerHost = 512
+	return &http.Client{Transport: transport}
+}
+
 func newGatewayFeedClient(baseURL string, client *http.Client) *gatewayFeedClient {
 	if client == nil {
-		client = http.DefaultClient
+		client = newLoadtestHTTPClient()
 	}
 	return &gatewayFeedClient{baseURL: strings.TrimRight(baseURL, "/"), client: client}
 }

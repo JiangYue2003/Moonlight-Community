@@ -95,7 +95,7 @@ function Assert-CompleteReports {
 New-Item -ItemType Directory -Force -Path $binaryDir | Out-Null
 Push-Location $repoRoot
 try {
-    Invoke-Checked "go" @("build", "-o", $binary, "./cmd/loadtest")
+    Invoke-Checked "go" @("build", "-buildvcs=false", "-o", $binary, "./cmd/loadtest")
     foreach ($entry in $Entries) {
         foreach ($scenario in $Scenarios) {
             foreach ($concurrency in $Concurrencies) {

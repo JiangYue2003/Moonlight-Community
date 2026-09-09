@@ -92,3 +92,13 @@ func TestGatewayFeedClientUsesFollowingFeedAndBearerToken(t *testing.T) {
 	require.Equal(t, "99", page.Items[0].ID)
 	require.Equal(t, "next-cursor", page.NextCursor)
 }
+
+func TestLoadtestHTTPClientKeepsGatewayConnectionsBoundedAndReusable(t *testing.T) {
+	client := newLoadtestHTTPClient()
+	transport, ok := client.Transport.(*http.Transport)
+
+	require.True(t, ok)
+	require.Equal(t, 512, transport.MaxIdleConns)
+	require.Equal(t, 512, transport.MaxIdleConnsPerHost)
+	require.Equal(t, 512, transport.MaxConnsPerHost)
+}

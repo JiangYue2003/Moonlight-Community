@@ -70,7 +70,7 @@ function Invoke-Loadtest {
     param([string[]]$Arguments)
 	Assert-BenchmarkLogsBounded
     $base = @(
-        "run", "./cmd/loadtest", "-f", $configFile, "-run-id", $RunId,
+        "run", "-buildvcs=false", "./cmd/loadtest", "-f", $configFile, "-run-id", $RunId,
         "-report-run-id", $ActiveReportRunId,
         "-reader-cardinality", $ReaderCardinality,
         "-topology", $Topology,

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -32,6 +33,9 @@ type cleanupDatabaseRecords struct {
 	Follower  []cleanupRelationRow
 	Outbox    []cleanupOutboxRow
 }
+
+const cleanupDeleteBatchSize = 10000
+const cleanupRelationBatchSize = 1000
 
 type cleanupResult struct {
 	RunID          string           `json:"run_id"`
@@ -56,7 +60,11 @@ func cleanupDataset(ctx context.Context, cfg benchmarkConfig, manifest datasetMa
 		return cleanupResult{}, fmt.Errorf("cleanup requires drained feed Kafka group: %w", err)
 	}
 
-	db, err := sql.Open("mysql", cfg.Monitor.MySQLDSN)
+	cleanupDSN, err := cleanupMySQLDSN(cfg.Monitor.MySQLDSN)
+	if err != nil {
+		return cleanupResult{}, err
+	}
+	db, err := sql.Open("mysql", cleanupDSN)
 	if err != nil {
 		return cleanupResult{}, fmt.Errorf("open cleanup MySQL: %w", err)
 	}
@@ -142,6 +150,17 @@ func cleanupDataset(ctx context.Context, cfg benchmarkConfig, manifest datasetMa
 		return cleanupResult{}, err
 	}
 	return result, nil
+}
+
+func cleanupMySQLDSN(dsn string) (string, error) {
+	config, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return "", fmt.Errorf("parse cleanup MySQL DSN: %w", err)
+	}
+	config.Timeout = 60 * time.Second
+	config.ReadTimeout = 60 * time.Second
+	config.WriteTimeout = 60 * time.Second
+	return config.FormatDSN(), nil
 }
 
 func validateCleanupManifest(manifest datasetManifest, confirmation string) error {
@@ -296,13 +315,32 @@ func queryInt64Column(ctx context.Context, tx *sql.Tx, query string, args []any)
 }
 
 func deleteLoginLogs(ctx context.Context, tx *sql.Tx, manifest datasetManifest, userIDs []int64) (int64, error) {
-	emails := make([]any, 0, len(manifest.Users))
+	var deleted int64
+	for _, batch := range cleanupIDBatchesSized(userIDs, cleanupRelationBatchSize) {
+		query := "DELETE FROM login_logs WHERE user_id IN (" + sqlPlaceholders(len(batch)) + ")"
+		count, err := execCount(ctx, tx, "delete login_logs", query, int64Args(batch)...)
+		if err != nil {
+			return 0, err
+		}
+		deleted += count
+	}
+	emails := make([]string, 0, len(manifest.Users))
 	for _, user := range manifest.Users {
 		emails = append(emails, user.Email)
 	}
-	query := "DELETE FROM login_logs WHERE user_id IN (" + sqlPlaceholders(len(userIDs)) + ") OR identifier IN (" + sqlPlaceholders(len(emails)) + ")"
-	args := append(int64Args(userIDs), emails...)
-	return execCount(ctx, tx, "delete login_logs", query, args...)
+	for _, batch := range cleanupStringBatches(emails, cleanupRelationBatchSize) {
+		args := make([]any, len(batch))
+		for i, email := range batch {
+			args[i] = email
+		}
+		query := "DELETE FROM login_logs WHERE identifier IN (" + sqlPlaceholders(len(batch)) + ")"
+		count, err := execCount(ctx, tx, "delete login_logs", query, args...)
+		if err != nil {
+			return 0, err
+		}
+		deleted += count
+	}
+	return deleted, nil
 }
 
 func countLoginLogs(ctx context.Context, tx *sql.Tx, manifest datasetManifest, userIDs []int64) (int64, error) {
@@ -320,18 +358,68 @@ func countLoginLogs(ctx context.Context, tx *sql.Tx, manifest datasetManifest, u
 }
 
 func deleteRelationsForUsers(ctx context.Context, tx *sql.Tx, table string, userIDs []int64) (int64, error) {
-	placeholders := sqlPlaceholders(len(userIDs))
-	args := append(int64Args(userIDs), int64Args(userIDs)...)
-	query := fmt.Sprintf("DELETE FROM %s WHERE from_user_id IN (%s) OR to_user_id IN (%s)", table, placeholders, placeholders)
-	return execCount(ctx, tx, "delete "+table, query, args...)
+	var deleted int64
+	for _, batch := range cleanupIDBatchesSized(userIDs, cleanupRelationBatchSize) {
+		placeholders := sqlPlaceholders(len(batch))
+		args := append(int64Args(batch), int64Args(batch)...)
+		query := fmt.Sprintf("DELETE FROM %s WHERE from_user_id IN (%s) OR to_user_id IN (%s)", table, placeholders, placeholders)
+		count, err := execCount(ctx, tx, "delete "+table, query, args...)
+		if err != nil {
+			return 0, err
+		}
+		deleted += count
+	}
+	return deleted, nil
 }
 
 func deleteRowsByIDs(ctx context.Context, tx *sql.Tx, table string, ids []int64) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	query := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", table, sqlPlaceholders(len(ids)))
-	return execCount(ctx, tx, "delete "+table, query, int64Args(ids)...)
+	var deleted int64
+	for _, batch := range cleanupIDBatches(ids) {
+		query := fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", table, sqlPlaceholders(len(batch)))
+		count, err := execCount(ctx, tx, "delete "+table, query, int64Args(batch)...)
+		if err != nil {
+			return 0, err
+		}
+		deleted += count
+	}
+	return deleted, nil
+}
+
+func cleanupIDBatches(ids []int64) [][]int64 {
+	return cleanupIDBatchesSized(ids, cleanupDeleteBatchSize)
+}
+
+func cleanupIDBatchesSized(ids []int64, batchSize int) [][]int64 {
+	if len(ids) == 0 || batchSize <= 0 {
+		return nil
+	}
+	batches := make([][]int64, 0, (len(ids)+batchSize-1)/batchSize)
+	for start := 0; start < len(ids); start += batchSize {
+		end := start + batchSize
+		if end > len(ids) {
+			end = len(ids)
+		}
+		batches = append(batches, ids[start:end])
+	}
+	return batches
+}
+
+func cleanupStringBatches(values []string, batchSize int) [][]string {
+	if len(values) == 0 || batchSize <= 0 {
+		return nil
+	}
+	batches := make([][]string, 0, (len(values)+batchSize-1)/batchSize)
+	for start := 0; start < len(values); start += batchSize {
+		end := start + batchSize
+		if end > len(values) {
+			end = len(values)
+		}
+		batches = append(batches, values[start:end])
+	}
+	return batches
 }
 
 func execCount(ctx context.Context, tx *sql.Tx, operation, query string, args ...any) (int64, error) {

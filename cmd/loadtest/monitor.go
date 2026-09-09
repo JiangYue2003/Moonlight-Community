@@ -679,14 +679,23 @@ func parseKafkaLag(raw []byte) (map[string]float64, error) {
 		if len(fields) <= lagIndex || len(fields) <= currentOffsetIndex || len(fields) <= logEndOffsetIndex {
 			continue
 		}
-		lag, err := strconv.ParseFloat(fields[lagIndex], 64)
+		logEndOffset, err := strconv.ParseFloat(fields[logEndOffsetIndex], 64)
 		if err != nil {
 			continue
 		}
 		currentOffset, currentErr := strconv.ParseFloat(fields[currentOffsetIndex], 64)
-		logEndOffset, logEndErr := strconv.ParseFloat(fields[logEndOffsetIndex], 64)
-		if currentErr != nil || logEndErr != nil {
-			continue
+		if currentErr != nil {
+			if fields[currentOffsetIndex] != "-" {
+				continue
+			}
+			currentOffset = 0
+		}
+		lag, lagErr := strconv.ParseFloat(fields[lagIndex], 64)
+		if lagErr != nil {
+			if fields[lagIndex] != "-" || fields[currentOffsetIndex] != "-" {
+				continue
+			}
+			lag = logEndOffset
 		}
 		total += lag
 		currentOffsetTotal += currentOffset
