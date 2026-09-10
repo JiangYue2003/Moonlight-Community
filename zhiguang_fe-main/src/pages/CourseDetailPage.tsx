@@ -286,7 +286,7 @@ const CourseDetailPage = () => {
                   onClick={startRag}
                   disabled={ragLoading || !ragQuestion.trim()}
                 >
-                  {ragLoading ? "生成中…" : "发送"}
+                  {ragLoading ? "生成中..." : "发送"}
                 </button>
                 <button type="button" className={`${styles.ragBtn} ${styles.ragBtnGhost}`} onClick={stopRag} disabled={!ragLoading}>
                   停止
@@ -317,7 +317,7 @@ const CourseDetailPage = () => {
                   </div>
                 ) : (
                   <div className={styles.ragPlaceholder}>
-                    {ragLoading ? "等待生成…" : "这里将展示答案（支持流式）"}
+                    {ragLoading ? "等待生成..." : "这里将展示答案（支持流式）"}
                   </div>
                 )}
               </div>
@@ -351,7 +351,7 @@ const CourseDetailPage = () => {
               >
                 <ArrowRightIcon width={24} height={24} />
               </button>
-              <button type="button" className={styles.closeButton} onClick={(e) => { e.stopPropagation(); setPreviewOpen(false); }} aria-label="关闭">✕</button>
+              <button type="button" className={styles.closeButton} onClick={(e) => { e.stopPropagation(); setPreviewOpen(false); }} aria-label="关闭">×</button>
             </div>
           </div>
         ) : null}

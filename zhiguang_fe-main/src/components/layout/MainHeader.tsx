@@ -16,7 +16,9 @@ export type MainHeaderProps = {
   tabs?: HeaderTab[];
   filters?: HeaderTab[];
   rightSlot?: ReactNode;
+  centerSlot?: ReactNode;
   children?: ReactNode;
+  variant?: "default" | "discovery";
   user?: {
     name: string;
     alias?: string;
@@ -24,7 +26,7 @@ export type MainHeaderProps = {
   };
 };
 
-const MainHeader = ({ headline, subtitle, tabs, filters, rightSlot, children, user }: MainHeaderProps) => {
+const MainHeader = ({ headline, subtitle, tabs, filters, rightSlot, centerSlot, children, variant = "default", user }: MainHeaderProps) => {
   const renderTab = (tab: HeaderTab, variant: "tab" | "filter" = "tab") => {
     const className =
       variant === "tab"
@@ -45,12 +47,13 @@ const MainHeader = ({ headline, subtitle, tabs, filters, rightSlot, children, us
   };
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${variant === "discovery" ? styles.discovery : ""}`}>
       <div className={styles.topRow}>
         <div className={styles.titles}>
           <h1 className={styles.headline}>{headline}</h1>
           {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
         </div>
+        <div className={styles.centerSlot}>{centerSlot}</div>
         <div className={styles.extras}>
           {rightSlot}
           {user ? <UserBadge name={user.name} alias={user.alias} avatarUrl={user.avatarUrl} /> : null}
@@ -63,7 +66,7 @@ const MainHeader = ({ headline, subtitle, tabs, filters, rightSlot, children, us
         <div className={styles.filters}>{filters.map(filter => renderTab(filter, "filter"))}</div>
       ) : null}
 
-      {children}
+      {children ? <div className={styles.subRow}>{children}</div> : null}
     </header>
   );
 };

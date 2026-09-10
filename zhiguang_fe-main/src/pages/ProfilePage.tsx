@@ -137,7 +137,7 @@ const ProfilePage = () => {
             />
               </div>
             ))}
-            {loading ? <div className={feedStyles.masonryItem}><div>加载中…</div></div> : null}
+            {loading ? <div className={feedStyles.masonryItem}><div>加载中...</div></div> : null}
             {!loading && items.length === 0 ? (
               <div className={feedStyles.masonryItem}><div>暂无内容</div></div>
             ) : null}

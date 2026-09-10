@@ -133,7 +133,7 @@ const CreatePage = () => {
 
       // 5) 发布
       await knowpostService.publish(id);
-      setMessage("发布成功 ✅");
+      setMessage("发布成功");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "发布失败";
       setError(msg);
@@ -222,7 +222,7 @@ const CreatePage = () => {
               }}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
             >
-              <span>{imageUploading ? "正在上传…" : "点击上传图片"}</span>
+              <span>{imageUploading ? "正在上传..." : "点击上传图片"}</span>
               <small>支持 JPG / PNG / SVG，最多 {MAX_IMAGES} 张；单张不超过 5MB（已选 {uploadedImgUrls.length} / {MAX_IMAGES}）</small>
               <input
                 ref={fileInputRef}
@@ -267,7 +267,7 @@ const CreatePage = () => {
                   onClick={handleToggleAiSummary}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggleAiSummary(); }}
                 />
-                {aiSummaryLoading ? <small className={styles.muted}>生成中…</small> : null}
+                {aiSummaryLoading ? <small className={styles.muted}>生成中...</small> : null}
               </div>
             </div>
             <textarea
@@ -340,7 +340,7 @@ const CreatePage = () => {
         </div>
         <div className={styles.actions}>
           <button type="button" className={styles.submit} onClick={handlePublish} disabled={submitting}>
-            {submitting ? "发布中…" : "发布"}
+            {submitting ? "发布中..." : "发布"}
           </button>
         </div>
         {error ? <div className={styles.error}>{error}</div> : null}

@@ -2,251 +2,58 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
-  border-radius: 24px;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  min-height: 280px;
-  overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card a {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  height: 100%;
-  color: inherit;
-}
-
-.card a:hover {
-  text-decoration: none;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 48px rgba(26, 26, 44, 0.12);
-}
-
-.topBadge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.topBadge span {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--color-primary-strong);
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(26, 26, 44, 0.12);
-}
-
-.content {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  /* 取消免费徽章后，移除额外的上边距 */
-  margin-top: 0;
-}
-
-.title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text-strong);
-}
-
-.description {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  line-height: 1.6;
-}
-.description em {
-  font-style: normal;
-  background: rgba(255, 214, 153, 0.6);
-  border-radius: 4px;
-  padding: 0 2px;
-  color: var(--color-text-strong);
-}
-
-.tagGroups {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.meta {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.teacher {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.teacherAvatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 138, 65, 0.12);
-  font-weight: 600;
-  color: var(--color-primary-strong);
-}
-
-.teacherAvatarImg {
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  object-fit: cover;
-  display: block;
-}
-
-.teacherInfo {
-  display: flex;
-  flex-direction: column;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.teacherName {
-  color: var(--color-text-strong);
-  font-weight: 600;
-}
-
-.authorTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.authorTag {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.stats {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.statItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.footerExtra {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.cover {
-  width: 100%;
-  border-radius: 18px;
-  height: auto;
-  display: block;
-}
-
-.coverWrap {
-  position: relative;
-}
-
-.variantHorizontal {
-  grid-template-columns: 1.1fr 0.9fr;
-  align-items: stretch;
-}
-
-.variantHorizontalText {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.playBadge {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  display: grid;
-  place-items: center;
-  color: var(--color-primary-strong);
-  box-shadow: inset 0 0 0 1px rgba(255, 138, 65, 0.22), 0 10px 24px rgba(26, 26, 44, 0.12);
-}
-
-/* 右上角编辑菜单入口 */
-.menuButton {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: rgba(26, 26, 44, 0.06);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  z-index: 5;
-  border: none;
-  outline: none;
-}
-.menuButton:hover { background: rgba(26, 26, 44, 0.12); color: var(--color-text-strong); }
-.menuButton:focus { box-shadow: 0 0 0 2px rgba(255, 138, 65, 0.28); }
-
-.menuList {
-  position: absolute;
-  top: 44px;
-  right: 12px;
-  min-width: 160px;
-  background: var(--color-surface);
-  border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(26, 26, 44, 0.12);
-  border: 1px solid rgba(26, 26, 44, 0.08);
-  padding: 6px;
-  z-index: 10;
-}
-.menuItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-  font-size: 13px;
-  color: var(--color-text-strong);
-  padding: 8px 10px;
-  border-radius: 8px;
+  gap: 9px;
+  min-width: 0;
   background: transparent;
-  border: none;
 }
-.menuItem:hover { background: rgba(255, 138, 65, 0.08); }
+.card a { display: flex; flex-direction: column; gap: 9px; color: inherit; }
+.card a:hover { text-decoration: none; }
+.topBadge { position: absolute; top: 8px; left: 8px; z-index: 2; pointer-events: none; }
+.topBadge span { display: inline-flex; padding: 4px 8px; border-radius: 6px; background: rgba(36,36,36,.78); color: #fff; font-size: 11px; font-weight: 650; }
+.content { display: grid; grid-template-columns: 1fr; gap: 5px; padding: 0 2px; }
+.title { display: -webkit-box; overflow: hidden; color: var(--color-text-strong); font-size: 15px; line-height: 1.42; font-weight: 560; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.description { display: -webkit-box; overflow: hidden; color: var(--color-text-muted); font-size: 13px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.description em { font-style: normal; color: var(--color-primary-strong); background: var(--color-primary-soft); border-radius: 4px; padding: 0 3px; }
+.tagGroups { display: none; }
+.meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 0 2px; }
+.teacher { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.teacherAvatar, .teacherAvatarImg { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; }
+.teacherAvatar { display: grid; place-items: center; background: #eceff8; color: var(--color-primary-strong); font-size: 12px; font-weight: 650; }
+.teacherAvatarImg { object-fit: cover; display: block; }
+.teacherInfo { display: flex; min-width: 0; color: var(--color-text-muted); font-size: 13px; }
+.teacherName { overflow: hidden; color: var(--color-text-muted); font-weight: 450; text-overflow: ellipsis; white-space: nowrap; }
+.authorTags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.authorTag { font-size: 12px; color: var(--color-text-muted); }
+.stats { display: flex; align-items: center; gap: 15px; font-size: 13px; color: var(--color-text-muted); }
+.statItem { display: inline-flex; align-items: center; gap: 5px; }
+.footerExtra { display: flex; flex: 0 0 auto; align-items: center; }
+.coverWrap { position: relative; width: 100%; overflow: hidden; border-radius: 8px; background: var(--color-surface-soft); }
+.coverVariant0 { aspect-ratio: 4 / 5; }
+.coverVariant1 { aspect-ratio: 3 / 4; }
+.coverVariant2 { aspect-ratio: 1 / 1; }
+.coverVariant3 { aspect-ratio: 4 / 5.4; }
+.coverTone0 { background: #eef3ff; }
+.coverTone1 { background: #f2f0f7; }
+.coverTone2 { background: #edf5ef; }
+.coverTone3 { background: #f6f1e9; }
+.cover { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter 180ms ease, transform 240ms ease; }
+.fallbackCover { display: flex; height: 100%; flex-direction: column; justify-content: space-between; gap: 20px; padding: 18px; }
+.fallbackBrand { color: var(--color-primary-strong); font-size: 12px; font-weight: 650; }
+.fallbackTitle { display: -webkit-box; overflow: hidden; color: var(--color-text-strong); font-size: 20px; line-height: 1.45; font-weight: 650; -webkit-box-orient: vertical; -webkit-line-clamp: 6; }
+.card:hover .cover { filter: brightness(.97); transform: scale(1.012); }
+.variantHorizontal { grid-template-columns: 1.1fr .9fr; align-items: stretch; }
+.variantHorizontalText { display: flex; flex-direction: column; gap: 14px; }
+.playBadge { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.88); color: var(--color-primary-strong); box-shadow: 0 8px 20px rgba(27,41,68,.16); }
+.menuButton { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border: 1px solid rgba(255,255,255,.7); border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.88); color: var(--color-text-muted); cursor: pointer; z-index: 5; }
+.menuButton:hover { color: var(--color-primary-strong); background: #fff; }
+.menuButton:focus-visible { outline: 3px solid rgba(47,100,214,.2); }
+.menuList { position: absolute; top: 48px; right: 12px; min-width: 160px; padding: 6px; border: 1px solid var(--color-border); border-radius: 12px; background: rgba(255,255,255,.96); box-shadow: 0 14px 30px rgba(27,41,68,.14); z-index: 10; }
+.menuItem { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--color-text-strong); font-size: 14px; text-align: left; cursor: pointer; }
+.menuItem:hover { background: var(--color-primary-soft); }
 .menuDanger { color: var(--color-danger); }
+@media (max-width: 1100px) { .variantHorizontal { grid-template-columns: 1fr; } }
 
-@media (max-width: 1100px) {
-  .variantHorizontal {
-    grid-template-columns: 1fr;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .cover { transition: none; }
+  .card:hover .cover { transform: none; }
 }
