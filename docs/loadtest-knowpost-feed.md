@@ -47,15 +47,15 @@
 
 ### 2.2 复用方法
 
-生成脚本已保留在 `.tmp_seed/main.go`（未提交 git，`.gitignore` 已排除 `.tmp_seed/`）：
+生成脚本已保留在 `.tmp/archive/seed-harness/main.go`（未提交 git，`.gitignore` 已排除 `.tmp/archive/seed-harness/`）：
 
 ```bash
 cd F:/zhiguang_be/zhiguang-go
 export GOCACHE=F:/zhiguang_be/zhiguang-go/.gocache
-go run ./.tmp_seed/main.go
+go run ./.tmp/archive/seed-harness/main.go
 ```
 
-如果 `.tmp_seed/main.go` 已被清理，核心逆向即可重建：批量 `INSERT INTO know_posts (...) VALUES (...)`，`id` 从 `900000000000000000` 开始连续自增，`status='published', visible='public'`，`creator_id` 取库中已存在的用户 ID。
+如果 `.tmp/archive/seed-harness/main.go` 已被清理，核心逆向即可重建：批量 `INSERT INTO know_posts (...) VALUES (...)`，`id` 从 `900000000000000000` 开始连续自增，`status='published', visible='public'`，`creator_id` 取库中已存在的用户 ID。
 
 ### 2.3 清理方法（本次未清理，供后续需要时参考）
 
@@ -69,7 +69,7 @@ DELETE FROM know_posts WHERE id >= 900000000000000000 AND id < 90000000000001000
 
 固定用 k6 的 `ramping-vus` 渐进加压：`0→50（30s）→200（30s）→500（30s）→500（60s，稳态观察）→0（20s）`，总时长约 2分50秒。除特别说明外均为此曲线，最终统计的 QPS/延迟取整个运行窗口的汇总值（含加压过程，非纯稳态峰值）。
 
-脚本保留在 `.tmp_seed/k6/`：`common.js`（登录复用）、`scenario_a_cold.js`、`scenario_b_hotspot.js`、`scenario_c_warm.js`、`scenario_d_mixed.js`、`scenario_a_fixed500.js`。
+脚本保留在 `.tmp/archive/seed-harness/k6/`：`common.js`（登录复用）、`scenario_a_cold.js`、`scenario_b_hotspot.js`、`scenario_c_warm.js`、`scenario_d_mixed.js`、`scenario_a_fixed500.js`。
 
 | 场景 | 请求模式 | 验证目标 |
 |---|---|---|
@@ -105,7 +105,7 @@ DELETE FROM know_posts WHERE id >= 900000000000000000 AND id < 90000000000001000
 
 ### 4.3 对照实验：绕过所有缓存直连数据库
 
-为了量化"如果没有这套缓存架构，数据库单独能扛多大压力"，写了一个直连 MySQL 的对照程序（`.tmp_seed/monitor/dbdirect.go`），用完全相同的 SQL（`ListPublicFeed` 的查询语句）、**更低的并发（200，低于应用层测的 500）**、跑 20 秒：
+为了量化"如果没有这套缓存架构，数据库单独能扛多大压力"，写了一个直连 MySQL 的对照程序（`.tmp/archive/seed-harness/monitor/dbdirect.go`），用完全相同的 SQL（`ListPublicFeed` 的查询语句）、**更低的并发（200，低于应用层测的 500）**、跑 20 秒：
 
 ```
 concurrency=200 duration=20s
@@ -146,23 +146,20 @@ docker compose -f deploy/compose/docker-compose.dev.yml up -d
 powershell -File scripts/start-all.ps1
 
 # 2. 确认测试数据已存在（见第二节，若已存在可跳过）
-go run ./.tmp_seed/main.go
+go run ./.tmp/archive/seed-harness/main.go
 
 # 3. 依次运行各场景（每个约2分50秒）
-cd .tmp_seed/k6
-k6 run scenario_c_warm.js
-k6 run scenario_a_cold.js
-k6 run scenario_b_hotspot.js
-k6 run scenario_d_mixed.js
+k6 run .tmp/archive/seed-harness/k6/scenario_c_warm.js
+k6 run .tmp/archive/seed-harness/k6/scenario_a_cold.js
+k6 run .tmp/archive/seed-harness/k6/scenario_b_hotspot.js
+k6 run .tmp/archive/seed-harness/k6/scenario_d_mixed.js
 
 # 4. 瞬时并发 + DB监控对照（约30秒）
-cd ../..
-go run ./.tmp_seed/monitor/dbmon.go > .tmp_seed/results/dbmon_a.csv &
-cd .tmp_seed/k6 && k6 run scenario_a_fixed500.js
+go run ./.tmp/archive/seed-harness/monitor/dbmon.go > .tmp/archive/seed-harness/results/dbmon_a.csv &
+k6 run .tmp/archive/seed-harness/k6/scenario_a_fixed500.js
 
 # 5. 直连数据库对照实验（约20秒）
-cd ../..
-go run ./.tmp_seed/monitor/dbdirect.go
+go run ./.tmp/archive/seed-harness/monitor/dbdirect.go
 ```
 
 
