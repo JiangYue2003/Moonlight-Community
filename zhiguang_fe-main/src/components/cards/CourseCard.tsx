@@ -82,6 +82,8 @@ const CourseCard = ({
   const [menuError, setMenuError] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const coverVariant = Array.from(id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 4;
+  const resolvedCover = coverImage?.trim();
 
   const loadDetailIfNeeded = async (id: string) => {
     if (detail || menuLoading) return;
@@ -181,9 +183,15 @@ const CourseCard = ({
     <>
       {/* 取消免费标识展示，保持卡片简洁 */}
       {/* 图片置于卡片顶部，保持原始比例；播放标识覆盖在封面中央 */}
-      {coverImage ? (
-        <div className={styles.coverWrap}>
-          <img className={styles.cover} src={coverImage} alt={title} loading="lazy" />
+      <div className={`${styles.coverWrap} ${styles[`coverVariant${coverVariant}`]} ${styles[`coverTone${coverVariant}`]}`}>
+          {resolvedCover ? (
+            <img className={styles.cover} src={resolvedCover} alt={title} loading="lazy" referrerPolicy="no-referrer" />
+          ) : (
+            <div className={styles.fallbackCover}>
+              <span className={styles.fallbackBrand}>知光笔记</span>
+              <span className={styles.fallbackTitle}>{title}</span>
+            </div>
+          )}
           {showPlayBadge ? (
             <div className={styles.playBadge}>
               <svg width="24" height="24" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -191,8 +199,7 @@ const CourseCard = ({
               </svg>
             </div>
           ) : null}
-        </div>
-      ) : null}
+      </div>
 
       <div className={styles.content}>
         <h3 className={styles.title}>{title}</h3>
@@ -208,7 +215,11 @@ const CourseCard = ({
         ) : null}
       </div>
 
-      <div className={styles.meta}>
+    </>
+  );
+
+  const metadata = (
+    <div className={styles.meta}>
         <div className={styles.teacher}>
           {teacher.avatarUrl ? (
             <img className={styles.teacherAvatarImg} src={teacher.avatarUrl} alt={teacher.name} />
@@ -239,12 +250,8 @@ const CourseCard = ({
             ) : null}
           </div>
         )}
-      </div>
-
-      {footerExtra ? (
-        <div className={styles.footerExtra}>{footerExtra}</div>
-      ) : null}
-    </>
+        {footerExtra ? <div className={styles.footerExtra}>{footerExtra}</div> : null}
+    </div>
   );
 
   return (
@@ -277,6 +284,7 @@ const CourseCard = ({
         </>
       ) : null}
       {to ? <Link to={to}>{content}</Link> : content}
+      {metadata}
     </article>
   );
 };

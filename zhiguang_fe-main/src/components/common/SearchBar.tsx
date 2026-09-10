@@ -21,7 +21,6 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
 
   return (
     <div className={styles.wrapper}>
-      <SearchIcon width={20} height={20} strokeWidth={1.8} />
       <input
         className={styles.input}
         value={value}
@@ -35,14 +34,14 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
           }
         }}
       />
-      <button className={styles.button} type="button" onClick={onSubmit}>
-        {buttonLabel}
+      <button className={styles.button} type="button" onClick={onSubmit} aria-label={buttonLabel} title={buttonLabel}>
+        <SearchIcon width={20} height={20} strokeWidth={1.8} />
       </button>
 
       {focused && (value?.trim()?.length ?? 0) > 0 && (
         <div className={styles.dropdown}>
           {suggestLoading ? (
-            <div className={styles.dropdownEmpty}>加载中…</div>
+            <div className={styles.dropdownEmpty}>加载中...</div>
           ) : suggestions?.length ? (
             suggestions.map((s) => (
               <div

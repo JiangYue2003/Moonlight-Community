@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import MainHeader from "@/components/layout/MainHeader";
 import SectionHeader from "@/components/common/SectionHeader";
@@ -13,7 +14,9 @@ import feedStyles from "./HomePage.module.css";
 import { useAuth } from "@/context/AuthContext";
 
 const SearchPage = () => {
-  const [q, setQ] = useState("");
+  const [searchParams] = useSearchParams();
+  const queryFromUrl = searchParams.get("q")?.trim() ?? "";
+  const [q, setQ] = useState(queryFromUrl);
   const [tags] = useState(""); // 逗号分隔
   const [size] = useState<number>(20);
   const [items, setItems] = useState<SearchHit[]>([]);
@@ -26,7 +29,7 @@ const SearchPage = () => {
   const { user } = useAuth();
   const [showLoginHint, setShowLoginHint] = useState(false);
 
-  const executeSearch = async (keyword: string) => {
+  const executeSearch = useCallback(async (keyword: string) => {
     const text = keyword.trim();
     if (!text) return;
     if (!user) {
@@ -46,17 +49,21 @@ const SearchPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [size, tags, user]);
+
+  useEffect(() => {
+    if (!queryFromUrl) return;
+    void executeSearch(queryFromUrl);
+  }, [executeSearch, queryFromUrl]);
 
   return (
     <AppLayout
       header={
         <MainHeader
-          headline="搜索你想学习的知识"
-          subtitle="从提示词或你的历史记录开始探索，连接灵感与成长"
+          headline="搜索"
+          variant="discovery"
           rightSlot={<AuthStatus />}
-        >
-          <SearchBar
+          centerSlot={<SearchBar
             placeholder="搜索你想学习的知识..."
             value={q}
             suggestions={suggestions}
@@ -82,8 +89,8 @@ const SearchPage = () => {
               }, 300);
             }}
             onSubmit={() => executeSearch(q)}
-          />
-        </MainHeader>
+          />}
+        />
       }
     >
       <>
@@ -92,8 +99,17 @@ const SearchPage = () => {
             当前为未登录状态，登录后可获得更完整的推荐与学习记录。
           </div>
         ) : null}
-        <SectionHeader title="搜索结果" subtitle={loading ? "加载中…" : items.length ? `共 ${items.length} 条（可能有更多）` : "请输入关键词后搜索"} />
+        <SectionHeader title="搜索结果" subtitle={loading ? "加载中..." : items.length ? `共 ${items.length} 条（可能有更多）` : "请输入关键词后搜索"} />
         <div className={feedStyles.masonry}>
+          {loading && items.length === 0 ? Array.from({ length: 10 }, (_, index) => (
+            <div key={`skeleton-${index}`} className={feedStyles.masonryItem}>
+              <div className={feedStyles.skeletonCard}>
+                <div className={`${feedStyles.skeletonCover} ${index % 3 === 1 ? feedStyles.skeletonTall : ""}`} />
+                <div className={feedStyles.skeletonLine} />
+                <div className={feedStyles.skeletonMeta} />
+              </div>
+            </div>
+          )) : null}
           {items.map(item => (
             <div key={item.contentId} className={feedStyles.masonryItem}>
               <CourseCard

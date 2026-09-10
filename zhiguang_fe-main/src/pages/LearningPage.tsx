@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import MainHeader from "@/components/layout/MainHeader";
 // 移除对 mock 数据文件的依赖，改为本地常量
@@ -10,6 +11,8 @@ import AuthStatus from "@/features/auth/AuthStatus";
 import styles from "./LearningPage.module.css";
 
 const LearningPage = () => {
+  const navigate = useNavigate();
+
   return (
     <AppLayout
       header={
@@ -21,10 +24,10 @@ const LearningPage = () => {
       }
     >
       <div className={styles.emptyCard}>
-        <div className={styles.icon}>📚</div>
+        <div className={styles.icon} aria-hidden="true">学</div>
         <div className={styles.title}>{learningEmptyState.title}</div>
         <div className={styles.description}>{learningEmptyState.description}</div>
-        <button type="button" className="ghost-button">
+        <button type="button" className="ghost-button" onClick={() => navigate("/")}>
           {learningEmptyState.actionLabel}
         </button>
       </div>

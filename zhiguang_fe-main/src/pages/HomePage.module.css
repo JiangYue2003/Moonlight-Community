@@ -1,38 +1,24 @@
-.heroRow {
-  margin-bottom: 24px;
-}
+.discoveryTools { display: flex; flex-direction: column; gap: 12px; max-width: 840px; }
+.topicRow { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.topic, .topicActive { position: relative; height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; color: #666; font-size: 15px; cursor: pointer; transition: background 160ms ease, color 160ms ease, transform 160ms ease; }
+.topic:hover { color: var(--color-text-strong); background: #f5f5f5; }
+.topicActive { color: var(--color-text-strong); background: #f3f3f3; font-weight: 650; }
+.topicActive::after { content: ""; position: absolute; right: 16px; bottom: 2px; left: 16px; height: 2px; border-radius: 2px; background: var(--color-primary); }
+.topic:active, .topicActive:active { transform: scale(.97); }
+.masonry { column-count: 6; column-gap: 18px; }
+.masonryItem { width: 100%; break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 24px; }
+.stateCard, .stateError { padding: 20px; border-radius: 8px; background: #f7f7f7; color: var(--color-text-muted); font-size: 14px; text-align: center; }
+.stateError { margin-bottom: 4px; color: var(--color-danger); background: rgba(195,72,72,.06); }
+.skeletonCard { display: flex; flex-direction: column; gap: 10px; }
+.skeletonCover, .skeletonLine, .skeletonMeta { position: relative; overflow: hidden; border-radius: 8px; background: #f2f2f2; }
+.skeletonCover { aspect-ratio: 4 / 5; }
+.skeletonTall { aspect-ratio: 3 / 4; }
+.skeletonLine { width: 88%; height: 18px; border-radius: 4px; }
+.skeletonMeta { width: 54%; height: 14px; border-radius: 4px; }
+.skeletonCover::after, .skeletonLine::after, .skeletonMeta::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent); animation: skeleton-shimmer 1.3s ease-in-out infinite; }
 
-.masonry {
-  column-count: 4;
-  column-gap: 24px;
-}
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
 
-.masonryItem {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  margin-bottom: 24px;
-  /* 保持卡片宽度由列宽决定，不额外增加内边距 */
-}
-
-.heroCard {
-  /* 作为顶部大卡展示，宽度占可用区域 */
-  width: 100%;
-}
-
-@media (max-width: 1200px) {
-  .masonry {
-    column-count: 3;
-  }
-}
-
-@media (max-width: 1000px) {
-  .masonry {
-    column-count: 2;
-  }
-}
-
-@media (max-width: 700px) {
-  .masonry {
-    column-count: 1;
-  }
-}
+@media (max-width: 1727px) { .masonry { column-count: 5; } }
+@media (max-width: 1191px) { .masonry { column-count: 4; } }
+@media (prefers-reduced-motion: reduce) { .skeletonCover::after, .skeletonLine::after, .skeletonMeta::after { animation: none; } }
