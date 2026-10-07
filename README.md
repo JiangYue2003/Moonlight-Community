@@ -75,6 +75,21 @@ zhiguang-go/
 
 发布知文时，MySQL 在同一事务中更新内容并写入 `outbox`。Canal 订阅 binlog，将事件送入 Kafka，搜索服务随后更新索引。关注和取关采用相同的事务写入方式；`relation-syncer` 再更新粉丝反查表、Redis 关系列表和相关计数。
 
+```mermaid
+flowchart TB
+    Publish["发布知文"] --> PostTx["knowpost<br/>内容 + outbox 同事务"]
+    Follow["关注 / 取关"] --> FollowTx["relation<br/>following + outbox 同事务"]
+    PostTx --> Writer["FeedWriter<br/>提交后仍在请求路径"] --> PublishReply["发布响应"]
+    FollowTx --> FollowReply["关系响应"]
+    PostTx -. "binlog" .-> Canal["Canal"]
+    FollowTx -. "binlog" .-> Canal
+    Canal --> Events["Kafka: canal-outbox"]
+    Events -- "知文事件" --> Indexer["search-indexer"] --> ES["Elasticsearch 索引"]
+    Events -- "关注事件" --> Syncer["relation-syncer"] --> RelationView["follower 表 / Redis ZSet / 计数"]
+```
+
+虚线从已提交的事务进入 CDC 链路；搜索和关系投影由 Kafka 消费者后续更新。FeedWriter 虽然也在提交后运行，但仍占用发布请求路径，且投递失败不会回滚事务。
+
 发布和关注请求不会等待这些投影更新，短时间内可能读到旧数据。消费端通过去重和重试处理重复投递与暂时性故障，但仍需要补偿机制。[核心业务流程](./docs/business-flows.md)记录了四条主要调用链。
 
 Feed 投递目前走另一条路径。发布事务提交后，FeedWriter 仍在请求路径写入作者收件箱并发送 `feed-fanout`；失败只记日志，已发布的知文不会回滚。Kafka worker 随后批量写入普通作者的粉丝收件箱。这条链路还缺少与发布事务衔接的可靠投递闭环。
@@ -82,6 +97,28 @@ Feed 投递目前走另一条路径。发布事务提交后，FeedWriter 仍在�
 ### 个性化 Feed
 
 Hybrid 策略根据作者的粉丝数选择投递方式。粉丝不超过 1,000 人时，发帖后异步写入粉丝 Inbox；超过 1,000 人时，帖子写入作者的 BigV Outbox，由读者请求时拉取并与 Inbox 归并。仓库还保留纯 Push 和纯 Pull 策略，便于对照测试。Inbox 和 Outbox 都设置了容量上限与 TTL，以控制 Redis 占用；过期或超出容量的内容不会继续保留在这些列表中。
+
+```mermaid
+flowchart TB
+    Published["发布事务已提交"] --> Writer["FeedWriter"]
+    Writer --> Inbox["Redis Inbox<br/>作者本人及普通作者粉丝"]
+    Writer --> Route{"Hybrid: 粉丝数 > 1,000?"}
+    Route -- "否" --> Fanout["Kafka: feed-fanout"] --> Worker["Feed worker"] --> Inbox
+    Route -- "是" --> BigV["Redis BigV Outbox<br/>按作者存储"]
+
+    PageRead["合格首页请求<br/>page=1, size=20"] --> Epoch["关系 epoch + 内容安全 epoch"] --> PageCache{"L1 / L2 页面缓存有效?"}
+    PageCache -- "是" --> Reply["返回 Feed"]
+    PageCache -- "否" --> Snapshot["RouteSnapshot<br/>关注关系与作者分层"]
+    OtherRead["Cursor / 其他请求"] --> Snapshot
+    Snapshot --> Inbox
+    Snapshot --> BigV
+    Inbox --> Merge["批量读取、归并与去重"]
+    BigV --> Merge
+    Merge --> Hydrate["装载知文、校验可见性与分页"] --> Reply
+    Hydrate -. "合格首页回填" .-> PageCache
+```
+
+图中的页面缓存只在 Hybrid 策略且相关开关开启时用于 `page=1, size=20`；Cursor 请求绕过整页缓存。缓存读取完成后还会复核 epoch，变化或读取失败时重新计算。
 
 读路径实现了版本化 RouteSnapshot、合并 Redis Pipeline、第一页完整 L1/L2 缓存、同 key Singleflight、限额 SWR 刷新和 Cursor/seek 深分页。关系 epoch 与内容安全 epoch 控制缓存页的有效性：关注变化、内容删除或转私密后，旧页面不能继续作为可信结果返回。
 
@@ -91,7 +128,33 @@ Hybrid 策略根据作者的粉丝数选择投递方式。粉丝不超过 1,000 
 
 知文详情和公开 Feed 先查进程内 L1，再查 Redis L2，最后回源数据库。失效、TTL 抖动和 Singleflight 用来控制旧数据窗口及并发回源压力。MySQL 事务提交后，缓存失效尚未完成的短暂窗口内仍可能读到旧值，缓存和投影均不保证强一致。[缓存一致性说明](./docs/cache-consistency.md)分别说明了模型缓存和业务缓存的处理方式。
 
+```mermaid
+flowchart LR
+    Read["详情 / 公开 Feed 读取"] --> L1["进程内 L1"]
+    L1 -- "未命中" --> L2["Redis L2"]
+    L2 -- "未命中" --> ReadDB["MySQL 查询"]
+    ReadDB -. "回填" .-> L2
+    L2 -. "回填" .-> L1
+    Write["内容写入"] --> Before["写前失效"] --> WriteDB["MySQL 提交"] --> After["提交后再次失效"]
+    Before -.-> L1
+    Before -.-> L2
+    After -.-> L1
+    After -.-> L2
+```
+
 点赞和收藏的状态保存在 Redis 位图中。aggregator 消费 Kafka 事件后更新对外计数，reconciler 可根据位图校正计数偏差。这降低了同步写入成本，也使位图成为必须保护的数据：当前没有可用于完整恢复的 MySQL 明细。若位图丢失，计数对账无法找回用户的点赞和收藏状态。[可靠性边界](./docs/reliability-mq-cache.md)还记录了开发环境的单点依赖。
+
+```mermaid
+flowchart LR
+    Toggle["点赞 / 收藏"] --> Bitmap["Redis 位图<br/>互动事实"]
+    Toggle -. "状态变化后尽力发送" .-> Events["Kafka: counter-events"]
+    Events --> Aggregator["aggregator 聚合与 flush"] --> Counts["Redis SDS<br/>对外计数"]
+    Bitmap -- "BitCount" --> Reconciler["reconciler"]
+    Counts -- "读取当前计数" --> Reconciler
+    Reconciler -- "超阈值时校正" --> Counts
+    CountRead["读取计数"] --> Counts
+    MarkRead["查询是否点赞 / 收藏"] --> Bitmap
+```
 
 ### 运行拓扑与测试证据
 
