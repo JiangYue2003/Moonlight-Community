@@ -1,10 +1,96 @@
-.bar, ._bar { display: inline-flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 12px; }
-.btn { display: inline-flex; align-items: center; gap: 3px; min-width: 26px; padding: 3px 0; border: 0; outline: 0; background: transparent; color: inherit; cursor: pointer; user-select: none; transition: color 160ms ease, transform 160ms ease; }
-.btn:hover { color: var(--color-primary-strong); }
-.btn:active { transform: scale(.94); }
-.btn:focus-visible { outline: 2px solid rgba(47,100,214,.24); outline-offset: 2px; border-radius: 5px; }
-.liked { color: #c6535f; }
-.faved { color: var(--color-primary-strong); }
-.count { min-width: 8px; font-variant-numeric: tabular-nums; }
-.compact .btn { padding: 0; }
-.disabled { opacity: .6; pointer-events: none; }
+.bar, ._bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  outline: 0;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: var(--shadow-xs);
+  transition: all 180ms var(--ease-spring);
+}
+
+.btn:hover {
+  color: var(--color-text-strong);
+  border-color: rgba(47, 95, 232, 0.3);
+  background: var(--color-surface-soft);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.liked {
+  color: #ef4444;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.liked:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.liked svg {
+  fill: #ef4444;
+  color: #ef4444;
+  animation: heartPop 360ms var(--ease-spring);
+}
+
+.faved {
+  color: var(--color-primary-strong);
+  background: var(--color-primary-soft);
+  border-color: rgba(47, 95, 232, 0.25);
+}
+
+.faved:hover {
+  color: var(--color-primary-strong);
+  background: #e0eaff;
+}
+
+.faved svg {
+  fill: var(--color-primary);
+  color: var(--color-primary);
+  animation: heartPop 360ms var(--ease-spring);
+}
+
+.count {
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+
+.compact .btn {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.32); }
+  75% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}

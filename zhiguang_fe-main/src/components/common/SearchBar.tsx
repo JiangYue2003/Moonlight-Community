@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { SearchIcon } from "@/components/icons/Icon";
 import styles from "./SearchBar.module.css";
 
@@ -13,8 +13,19 @@ type SearchBarProps = {
   onSuggestionClick?: (value: string) => void;
 };
 
-const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜索", suggestions = [], suggestLoading = false, onSuggestionClick }: SearchBarProps) => {
+const SearchBar = ({
+  placeholder = "搜索知文、标签、作者...",
+  value,
+  onChange,
+  onSubmit,
+  buttonLabel = "搜索",
+  suggestions = [],
+  suggestLoading = false,
+  onSuggestionClick
+}: SearchBarProps) => {
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange(event.target.value);
   };
@@ -22,26 +33,36 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
   return (
     <div className={styles.wrapper}>
       <input
+        ref={inputRef}
         className={styles.input}
         value={value}
         placeholder={placeholder}
         onChange={handleChange}
         onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 120)}
+        onBlur={() => setTimeout(() => setFocused(false), 140)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             onSubmit?.();
           }
         }}
       />
-      <button className={styles.button} type="button" onClick={onSubmit} aria-label={buttonLabel} title={buttonLabel}>
-        <SearchIcon width={20} height={20} strokeWidth={1.8} />
+      {!focused && !value && (
+        <span className={styles.kbd}>⌘K</span>
+      )}
+      <button
+        className={styles.button}
+        type="button"
+        onClick={onSubmit}
+        aria-label={buttonLabel}
+        title={buttonLabel}
+      >
+        <SearchIcon width={18} height={18} strokeWidth={2} />
       </button>
 
       {focused && (value?.trim()?.length ?? 0) > 0 && (
         <div className={styles.dropdown}>
           {suggestLoading ? (
-            <div className={styles.dropdownEmpty}>加载中...</div>
+            <div className={styles.dropdownEmpty}>正在检索相关建议...</div>
           ) : suggestions?.length ? (
             suggestions.map((s) => (
               <div
@@ -49,7 +70,8 @@ const SearchBar = ({ placeholder, value, onChange, onSubmit, buttonLabel = "搜�
                 className={styles.dropdownItem}
                 onMouseDown={() => onSuggestionClick?.(s)}
               >
-                {s}
+                <SearchIcon width={14} height={14} strokeWidth={1.8} style={{ opacity: 0.5 }} />
+                <span>{s}</span>
               </div>
             ))
           ) : (

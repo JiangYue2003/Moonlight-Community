@@ -1,20 +1,19 @@
-import type { ReactNode } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import styles from "./AppLayout.module.css";
 
-type AppLayoutProps = {
+type AppLayoutProps = PropsWithChildren<{
   header?: ReactNode;
-  children: ReactNode;
-  variant?: "default" | "cardless";
-};
+  variant?: "default" | "detail" | "plain" | "cardless";
+}>;
 
-const AppLayout = ({ header, children, variant = "default" }: AppLayoutProps) => {
+const AppLayout = ({ children, header, variant = "default" }: AppLayoutProps) => {
   return (
     <div className="app-shell">
       <Sidebar />
-      <div className={styles.container}>
-        {header}
-        <div className={variant === "default" ? styles.pageCard : styles.main}>{children}</div>
+      <div className={`${styles.mainContent} ${variant === "detail" || variant === "cardless" ? styles.mainDetail : ""}`}>
+        {header ? <div className={styles.headerWrapper}>{header}</div> : null}
+        <main className={styles.body}>{children}</main>
       </div>
     </div>
   );

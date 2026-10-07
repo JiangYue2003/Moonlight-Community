@@ -16,6 +16,10 @@ import (
 )
 
 func Run(ctx context.Context, cfg Config) error {
+	if !cfg.HasEtcd() || cfg.Etcd.Key != "counter.rpc" {
+		return errors.New("counter RPC requires Etcd hosts and key counter.rpc")
+	}
+
 	svcCtx := application.NewServiceContext(application.Config{
 		Redis:   cfg.Redis,
 		Kafka:   cfg.Kafka,

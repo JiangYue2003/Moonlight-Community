@@ -144,11 +144,15 @@ func TestDevComposePublishesHostReachableRPCAndWaitsForHealth(t *testing.T) {
 		}
 	}
 
-	for _, name := range []string{"user", "storage", "counter", "knowpost", "relation", "search"} {
+	for _, name := range []string{"user", "storage", "knowpost", "relation", "search"} {
 		environment := mapValue(t, name+".environment", services[name]["environment"])
 		if got := stringValue(environment["POD_IP"]); got != "127.0.0.1" {
 			t.Errorf("%s POD_IP = %q, want 127.0.0.1", name, got)
 		}
+	}
+	counterEnvironment := mapValue(t, "counter.environment", services["counter"]["environment"])
+	if got := stringValue(counterEnvironment["POD_IP"]); got != "host.docker.internal" {
+		t.Errorf("counter POD_IP = %q, want host.docker.internal", got)
 	}
 	knowPostEnvironment := mapValue(t, "knowpost.environment", services["knowpost"]["environment"])
 	if got := stringValue(knowPostEnvironment["FEED_RELATION_EPOCH_ENABLED"]); got != "${FEED_RELATION_EPOCH_ENABLED:-false}" {
@@ -373,28 +377,8 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 		},
 		{
 			file:     "services/gateway/etc/gateway-docker.yaml",
-			path:     []string{"CounterRpc"},
-			endpoint: "counter:9003",
-		},
-		{
-			file:     "services/gateway/etc/gateway-docker.yaml",
-			path:     []string{"UserCounterRpc"},
-			endpoint: "counter:9003",
-		},
-		{
-			file:     "services/gateway/etc/gateway-docker.yaml",
 			path:     []string{"SearchRpc"},
 			endpoint: "search:9017",
-		},
-		{
-			file:     "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml",
-			path:     []string{"Rpc", "UserCounterRpc"},
-			endpoint: "counter:9003",
-		},
-		{
-			file:     "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml",
-			path:     []string{"Rpc", "CounterRpc"},
-			endpoint: "counter:9003",
 		},
 		{
 			file:     "services/knowpost/cmd/knowpost/etc/knowpost-docker.yaml",
@@ -405,16 +389,6 @@ func TestDockerConfigsUseContainerEndpointsForActiveRPCClients(t *testing.T) {
 			file:     "services/relation/cmd/relation/etc/relation-docker.yaml",
 			path:     []string{"Rpc", "UserRpc"},
 			endpoint: "user:9002",
-		},
-		{
-			file:     "services/relation/cmd/relation/etc/relation-docker.yaml",
-			path:     []string{"Syncer", "UserCounterRpc"},
-			endpoint: "counter:9003",
-		},
-		{
-			file:     "services/search/cmd/search/etc/search-docker.yaml",
-			path:     []string{"Rpc", "CounterRpc"},
-			endpoint: "counter:9003",
 		},
 		{
 			file:     "services/search/cmd/search/etc/search-docker.yaml",
@@ -531,15 +505,15 @@ func TestUserGenerationRetainsOnlyPublicRpcContracts(t *testing.T) {
 				t.Errorf("%s missing %q", testCase.file, snippet)
 			}
 		}
-			if strings.Contains(string(content), "-dir services/auth/rpc/internal/model") {
-				t.Errorf("%s still generates login logs under the retired auth RPC runtime", testCase.file)
-			}
-			for _, forbidden := range []string{"proto/auth/auth.proto", "services/auth/rpc"} {
-				if strings.Contains(string(content), forbidden) {
-					t.Errorf("%s still references retired auth generation path %q", testCase.file, forbidden)
-				}
+		if strings.Contains(string(content), "-dir services/auth/rpc/internal/model") {
+			t.Errorf("%s still generates login logs under the retired auth RPC runtime", testCase.file)
+		}
+		for _, forbidden := range []string{"proto/auth/auth.proto", "services/auth/rpc"} {
+			if strings.Contains(string(content), forbidden) {
+				t.Errorf("%s still references retired auth generation path %q", testCase.file, forbidden)
 			}
 		}
+	}
 }
 
 func loadDevComposeServices(t *testing.T) map[string]map[string]any {

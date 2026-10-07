@@ -265,6 +265,9 @@ services:
   counter:
     <<: *core-service
     container_name: zg-counter
+    environment:
+      TZ: Asia/Shanghai
+      POD_IP: host.docker.internal
     depends_on:
       etcd:
         condition: service_healthy

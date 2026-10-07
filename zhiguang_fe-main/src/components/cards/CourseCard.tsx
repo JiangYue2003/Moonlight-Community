@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 import Tag from "@/components/common/Tag";
-import { HeartIcon } from "@/components/icons/Icon";
+import { HeartIcon, EyeIcon } from "@/components/icons/Icon";
 import { useAuth } from "@/context/AuthContext";
 import { knowpostService } from "@/services/knowpostService";
 import type { KnowpostDetailResponse, VisibleScope } from "@/types/knowpost";
@@ -62,12 +62,10 @@ const CourseCard = ({
   summary,
   tags,
   authorTags,
-  isFree = true,
   isTop,
   teacher,
   stats,
   coverImage,
-  layout = "vertical",
   showPlayBadge,
   footerExtra,
   to,
@@ -107,7 +105,6 @@ const CourseCard = ({
     }
   };
 
-  // 点击卡片其他区域收起菜单
   useEffect(() => {
     if (!menuOpen) return;
     const onDocClick = (e: MouseEvent) => {
@@ -181,24 +178,22 @@ const CourseCard = ({
 
   const content = (
     <>
-      {/* 取消免费标识展示，保持卡片简洁 */}
-      {/* 图片置于卡片顶部，保持原始比例；播放标识覆盖在封面中央 */}
       <div className={`${styles.coverWrap} ${styles[`coverVariant${coverVariant}`]} ${styles[`coverTone${coverVariant}`]}`}>
-          {resolvedCover ? (
-            <img className={styles.cover} src={resolvedCover} alt={title} loading="lazy" referrerPolicy="no-referrer" />
-          ) : (
-            <div className={styles.fallbackCover}>
-              <span className={styles.fallbackBrand}>知光笔记</span>
-              <span className={styles.fallbackTitle}>{title}</span>
-            </div>
-          )}
-          {showPlayBadge ? (
-            <div className={styles.playBadge}>
-              <svg width="24" height="24" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <polygon points="6,4 12,8 6,12" fill="currentColor" />
-              </svg>
-            </div>
-          ) : null}
+        {resolvedCover ? (
+          <img className={styles.cover} src={resolvedCover} alt={title} loading="lazy" referrerPolicy="no-referrer" />
+        ) : (
+          <div className={styles.fallbackCover}>
+            <span className={styles.fallbackBrand}>知光笔记</span>
+            <span className={styles.fallbackTitle}>{title}</span>
+          </div>
+        )}
+        {showPlayBadge ? (
+          <div className={styles.playBadge}>
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <polygon points="6,4 12,8 6,12" />
+            </svg>
+          </div>
+        ) : null}
       </div>
 
       <div className={styles.content}>
@@ -214,43 +209,45 @@ const CourseCard = ({
           </div>
         ) : null}
       </div>
-
     </>
   );
 
   const metadata = (
     <div className={styles.meta}>
-        <div className={styles.teacher}>
-          {teacher.avatarUrl ? (
-            <img className={styles.teacherAvatarImg} src={teacher.avatarUrl} alt={teacher.name} />
-          ) : (
-            <div className={styles.teacherAvatar}>{teacher.avatarText ?? (teacher.name?.charAt(0) || "?")}</div>
-          )}
-          <div className={styles.teacherInfo}>
-            <span className={styles.teacherName}>{teacher.name}</span>
-            {authorTags?.length ? (
-              <div className={styles.authorTags}>
-                {authorTags.map(tag => (
-                  <span key={tag} className={styles.authorTag}>#{tag}</span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-        {footerExtra ? null : (
-          <div className={styles.stats}>
-            {stats ? (
-              <>
-                <span className={styles.statItem}>
-                  <HeartIcon width={16} height={16} strokeWidth={1.6} />
-                  {stats.likes}
-                </span>
-                <span className={styles.statItem}>👁️ {stats.views}</span>
-              </>
-            ) : null}
-          </div>
+      <div className={styles.teacher}>
+        {teacher.avatarUrl ? (
+          <img className={styles.teacherAvatarImg} src={teacher.avatarUrl} alt={teacher.name} />
+        ) : (
+          <div className={styles.teacherAvatar}>{teacher.avatarText ?? (teacher.name?.charAt(0) || "?")}</div>
         )}
-        {footerExtra ? <div className={styles.footerExtra}>{footerExtra}</div> : null}
+        <div className={styles.teacherInfo}>
+          <span className={styles.teacherName}>{teacher.name}</span>
+          {authorTags?.length ? (
+            <div className={styles.authorTags}>
+              {authorTags.map(tag => (
+                <span key={tag} className={styles.authorTag}>#{tag}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {footerExtra ? null : (
+        <div className={styles.stats}>
+          {stats ? (
+            <>
+              <span className={`${styles.statItem} ${styles.statHeart}`}>
+                <HeartIcon width={14} height={14} strokeWidth={1.8} />
+                {stats.likes}
+              </span>
+              <span className={styles.statItem}>
+                <EyeIcon width={14} height={14} strokeWidth={1.8} />
+                {stats.views}
+              </span>
+            </>
+          ) : null}
+        </div>
+      )}
+      {footerExtra ? <div className={styles.footerExtra}>{footerExtra}</div> : null}
     </div>
   );
 

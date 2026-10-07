@@ -4,7 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import MainHeader from "@/components/layout/MainHeader";
 import Tag from "@/components/common/Tag";
 import SectionHeader from "@/components/common/SectionHeader";
-import { ArrowRightIcon } from "@/components/icons/Icon";
+import { ArrowRightIcon, SparkIcon } from "@/components/icons/Icon";
 import AuthStatus from "@/features/auth/AuthStatus";
 import styles from "./CourseDetailPage.module.css";
 import { knowpostService } from "@/services/knowpostService";
@@ -16,6 +16,12 @@ import LikeFavBar from "@/components/common/LikeFavBar";
 import FollowButton from "@/components/common/FollowButton";
 
 const EMPTY_IMAGES: string[] = [];
+
+const QUICK_PROMPTS = [
+  "总结本文核心要点",
+  "有哪些关键技术或实践建议？",
+  "这篇知文适合哪类受众阅读？",
+];
 
 const CourseDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +40,7 @@ const CourseDetailPage = () => {
   const [showNavLeft, setShowNavLeft] = useState(false);
   const [showNavRight, setShowNavRight] = useState(false);
   const [isTouch, setIsTouch] = useState(false);
+
   // RAG 问答状态
   const [ragQuestion, setRagQuestion] = useState<string>("");
   const [ragAnswer, setRagAnswer] = useState<string>("");
@@ -89,8 +96,8 @@ const CourseDetailPage = () => {
       const el = rowRef.current;
       if (!el) return;
       const width = el.clientWidth;
-      const itemW = 180;
-      const gap = 12;
+      const itemW = 190;
+      const gap = 14;
       const count = Math.max(1, Math.floor((width + gap) / (itemW + gap)));
       setVisibleCount(count);
     };
@@ -110,9 +117,9 @@ const CourseDetailPage = () => {
 
   const handlePreviewMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isTouch) return;
-    const el = previewBoxRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
+    const box = previewBoxRef.current;
+    if (!box) return;
+    const rect = box.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const threshold = Math.max(60, Math.min(120, rect.width * 0.08));
     setShowNavLeft(x < threshold);
@@ -141,9 +148,9 @@ const CourseDetailPage = () => {
   };
 
   // 启动 RAG 流式问答
-  const startRag = () => {
+  const executeRag = (questionToAsk: string) => {
     if (!id) return;
-    const q = ragQuestion.trim();
+    const q = questionToAsk.trim();
     if (!q) return;
     if (detail && detail.visible !== "public") {
       setRagError("仅公开知文支持问答");
@@ -151,7 +158,6 @@ const CourseDetailPage = () => {
     }
     setRagError(null);
     setRagAnswer("");
-    // 关闭之前的连接
     if (ragESRef.current) {
       try { ragESRef.current.close(); } catch {}
       ragESRef.current = null;
@@ -165,10 +171,18 @@ const CourseDetailPage = () => {
     };
     es.onerror = () => {
       setRagLoading(false);
-      // 不展示“连接中断或后端异常”，静默关闭连接
       try { es.close(); } catch {}
       ragESRef.current = null;
     };
+  };
+
+  const startRag = () => {
+    executeRag(ragQuestion);
+  };
+
+  const handlePromptChipClick = (prompt: string) => {
+    setRagQuestion(prompt);
+    executeRag(prompt);
   };
 
   const stopRag = () => {
@@ -181,7 +195,6 @@ const CourseDetailPage = () => {
 
   useEffect(() => {
     return () => {
-      // 页面卸载时关闭 SSE
       if (ragESRef.current) {
         try { ragESRef.current.close(); } catch {}
         ragESRef.current = null;
@@ -193,7 +206,7 @@ const CourseDetailPage = () => {
     <AppLayout
       header={
         <MainHeader
-          headline={detail?.title ?? ""}
+          headline={detail?.title ?? "知文详情"}
           subtitle=""
           rightSlot={<AuthStatus />}
         />
@@ -202,6 +215,7 @@ const CourseDetailPage = () => {
     >
       <article className={styles.detailCard}>
         {error ? <div style={{ color: "var(--color-danger)" }}>{error}</div> : null}
+        
         {images.length ? (
           <div ref={rowRef} className={styles.imageRow}>
             {(images.slice(0, visibleCount)).map((src, idx) => {
@@ -217,36 +231,46 @@ const CourseDetailPage = () => {
             })}
           </div>
         ) : null}
-        <div className={styles.titleBlock}>
-          <div className={styles.titleRow}></div>
-          <div className={styles.meta}>
-            <span className={styles.authorName}>{detail ? `用户 ${detail.creatorId}` : ""}</span>
-            {detail && user?.id !== detail.creatorId ? <FollowButton targetUserId={detail.creatorId} /> : null}
-          </div>
-          <div className={styles.tagList}>
-            {(detail?.tags ?? []).map(tag => (
-              <Tag key={tag}>#{tag}</Tag>
-            ))}
-          </div>
-          <div className={styles.meta}>
-            {detail?.publishTime ? (
-              <span>{new Date(detail.publishTime).toLocaleDateString("zh-CN")}</span>
-            ) : null}
-          </div>
-          <div className={styles.bottomBar}>
-            {detail ? (
-              <LikeFavBar
-                entityId={detail.id}
-                fetchCounts
-              />
-            ) : null}
-          </div>
-        </div>
 
-        <SectionHeader title="内容正文" subtitle="" />
+        <div className={styles.titleBlock}>
+          <h1 className={styles.title}>{detail?.title || "无标题知文"}</h1>
+          
+          <div className={styles.metaHeader}>
+            <div className={styles.authorBlock}>
+              <div className={styles.authorAvatarFallback}>
+                {detail ? String(detail.creatorId).slice(-2) : "U"}
+              </div>
+              <div className={styles.authorMeta}>
+                <span className={styles.authorName}>{detail ? `用户 ${detail.creatorId}` : "创作者"}</span>
+                {detail?.publishTime ? (
+                  <span className={styles.publishTime}>发布于 {new Date(detail.publishTime).toLocaleDateString("zh-CN")}</span>
+                ) : null}
+              </div>
+              {detail && user?.id !== detail.creatorId ? <FollowButton targetUserId={detail.creatorId} /> : null}
+            </div>
+
+            <div className={styles.bottomBar}>
+              {detail ? (
+                <LikeFavBar
+                  entityId={detail.id}
+                  fetchCounts
+                />
+              ) : null}
+            </div>
+          </div>
+
+          {detail?.tags && detail.tags.length > 0 ? (
+            <div className={styles.tagList}>
+              {detail.tags.map(tag => (
+                <Tag key={tag}>#{tag}</Tag>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className={styles.contentRow}>
           <div className={styles.contentMain}>
+            <SectionHeader title="知文正文" subtitle="" />
             <div className={`${styles.body} ${styles.markdown}`}>
               {contentText ? (
                 <ReactMarkdown
@@ -263,21 +287,53 @@ const CourseDetailPage = () => {
                   {contentText}
                 </ReactMarkdown>
               ) : (
-                "暂无内容"
+                <div style={{ color: "var(--color-text-subtle)", padding: "20px 0" }}>暂无内容</div>
               )}
             </div>
             {contentError ? (
-              <div style={{ color: "var(--color-danger)" }}>{contentError} {detail?.contentUrl ? (<a href={detail.contentUrl} target="_blank" rel="noreferrer">查看原文</a>) : null}</div>
+              <div style={{ color: "var(--color-danger)", marginTop: 12 }}>
+                {contentError} {detail?.contentUrl ? (<a href={detail.contentUrl} target="_blank" rel="noreferrer">查看原文</a>) : null}
+              </div>
             ) : null}
           </div>
 
           <aside className={styles.ragPanel}>
+            <div className={styles.ragHeader}>
+              <div className={styles.ragHeaderTitle}>
+                <SparkIcon width={17} height={17} style={{ color: "var(--color-primary)" }} />
+                <span>知光 AI 智能伴读</span>
+              </div>
+              <div className={styles.ragStatusPill}>
+                <span className={styles.ragDot} />
+                <span>实时索引就绪</span>
+              </div>
+            </div>
+
             <div className={styles.ragBody}>
+              <div className={styles.ragChips}>
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className={styles.ragChip}
+                    onClick={() => handlePromptChipClick(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 className={styles.ragTextarea}
                 placeholder="围绕本知文提问，例如：这篇知文的核心观点是什么？"
                 value={ragQuestion}
                 onChange={(e) => setRagQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    startRag();
+                  }
+                }}
               />
               <div className={styles.ragControls}>
                 <button
@@ -286,17 +342,22 @@ const CourseDetailPage = () => {
                   onClick={startRag}
                   disabled={ragLoading || !ragQuestion.trim()}
                 >
-                  {ragLoading ? "生成中..." : "发送"}
+                  {ragLoading ? "思考生成中..." : "发送提问"}
                 </button>
-                <button type="button" className={`${styles.ragBtn} ${styles.ragBtnGhost}`} onClick={stopRag} disabled={!ragLoading}>
+                <button
+                  type="button"
+                  className={`${styles.ragBtn} ${styles.ragBtnGhost}`}
+                  onClick={stopRag}
+                  disabled={!ragLoading}
+                >
                   停止
                 </button>
               </div>
               <div className={styles.ragHint}>
-                说明：仅“公开”知文支持问答，答案基于当前知文的索引片段实时生成。
+                基于知光 RAG 引擎实时检索，仅公开知文支持深度伴读回答。快捷键 ⌘+Enter 发送。
               </div>
               {ragError ? (
-                <div style={{ color: "var(--color-danger)" }}>{ragError}</div>
+                <div style={{ color: "var(--color-danger)", fontSize: 13 }}>{ragError}</div>
               ) : null}
               <div className={styles.ragAnswer}>
                 {ragAnswer ? (
@@ -317,7 +378,7 @@ const CourseDetailPage = () => {
                   </div>
                 ) : (
                   <div className={styles.ragPlaceholder}>
-                    {ragLoading ? "等待生成..." : "这里将展示答案（支持流式）"}
+                    {ragLoading ? "知光 AI 正在查阅索引并组织回答..." : "输入问题或点击上方快捷提示词，获取 AI 深度解答"}
                   </div>
                 )}
               </div>
@@ -351,7 +412,14 @@ const CourseDetailPage = () => {
               >
                 <ArrowRightIcon width={24} height={24} />
               </button>
-              <button type="button" className={styles.closeButton} onClick={(e) => { e.stopPropagation(); setPreviewOpen(false); }} aria-label="关闭">×</button>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={(e) => { e.stopPropagation(); setPreviewOpen(false); }}
+                aria-label="关闭"
+              >
+                ×
+              </button>
             </div>
           </div>
         ) : null}
